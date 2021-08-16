@@ -1,0 +1,88 @@
+.\"  SPDX-License-Identifier: GPL-2.0-or-later
+.\"
+.\"  Copyright (C) 2021, Western Digital Corporation or its affiliates.
+.\"  Written by Damien Le Moal <damien.lemoal@wdc.com>
+.\"
+.TH cdladm 8
+.SH NAME
+cdladm \- Manage command duration limit pages
+
+.SH SYNOPSIS
+.B cdladm
+[
+.B \-\-version
+]
+[
+.B \-h|\-\-help
+]
+[
+.B \-v|\-\-verbose
+]
+[
+.B \-\-list\-pages
+]
+[
+.B \-\-show\-pages
+]
+[
+.B \-\-show\-page
+.I page name
+]
+[
+.B \-\-save\-page
+.I page name
+]
+[
+.B \-\-upload\-page
+.I page file
+]
+.I device
+
+.SH DESCRIPTION
+.B cdladm
+is used to inspect and modify command duration limits descriptor pages of devices
+supporting the command duration limits feature.
+
+.SH OPTIONS
+.TP
+\fB\-\-version\fR
+Display version and exit
+
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display a short usage message and exit.
+
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Verbose output.
+
+.TP
+.BI \-\-list\-pages
+List the command duration limit pages supported by the device.
+
+.TP
+.BI \-\-show\-pages
+Print all the command duration limit pages supported by the device.
+
+.TP
+.BI \-\-show\-page " page_name"
+Print the specified command duration limit page. \fIpage_name\fR can be "A",
+"B", "T2A" or "T2B".
+
+.TP
+.BI \-\-save\-page " page_name"
+Save to a file the specified command duration limit page. \fIpage_name\fR
+can be "A", "B", "T2A" or "T2B".
+
+.TP
+.BI \-\-upload\-page " page_file"
+Upload (write) to the device a command duration limit page. \fIpage_file\fR
+must have the same format as the page file produced by the \fB\-\-save\-page\fR
+option.
+
+.SH AUTHOR
+This version of \fBcdladm\fR was written by Damien Le Moal.
+
+.SH AVAILABILITY
+.B cdladm
+is available from https://bitbucket.wdc.com/projects/LINKER/repos/cdl-tools/browse

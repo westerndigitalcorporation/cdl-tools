@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: CC0-1.0
+#
+# Copyright (c) 2021 Western Digital Corporation or its affiliates.
+
+# Object files
+*.o
+*.lo
+*.ko
+*.obj
+*.elf
+*.mod.c
+.*.o.cmd
+.*.ko.cmd
+*.lib
+*.a
+*.la
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+src/cdladm
+
+# Kernel compile files
+*.symvers
+modules.order
+.tmp_versions
+
+# Dependency files
+.depfile
+.depend
+
+# Windows-specific files
+Thumbs.db
+desktop.ini
+
+# Mac-specific things
+.DS_Store
+._.DS_Store
+
+# Editors temporary files
+*~
+
+# Autotools stuff
+m4/*.m4
+aclocal.m4
+autom4te.cache/
+build-aux/
+configure
+Makefile.in
+Makefile
+config.log
+config.status
+src/stamp-h1
+config.h
+config.h.in
+.deps
+libtool
+.libs
+.dirstamp
+
+# Built RPMs
+*.rpm
