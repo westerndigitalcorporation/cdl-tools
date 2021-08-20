@@ -70,6 +70,7 @@ struct cdl_page {
  * Device flags.
  */
 #define CDL_VERBOSE	(1ULL << 0)
+#define CDL_USE_MS_SP	(1ULL << 1)
 
 #define CDL_VENDOR_LEN	9
 #define CDL_ID_LEN	17

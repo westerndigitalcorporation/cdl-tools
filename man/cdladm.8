@@ -41,7 +41,9 @@ cdladm \- Manage command duration limit pages
 .SH DESCRIPTION
 .B cdladm
 is used to inspect and modify command duration limits descriptor pages of devices
-supporting the command duration limits feature.
+supporting the command duration limits feature. The options \fB\-\-list\-pages\fR,
+\fB\-\-show\-pages\fR, \fB\-\-show\-page\fR, \fB\-\-save\-page\fR and
+\fB\-\-upload\-page\fR are mutually exclusive.
 
 .SH OPTIONS
 .TP
@@ -79,6 +81,12 @@ can be "A", "B", "T2A" or "T2B".
 Upload (write) to the device a command duration limit page. \fIpage_file\fR
 must have the same format as the page file produced by the \fB\-\-save\-page\fR
 option.
+
+.TP
+.BI \-\-permanent
+This option can only be used in combination with the option \fB\-\-upload\-page\fR
+to specify that the descriptor page must be permently stored on the device, as
+opposed to temporarily being stored in volatile memory.
 
 .SH AUTHOR
 This version of \fBcdladm\fR was written by Damien Le Moal.

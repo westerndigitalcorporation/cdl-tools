@@ -25,7 +25,11 @@ static void cdladm_usage(void)
 	       "  --show-pages         : Show all supported pages\n"
 	       "  --show-page <page>   : Show a supported page\n"
 	       "  --save-page <page>   : Save a page to a file\n"
-	       "  --upload-page <file> : Upload a page to the device\n");
+	       "  --upload-page <file> : Upload a page to the device\n"
+	       "  --permanent          : Specify that the page must be stored\n"
+	       "                         in non-volatile memory on the device.\n"
+	       "                         This option can only be used with\n"
+	       "                         the --upload-page option.\n");
 }
 
 static int cdl_list_pages(struct cdl_dev *dev, char *page)
@@ -263,6 +267,13 @@ int main(int argc, char **argv)
 			if (i >= argc - 1)
 				goto err_cmd_line;
 			arg = argv[i];
+			continue;
+		}
+
+		if (strcmp(argv[i], "--permanent") == 0) {
+			if (command != CDL_UPLOAD_PAGE)
+				goto err_cmd_line;
+			dev.flags |= CDL_USE_MS_SP;
 			continue;
 		}
 

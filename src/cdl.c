@@ -30,7 +30,7 @@ static int cdl_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
 	cmd.cdb[1] = 0x0c; /* MI_REPORT_SUPPORTED_OPERATION_CODES */
 	cmd.cdb[2] = 0x03; /* one command format with SA */
 	cmd.cdb[3] = cdl_cmd_opcode(c);
-	cmd.cdb[4] = cdl_cmd_sa(c);
+	cdl_sg_set_int16(&cmd.cdb[4], cdl_cmd_sa(c));
 	cdl_sg_set_int32(&cmd.cdb[6], 512);
 
 	ret = cdl_exec_cmd(dev, &cmd);
@@ -236,7 +236,7 @@ int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page)
 	memcpy(buf, dev->cdl_pages[cdlp].msbuf, bufsz);
 
 	cdl_sg_set_int16(&buf[0], 0); /* Clear mode data length */
-	buf[3] &= 0x6f; /* clear WP and DPOFUA */
+	buf[3] = 0; /* clear WP and DPOFUA */
 
 	/* Skip the mode page header */
 	buf += 8;
@@ -270,11 +270,13 @@ int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page)
 	}
 
 	cmd.cdb[0] = 0x55; /* MODE SELECT 10 */
-	cmd.cdb[1] = 0x11; /* PF = 1, SP = 1 */
+	cmd.cdb[1] = 0x10; /* PF = 1, RTD = 0, SP = 0 */
+	if (dev->flags & CDL_USE_MS_SP)
+		cmd.cdb[1] |= 0x01; /* SP = 1 */
 	cdl_sg_set_int16(&cmd.cdb[7], bufsz);
 	ret = cdl_exec_cmd(dev, &cmd);
 	if (ret) {
-		cdl_dev_err(dev, "MODE SEELECT 10 failed\n");
+		cdl_dev_err(dev, "MODE SELECT 10 failed\n");
 		return ret;
 	}
 
