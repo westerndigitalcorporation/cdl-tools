@@ -3,52 +3,71 @@
 .\"  Copyright (C) 2021, Western Digital Corporation or its affiliates.
 .\"  Written by Damien Le Moal <damien.lemoal@wdc.com>
 .\"
-.TH cdladm 8
+.TH cdladm 8 "Aug 20 2021"
 .SH NAME
 cdladm \- Manage command duration limit pages
 
 .SH SYNOPSIS
 .B cdladm
 [
-.B \-\-version
-]
-[
 .B \-h|\-\-help
 ]
+.sp
+.B cdladm
 [
-.B \-v|\-\-verbose
+.B \-\-version
 ]
+.sp
+.B cdladm
+.I command
 [
-.B \-\-list\-pages
-]
-[
-.B \-\-show\-pages
-]
-[
-.B \-\-show\-page
-.I page name
-]
-[
-.B \-\-save\-page
-.I page name
-]
-[
-.B \-\-upload\-page
-.I page file
+.B options
 ]
 .I device
 
 .SH DESCRIPTION
 .B cdladm
 is used to inspect and modify command duration limits descriptor pages of devices
-supporting the command duration limits feature. The options \fB\-\-list\-pages\fR,
-\fB\-\-show\-pages\fR, \fB\-\-show\-page\fR, \fB\-\-save\-page\fR and
-\fB\-\-upload\-page\fR are mutually exclusive.
+supporting the command duration limits feature. \fIdevice\fP specifies the device
+file path of the target device to operate on. The device file path may point
+either to a block device file or to the device SG node file.
+\fBcdladm\fR returns 0 on success and 1 in case of error.
+
+.SH COMMANDS
+
+.TP
+\fBlist\fR
+List the command duration limits descriptor pages supported by the target device.
+
+.TP
+\fBshow\fR
+Display on screen the command duration limits descriptors of one or all supported
+pages of the target device. The option \fB\-\-page\fR can be used to specify a
+single page to display.
+
+.TP
+\fBsave\fR
+Save to a file a command duration limits page of the target device. The option
+\fB\-\-page\fR must be used to specify the target page to save. If the option
+\fB\-\-file\fR is used, the page is saved to the specified file path. Otherwise,
+the page is saved to the file named <device name>-<page name>.cdl in the
+current working directory.
+
+.TP
+\fBupload\fR
+Upload to the target device a modified command duration limit page. The option
+\fB\-\-file\fR must be used to specify the path of the file containing the page
+data. The format of the page file must be identical to the format of the file
+created with the \fBsave\fR command. If the option \fB--permanent\fR is used,
+the descriptor page will be saved on the device in non volatile memory. Otherwise,
+the upload will only update the drive current page values and changes to the page
+will be lost on a device power cycle.
 
 .SH OPTIONS
+
 .TP
 \fB\-\-version\fR
-Display version and exit
+Display \fBcdladm\R version and exit.
 
 .TP
 \fB\-h\fR, \fB\-\-help\fR
@@ -56,41 +75,27 @@ Display a short usage message and exit.
 
 .TP
 \fB\-v\fR, \fB\-\-verbose\fR
-Verbose output.
+Verbose output (for debugging).
 
 .TP
-.BI \-\-list\-pages
-List the command duration limit pages supported by the device.
+.BI \-\-page " page_name"
+Specify the name of a page to operate on. \fIpage_name\fR can be "A", "B", "T2A"
+or "T2B". This option can be used with the commands \fBshow\fR and \fBsave\fR.
 
 .TP
-.BI \-\-show\-pages
-Print all the command duration limit pages supported by the device.
-
-.TP
-.BI \-\-show\-page " page_name"
-Print the specified command duration limit page. \fIpage_name\fR can be "A",
-"B", "T2A" or "T2B".
-
-.TP
-.BI \-\-save\-page " page_name"
-Save to a file the specified command duration limit page. \fIpage_name\fR
-can be "A", "B", "T2A" or "T2B".
-
-.TP
-.BI \-\-upload\-page " page_file"
-Upload (write) to the device a command duration limit page. \fIpage_file\fR
-must have the same format as the page file produced by the \fB\-\-save\-page\fR
-option.
+.BI \-\-file " page_file"
+Specify the path of the page file to use. This option can be used with the
+command \fBsave\fR and is mandatory with the command \fBupload\fR.
 
 .TP
 .BI \-\-permanent
-This option can only be used in combination with the option \fB\-\-upload\-page\fR
-to specify that the descriptor page must be permently stored on the device, as
-opposed to temporarily being stored in volatile memory.
+This option can only be used in combination with the \fB\-\-upload\fR command
+to specify that the descriptor page must be permently saved on the device, as
+opposed to temporarily stored in volatile memory.
 
 .SH AUTHOR
 This version of \fBcdladm\fR was written by Damien Le Moal.
 
 .SH AVAILABILITY
 .B cdladm
-is available from https://bitbucket.wdc.com/projects/LINKER/repos/cdl-tools/browse
+is available from https://bitbucket.wdc.com/projects/LINKER/repos/cdl-tools/

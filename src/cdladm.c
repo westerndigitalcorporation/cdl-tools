@@ -15,26 +15,38 @@
  */
 static void cdladm_usage(void)
 {
-	printf("Usage: cdladm [options] <device path>\n");
-	printf("Common Options:\n"
-	       "  --version            : Print version number and exit\n"
-	       "  --help | -h          : General help message\n"
+	printf("Usage:\n"
+	       "  cdladm --help | -h\n"
+	       "  cdladm --version\n"
+	       "  cdladm <command> [options] <device>\n");
+	printf("Options common to all commands:\n"
 	       "  --verbose | -v       : Verbose output\n");
-	printf("Mutually exclusive options:\n"
-	       "  --list-pages         : List supported pages\n"
-	       "  --show-pages         : Show all supported pages\n"
-	       "  --show-page <page>   : Show a supported page\n"
-	       "  --save-page <page>   : Save a page to a file\n"
-	       "  --upload-page <file> : Upload a page to the device\n"
-	       "  --permanent          : Specify that the page must be stored\n"
-	       "                         in non-volatile memory on the device.\n"
-	       "                         This option can only be used with\n"
-	       "                         the --upload-page option.\n");
+	printf("Commands:\n"
+	       "  list   : List supported pages\n"
+	       "  show   : Display one or all supported pages\n"
+	       "  save   : Save one or all pages to a file\n"
+	       "  upload : Upload a page to the device\n");
+	printf("Command options:\n");
+	printf("  --page <name>\n"
+	       "\tApply to the show and save commands.\n"
+	       "\tSpecify the target page name. The page name can be:\n"
+	       "\t\"A\", \"B\", \"T2A\" or \"T2B\".\n");
+	printf("  --file <path>\n"
+	       "\tApply to the save and upload commands.\n"
+	       "\tSpecify the path of the page file to use.\n"
+	       "\tUsing this option is mandatory with the upload command.\n"
+	       "\tIf this option is not specified with the save command,\n"
+	       "\tthe default file name <dev name>-<page name>.cdl is\n"
+	       "\tused.\n");
+	printf("  --permanent\n"
+	       "\tApply to the upload command.\n"
+	       "\tSpecify that the device should save the page in\n"
+	       "\tnon-volatile memory in addition to updating the current\n"
+	       "\tpage value.\n");
 }
 
-static int cdl_list_pages(struct cdl_dev *dev, char *page)
+static int cdladm_list(struct cdl_dev *dev)
 {
-	char cmd[256];
 	int i, j, n;
 
 	cdl_dev_info(dev, "Supported pages:\n");
@@ -42,26 +54,42 @@ static int cdl_list_pages(struct cdl_dev *dev, char *page)
 		if (!cdl_page_supported(dev, i))
 			continue;
 
-		memset(cmd, 0, sizeof(cmd));
+		printf("    %s (", cdl_page_name(i));
 		for (j = 0, n = 0; j < CDL_CMD_MAX; j++) {
 			if ((int)dev->cmd_cdlp[j] != i)
 				continue;
-			n += sprintf(&cmd[n], "%s%s",
-				     n == 0 ? "" : ", ",
-				     cdl_cmd_str(j));
+			printf("%s%s",
+			       n == 0 ? "" : ", ",
+			       cdl_cmd_str(j));
+			n++;
 		}
-
-		printf("    %s (%s)\n",
-		       cdl_page_name(i), cmd);
+		printf(")\n");
 	}
 
 	return 0;
 }
 
-static int cdl_show_pages(struct cdl_dev *dev, char *page)
+static int cdladm_show(struct cdl_dev *dev, char *page)
 {
-	int i;
+	int cdlp, i;
 
+	if (page) {
+		/* Show only the specified page */
+		cdlp = cdl_page_name2cdlp(page);
+		if (cdlp < 0)
+			return 1;
+		if (!cdl_page_supported(dev, cdlp)) {
+			printf("Page %s is not supported\n", page);
+			return 1;
+		}
+
+		printf("Page %s:\n", page);
+		cdl_print_page(&dev->cdl_pages[cdlp], stdout);
+
+		return 0;
+	}
+
+	/* Show all supported pages */
 	for (i = 0; i < CDL_MAX_PAGES; i++) {
 		if (!cdl_page_supported(dev, i))
 			continue;
@@ -72,85 +100,82 @@ static int cdl_show_pages(struct cdl_dev *dev, char *page)
 	return 0;
 }
 
-static int cdl_show_page(struct cdl_dev *dev, char *page)
+static int cdladm_save(struct cdl_dev *dev, char *page, char *path)
 {
-	int cdlp;
-
-	cdlp = cdl_page_name2cdlp(page);
-	if (cdlp < 0)
-		return -1;
-
-	if (!cdl_page_supported(dev, cdlp)) {
-		printf("Page %s is not supported¥n", page);
-		return -1;
-	}
-
-	cdl_print_page(&dev->cdl_pages[cdlp], stdout);
-
-	return 0;
-}
-
-static int cdl_save_page(struct cdl_dev *dev, char *page)
-{
+	char *fpath = path;
 	enum cdl_p cdlp;
-	char *path;
 	FILE *f;
 	int ret = 0;
 
+	if (!page) {
+		fprintf(stderr, "No page specified\n");
+		return 1;
+	}
+
 	cdlp = cdl_page_name2cdlp(page);
 	if (cdlp < 0)
-		return -1;
+		return 1;
 
 	if (!cdl_page_supported(dev, cdlp)) {
-		printf("Page %s is not supported¥n", page);
-		return -1;
+		fprintf(stderr, "Page %s is not supported\n", page);
+		return 1;
 	}
 
-	if (asprintf(&path, "%s-cdl-%s", dev->name, cdl_page_name(cdlp)) < 0) {
-		fprintf(stderr, "Failed to allocate file path\n");
-		return -ENOMEM;
+	if (!path) {
+		ret = asprintf(&fpath, "%s-%s.cdl",
+			       dev->name, cdl_page_name(cdlp));
+		if (ret < 0) {
+			fprintf(stderr, "Failed to allocate file path\n");
+			return 1;
+		}
 	}
 
-	f = fopen(path, "w");
+	f = fopen(fpath, "w");
 	if (!f) {
-		fprintf(stderr, "Open page %s file %s failed\n",
-			cdl_page_name(cdlp), path);
-		ret = -errno;
+		fprintf(stderr, "Open page %s file %s failed (%s)\n",
+			cdl_page_name(cdlp), fpath, strerror(errno));
+		ret = 1;
 		goto out;
 	}
 
 	printf("Saving page %s to file %s\n",
-	       cdl_page_name(cdlp), path);
+	       cdl_page_name(cdlp), fpath);
 
 	cdl_print_page(&dev->cdl_pages[cdlp], f);
 
 	fclose(f);
 
 out:
-	free(path);
+	if (fpath != path)
+		free(fpath);
 
 	return ret;
 }
 
-static int cdl_upload_page(struct cdl_dev *dev, char *path)
+static int cdladm_upload(struct cdl_dev *dev, char *path)
 {
 	struct cdl_page page;
 	FILE *f;
 	int ret;
 
+	if (!path) {
+		fprintf(stderr, "No file specified\n");
+		return 1;
+	}
+
 	/* Open the file and parse it */
 	f = fopen(path, "r");
 	if (!f) {
-		fprintf(stderr, "Open file %s failed\n",
-			path);
-		return -errno;
+		fprintf(stderr, "Open file %s failed (%s)\n",
+			path, strerror(errno));
+		return 1;
 	}
 
 	printf("Parsing file %s...\n", path);
 	ret = cdl_parse_page_file(f, &page);
 	fclose(f);
 	if (ret)
-		return ret;
+		return 1;
 
 	printf("Uploading page %s:\n",
 	       cdl_page_name(page.cdlp));
@@ -158,7 +183,7 @@ static int cdl_upload_page(struct cdl_dev *dev, char *path)
 
 	ret = cdl_write_page(dev, &page);
 	if (ret)
-		return ret;
+		return 1;
 
 	return 0;
 }
@@ -166,20 +191,12 @@ static int cdl_upload_page(struct cdl_dev *dev, char *path)
 /*
  * Possible commands.
  */
-enum {
-	CDL_LIST_PAGES,
-	CDL_SHOW_PAGES,
-	CDL_SHOW_PAGE,
-	CDL_SAVE_PAGE,
-	CDL_UPLOAD_PAGE,
-};
-typedef int (*cdl_command_t)(struct cdl_dev *, char *arg);
-static const cdl_command_t cdl_command[] = {
-	cdl_list_pages,
-	cdl_show_pages,
-	cdl_show_page,
-	cdl_save_page,
-	cdl_upload_page,
+enum cdladm_cmd {
+	CDLADM_NONE,
+	CDLADM_LIST,
+	CDLADM_SHOW,
+	CDLADM_SAVE,
+	CDLADM_UPLOAD,
 };
 
 /*
@@ -189,8 +206,9 @@ int main(int argc, char **argv)
 {
 	struct cdl_dev dev;
 	bool cdl_supported;
-	char *arg = NULL;
-	int command = -1;
+	char *page = NULL;
+	char *path = NULL;
+	int command = CDLADM_NONE;
 	int i, ret;
 
 	/* Initialize */
@@ -203,6 +221,7 @@ int main(int argc, char **argv)
 
 	/* Parse options */
 	for (i = 1; i < argc; i++) {
+		/* Generic options */
 		if (strcmp(argv[i], "--version") == 0) {
 			printf("cdladm, version %s\n", PACKAGE_VERSION);
 			printf("Copyright (C) 2021, Western Digital Corporation"
@@ -217,61 +236,66 @@ int main(int argc, char **argv)
 			return 0;
 		}
 
+		/* Commands */
+		if (strcmp(argv[i], "list") == 0) {
+			if (command != CDLADM_NONE)
+				goto err_cmd_line;
+			command = CDLADM_LIST;
+			continue;
+		}
+
+		if (strcmp(argv[i], "show") == 0) {
+			if (command != CDLADM_NONE)
+				goto err_cmd_line;
+			command = CDLADM_SHOW;
+			continue;
+		}
+
+		if (strcmp(argv[i], "save") == 0) {
+			if (command != CDLADM_NONE)
+				goto err_cmd_line;
+			command = CDLADM_SAVE;
+			continue;
+		}
+
+		if (strcmp(argv[i], "upload") == 0) {
+			if (command != CDLADM_NONE)
+				goto err_cmd_line;
+			command = CDLADM_UPLOAD;
+			continue;
+		}
+
+		/* Options */
 		if (strcmp(argv[i], "--verbose") == 0 ||
 		    strcmp(argv[i], "-v") == 0) {
 			dev.flags |= CDL_VERBOSE;
 			continue;
 		}
 
-		if (strcmp(argv[i], "--list-pages") == 0) {
-			if (command != -1)
+		if (strcmp(argv[i], "--page") == 0) {
+			if (command != CDLADM_SHOW &&
+			    command != CDLADM_SAVE)
 				goto err_cmd_line;
-			command = CDL_LIST_PAGES;
-			continue;
-		}
-
-		if (strcmp(argv[i], "--show-pages") == 0) {
-			if (command != -1)
-				goto err_cmd_line;
-			command = CDL_SHOW_PAGES;
-			continue;
-		}
-
-		if (strcmp(argv[i], "--show-page") == 0) {
-			if (command != -1)
-				goto err_cmd_line;
-			command = CDL_SHOW_PAGE;
 			i++;
 			if (i >= argc - 1)
 				goto err_cmd_line;
-			arg = argv[i];
+			page = argv[i];
 			continue;
 		}
 
-		if (strcmp(argv[i], "--save-page") == 0) {
-			if (command != -1)
+		if (strcmp(argv[i], "--file") == 0) {
+			if (command != CDLADM_SAVE &&
+			    command != CDLADM_UPLOAD)
 				goto err_cmd_line;
-			command = CDL_SAVE_PAGE;
 			i++;
 			if (i >= argc - 1)
 				goto err_cmd_line;
-			arg = argv[i];
-			continue;
-		}
-
-		if (strcmp(argv[i], "--upload-page") == 0) {
-			if (command != -1)
-				goto err_cmd_line;
-			command = CDL_UPLOAD_PAGE;
-			i++;
-			if (i >= argc - 1)
-				goto err_cmd_line;
-			arg = argv[i];
+			path = argv[i];
 			continue;
 		}
 
 		if (strcmp(argv[i], "--permanent") == 0) {
-			if (command != CDL_UPLOAD_PAGE)
+			if (command != CDLADM_UPLOAD)
 				goto err_cmd_line;
 			dev.flags |= CDL_USE_MS_SP;
 			continue;
@@ -297,7 +321,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	/* Open the device */
+	/* Open the device and printf some information about it */
 	if (cdl_open_dev(&dev) < 0)
 		return 1;
 
@@ -325,7 +349,24 @@ int main(int argc, char **argv)
 		goto out;
 
 	/* Execute the command */
-	ret = (cdl_command[command])(&dev, arg);
+	switch (command) {
+	case CDLADM_LIST:
+		ret = cdladm_list(&dev);
+		break;
+	case CDLADM_SHOW:
+		ret = cdladm_show(&dev, page);
+		break;
+	case CDLADM_SAVE:
+		ret = cdladm_save(&dev, page, path);
+		break;
+	case CDLADM_UPLOAD:
+		ret = cdladm_upload(&dev, path);
+		break;
+	case CDLADM_NONE:
+	default:
+		fprintf(stderr, "No command specified\n");
+		ret = 1;
+	}
 
 out:
 	cdl_close_dev(&dev);
