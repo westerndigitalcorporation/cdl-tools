@@ -53,7 +53,7 @@ $ ./configure
 $ make
 ```
 
-To install the compiled executable files, simply execute as root the following
+To install the compiled executable files, execute as root the following
 command.
 
 ```
@@ -93,15 +93,38 @@ $ rpmbuild --rebuild cdl-tools-<version>.src.rpm
 
 ## Usage
 
-*cdladm* detailed usage is as follows:
+*cdladm* usage is as follows:
 
 ```
-> cdladm -h 
-Usage: cdladm [options] <device path>
-Options:
-  --help | -h   : General help message
-  -v            : Verbose output
-  ...
+> cdladm --help
+Usage:
+  cdladm --help | -h
+  cdladm --version
+  cdladm <command> [options] <device>
+Options common to all commands:
+  --verbose | -v       : Verbose output
+Commands:
+  list   : List supported pages
+  show   : Display one or all supported pages
+  save   : Save one or all pages to a file
+  upload : Upload a page to the device
+Command options:
+  --page <name>
+	Apply to the show and save commands.
+	Specify the target page name. The page name can be:
+	"A", "B", "T2A" or "T2B".
+  --file <path>
+	Apply to the save and upload commands.
+	Specify the path of the page file to use.
+	Using this option is mandatory with the upload command.
+	If this option is not specified with the save command,
+	the default file name <dev name>-<page name>.cdl is
+	used.
+  --permanent
+	Apply to the upload command.
+	Specify that the device should save the page in
+	non-volatile memory in addition to updating the current
+	page value.
 See "man cdladm" for more information
 ```
 
