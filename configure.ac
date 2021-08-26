@@ -2,7 +2,9 @@
 #
 # Copyright (C) 2021 Western Digital Corporation or its affiliates.
 
-AC_INIT([cdl-tools], [0.0.1], [damien.lemoal@wdc.com])
+AC_INIT([cdl-tools], [0.0.2],
+	[damien.lemoal@wdc.com, niklas.cassel@wdc.com],
+        [cdl-tools], [https://github.com/westerndigitalcorporation/cdl-tools])
 
 AC_PREFIX_DEFAULT(/usr)
 AC_CONFIG_HEADER([src/config.h])
@@ -45,4 +47,3 @@ AC_CONFIG_FILES([
 ])
 
 AC_OUTPUT
-

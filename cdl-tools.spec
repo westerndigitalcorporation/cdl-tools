@@ -1,5 +1,5 @@
 Name:		cdl-tools
-Version:	0.0.1
+Version:	0.0.2
 Release:	1%{?dist}
 Summary:	Provides user utilities for block devices supporting command duration limits
 
@@ -16,7 +16,7 @@ BuildRequires:	gcc
 
 %description
 This package provides the cdladm user utility to inspect and modify
-command duration limits for block devices supporting this feature.
+command duration limits of SCSI and ATA disks supporting this feature.
 
 %prep
 %autosetup
@@ -37,5 +37,7 @@ sh autogen.sh
 %doc README.md CONTRIBUTING
 
 %changelog
+* Thu Aug 26 2021 Damien Le Moal <damien.lemoal@wdc.com> 0.0.2-1
+- Version 0.0.2 package
 * Mon Aug 16 2021 Damien Le Moal <damien.lemoal@wdc.com> 0.0.1-1
-- Version 0.0.1 initial package
+- Version 0.0.1 package
