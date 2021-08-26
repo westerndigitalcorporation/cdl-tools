@@ -30,7 +30,7 @@ sh autogen.sh
 %make_install
 
 %files
-%{_sbindir}/*
+%{_bindir}/*
 %{_mandir}/man8/*
 
 %license COPYING.GPL
