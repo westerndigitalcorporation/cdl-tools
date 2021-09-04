@@ -288,8 +288,9 @@ static void cdl_print_t2_page(struct cdl_page *page, FILE *f)
 	struct cdl_desc *desc;
 	int i;
 
-	fprintf(f, "  perf_vs_duration_guideline %s%%\n",
-		cdl_perf_str(page->perf_vs_duration_guideline));
+	if (page->cdlp == CDLP_T2A)
+		fprintf(f, "  perf_vs_duration_guideline %s%%\n",
+			cdl_perf_str(page->perf_vs_duration_guideline));
 
 	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
 		fprintf(f,
@@ -349,21 +350,22 @@ static int cdl_save_t2_page(struct cdl_page *page, FILE *f)
 
 	/* File legend */
 	fprintf(f, "# %s page format:\n", cdl_page_name(page->cdlp));
-	fprintf(f,
-		"# perf-vs-duration-guideline can be one of:\n"
-		"#   - 0%%    : 0x0\n"
-		"#   - 0.5%%  : 0x1\n"
-		"#   - 1.0%%  : 0x2\n"
-		"#   - 1.5%%  : 0x3\n"
-		"#   - 2.0%%  : 0x4\n"
-		"#   - 2.5%%  : 0x5\n"
-		"#   - 3%%    : 0x6\n"
-		"#   - 4%%    : 0x7\n"
-		"#   - 5%%    : 0x8\n"
-		"#   - 8%%    : 0x9\n"
-		"#   - 10%%   : 0xa\n"
-		"#   - 15%%   : 0xb\n"
-		"#   - 20%%   : 0xc\n");
+	if (page->cdlp == CDLP_T2A)
+		fprintf(f,
+			"# perf-vs-duration-guideline can be one of:\n"
+			"#   - 0%%    : 0x0\n"
+			"#   - 0.5%%  : 0x1\n"
+			"#   - 1.0%%  : 0x2\n"
+			"#   - 1.5%%  : 0x3\n"
+			"#   - 2.0%%  : 0x4\n"
+			"#   - 2.5%%  : 0x5\n"
+			"#   - 3%%    : 0x6\n"
+			"#   - 4%%    : 0x7\n"
+			"#   - 5%%    : 0x8\n"
+			"#   - 8%%    : 0x9\n"
+			"#   - 10%%   : 0xa\n"
+			"#   - 15%%   : 0xb\n"
+			"#   - 20%%   : 0xc\n");
 	fprintf(f,
 		"# t2cdlunits can be one of:\n"
 		"#   - none   : 0x0\n"
@@ -394,9 +396,11 @@ static int cdl_save_t2_page(struct cdl_page *page, FILE *f)
 	fprintf(f, "cdlp: %s\n", cdl_page_name(page->cdlp));
 	fprintf(f, "\n");
 
-	fprintf(f, "perf-vs-duration-guideline: 0x%1x\n",
-		page->perf_vs_duration_guideline);
-	fprintf(f, "\n");
+	if (page->cdlp == CDLP_T2A) {
+		fprintf(f, "perf-vs-duration-guideline: 0x%1x\n",
+			page->perf_vs_duration_guideline);
+		fprintf(f, "\n");
+	}
 
 	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
 		fprintf(f, "== descriptor: %d\n", i + 1);
@@ -626,10 +630,10 @@ int cdl_parse_page_file(FILE *f, struct cdl_page *page)
 		return ret;
 
 	/*
-	 * For T2A and T2B pages, we must have the
-	 * perf-vs-duration-guideline field next.
+	 * For the T2A page, we must have the perf-vs-duration-guideline
+	 * field next.
 	 */
-	if (page->cdlp == CDLP_T2A || page->cdlp == CDLP_T2B) {
+	if (page->cdlp == CDLP_T2A) {
 		ret = cdl_parse_pvsdg(page, f, line);
 		if (ret)
 			return ret;
