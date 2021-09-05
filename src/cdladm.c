@@ -84,7 +84,7 @@ static int cdladm_show(struct cdl_dev *dev, char *page)
 		}
 
 		printf("Page %s:\n", page);
-		cdl_print_page(&dev->cdl_pages[cdlp], stdout);
+		cdl_page_show(&dev->cdl_pages[cdlp]);
 
 		return 0;
 	}
@@ -94,7 +94,7 @@ static int cdladm_show(struct cdl_dev *dev, char *page)
 		if (!cdl_page_supported(dev, i))
 			continue;
 		printf("Page %s:\n", cdl_page_name(i));
-		cdl_print_page(&dev->cdl_pages[i], stdout);
+		cdl_page_show(&dev->cdl_pages[i]);
 	}
 
 	return 0;
@@ -141,7 +141,7 @@ static int cdladm_save(struct cdl_dev *dev, char *page, char *path)
 	printf("Saving page %s to file %s\n",
 	       cdl_page_name(cdlp), fpath);
 
-	cdl_print_page(&dev->cdl_pages[cdlp], f);
+	cdl_page_save(&dev->cdl_pages[cdlp], f);
 
 	fclose(f);
 
@@ -172,14 +172,14 @@ static int cdladm_upload(struct cdl_dev *dev, char *path)
 	}
 
 	printf("Parsing file %s...\n", path);
-	ret = cdl_parse_page_file(f, &page);
+	ret = cdl_page_parse_file(f, &page);
 	fclose(f);
 	if (ret)
 		return 1;
 
 	printf("Uploading page %s:\n",
 	       cdl_page_name(page.cdlp));
-	cdl_print_page(&page, stdout);
+	cdl_page_show(&page);
 
 	ret = cdl_write_page(dev, &page);
 	if (ret)

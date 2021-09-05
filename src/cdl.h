@@ -142,8 +142,9 @@ const char *cdl_cmd_str(enum cdl_cmd cmd);
 uint8_t cdl_cmd_opcode(enum cdl_cmd cmd);
 uint16_t cdl_cmd_sa(enum cdl_cmd cmd);
 
-void cdl_print_page(struct cdl_page *page, FILE *f);
-int cdl_parse_page_file(FILE *f, struct cdl_page *page);
+void cdl_page_show(struct cdl_page *page);
+void cdl_page_save(struct cdl_page *page, FILE *f);
+int cdl_page_parse_file(FILE *f, struct cdl_page *page);
 
 /* In cdl.c */
 int cdl_read_pages(struct cdl_dev *dev);

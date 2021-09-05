@@ -97,89 +97,76 @@ uint16_t cdl_cmd_sa(enum cdl_cmd cmd)
 }
 
 /*
- * CDL pages A and B time limits in microseconds.
+ * CDL pages A and B time limits in nanoseconds.
  */
-static uint64_t cdl_time(uint64_t val, uint8_t cdlunit)
+static uint64_t cdl_simple_time(uint64_t val, uint8_t cdlunit)
 {
 	switch (cdlunit) {
 	case 0x00:
 		return 0;
 	case 0x04:
 		/* 1 microsecond */
-		return val;
+		return val * 1000ULL;
 	case 0x05:
 		/* 10 milliseconds */
-		return val * 10000;
+		return val * 10000000ULL;
 	case 0x06:
 		/* 500 milliseconds */
-		return val * 500000;
+		return val * 500000000ULL;
 	default:
 		return 0;
 	}
 }
 
-static const char *cdl_time_unit_str(uint8_t cdlunit)
+static char *cdl_simple_time_str(char *str, uint64_t time, uint8_t cdlunit)
 {
-	switch (cdlunit) {
-	case 0x04:
-		/* 1 microsecond */
-		return "1 us";
-	case 0x05:
-		/* 10 milliseconds */
-		return "10 ms";
-	case 0x06:
-		/* 500 milliseconds */
-		return "500 ms";
-	case 0x00:
-	default:
-		return "none";
-	}
+	uint64_t t = cdl_simple_time(time, cdlunit);
+
+	if (t >= 1000000)
+		sprintf(str, "%" PRIu64 " ms", t / 1000000);
+	else
+		sprintf(str, "%" PRIu64 " us", t / 1000);
+
+	return str;
 }
 
 /*
- * CDL pages T2A and T2B time limits in microseconds.
+ * CDL pages T2A and T2B time limits in nanoseconds.
  */
-static uint64_t cdl_t2time(uint64_t val, uint8_t t2cdlunits)
+static uint64_t cdl_t2time(uint64_t val, uint8_t t2cdlunit)
 {
-	switch (t2cdlunits) {
+	switch (t2cdlunit) {
 	case 0x00:
 		return 0;
 	case 0x06:
 		/* 500 nanoseconds */
-		return (val * 500) / 1000;
+		return val * 500;
 	case 0x08:
 		/* 1 microsecond */
 		return val;
 	case 0x0A:
 		/* 10 milliseconds */
-		return val * 10000;
+		return val * 10000000ULL;
 	case 0x0E:
 		/* 500 milliseconds */
-		return val * 500000;
+		return val * 500000000ULL;
 	default:
 		return 0;
 	}
 }
 
-static const char *cdl_t2time_unit_str(uint8_t t2cdlunits)
+static char *cdl_t2time_str(char *str, uint64_t time, uint8_t t2cdlunit)
 {
-	switch (t2cdlunits) {
-	case 0x06:
-		/* 500 nanoseconds */
-		return "500 ns";
-	case 0x08:
-		/* 1 microsecond */
-		return "1 us";
-	case 0x0A:
-		/* 10 milliseconds */
-		return "10 ms";
-	case 0x0E:
-		/* 500 milliseconds */
-		return "500 ms";
-	case 0x00:
-	default:
-		return "none";
-	}
+	uint64_t t = cdl_t2time(time, t2cdlunit);
+
+	if (t >= 1000000)
+		sprintf(str, "%" PRIu64 " ms", t / 1000000);
+	else if (t > 1000 && t % 1000 == 0)
+		sprintf(str, "%" PRIu64 " us", t / 1000);
+	else
+		sprintf(str, "%" PRIu64 " ns", t);
+
+	return str;
 }
 
 static const char *cdl_perf_str(uint8_t val)
@@ -236,25 +223,24 @@ static const char *cdl_policy_str(uint8_t policy)
 	}
 }
 
-static void cdl_print_page_simple(struct cdl_page *page, FILE *f)
+static void cdl_page_show_simple(struct cdl_page *page)
 {
 	struct cdl_desc *desc;
+	char str[64];
 	int i;
 
 	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
-		fprintf(f, "  Descriptor %d:\n", i + 1);
-		fprintf(f, "    time unit: %s\n",
-		       cdl_time_unit_str(desc->cdltunit));
+		printf("  Descriptor %d:\n", i + 1);
 		if (desc->duration)
-			fprintf(f, "    duration guideline: %" PRIu64 " usec\n",
-			       cdl_time(desc->duration,
-					desc->cdltunit));
+			printf("    duration guideline: %s\n",
+			       cdl_simple_time_str(str, desc->duration,
+						   desc->cdltunit));
 		else
-			fprintf(f, "    duration guideline: no limit\n");
+			printf("    duration guideline: no limit\n");
 	}
 }
 
-static int cdl_save_page_simple(struct cdl_page *page, FILE *f)
+static int cdl_page_save_simple(struct cdl_page *page, FILE *f)
 {
 	struct cdl_desc *desc;
 	int i;
@@ -283,67 +269,52 @@ static int cdl_save_page_simple(struct cdl_page *page, FILE *f)
 	return 0;
 }
 
-static void cdl_print_t2_page(struct cdl_page *page, FILE *f)
+static void cdl_page_show_t2(struct cdl_page *page)
 {
 	struct cdl_desc *desc;
+	char str[64];
 	int i;
 
 	if (page->cdlp == CDLP_T2A)
-		fprintf(f, "  perf_vs_duration_guideline %s%%\n",
-			cdl_perf_str(page->perf_vs_duration_guideline));
+		printf("  perf_vs_duration_guideline %s%%\n",
+		       cdl_perf_str(page->perf_vs_duration_guideline));
 
 	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
-		fprintf(f,
-			"  Descriptor %d:\n", i + 1);
-		fprintf(f,
-			"    time unit: %s\n",
-		       cdl_t2time_unit_str(desc->cdltunit));
+		printf("  Descriptor %d:\n", i + 1);
 
 		if (desc->max_inactive_time) {
-			fprintf(f,
-				"    max inactive time: %" PRIu64 " us\n",
-				cdl_t2time(desc->max_inactive_time,
-					   desc->cdltunit));
-			fprintf(f,
-				"    max inactive policy: 0x%02x (%s)\n",
-				desc->max_inactive_policy,
-				cdl_policy_str(desc->max_inactive_policy));
+			printf("    max inactive time        : %s\n",
+			       cdl_t2time_str(str, desc->max_inactive_time,
+					      desc->cdltunit));
+			printf("    max inactive policy      : %s\n",
+			       cdl_policy_str(desc->max_inactive_policy));
 		} else {
-			fprintf(f,
-				"    max inactive time: no limit\n");
+			printf("    max inactive time        : no limit\n");
 		}
 
 		if (desc->max_active_time) {
-			fprintf(f,
-				"    max active time: %" PRIu64 " us\n",
-				cdl_t2time(desc->max_active_time,
-					   desc->cdltunit));
-			fprintf(f,
-				"    max active policy: 0x%02x (%s)\n",
-				desc->max_active_policy,
-				cdl_policy_str(desc->max_active_policy));
+			printf("    max active time          : %s\n",
+			       cdl_t2time_str(str, desc->max_active_time,
+					      desc->cdltunit));
+			printf("    max active policy        : (%s)\n",
+			       cdl_policy_str(desc->max_active_policy));
 		} else {
-			fprintf(f,
-				"    max active time: no limit\n");
+			printf("    max active time          : no limit\n");
 		}
 
 		if (desc->duration) {
-			fprintf(f,
-				"    duration guideline: %" PRIu64 " us\n",
-				cdl_t2time(desc->duration,
-					   desc->cdltunit));
-			fprintf(f,
-				"    duration guideline policy: 0x%02x (%s)\n",
-				desc->duration_policy,
-				cdl_policy_str(desc->duration_policy));
+			printf("    duration guideline       : %s\n",
+			       cdl_t2time_str(str, desc->duration,
+					      desc->cdltunit));
+			printf("    duration guideline policy: %s\n",
+			       cdl_policy_str(desc->duration_policy));
 		} else {
-			fprintf(f,
-				"    duration guideline: no limit\n");
+			printf("    duration guideline       : no limit\n");
 		}
 	}
 }
 
-static int cdl_save_t2_page(struct cdl_page *page, FILE *f)
+static int cdl_page_save_t2(struct cdl_page *page, FILE *f)
 {
 	struct cdl_desc *desc;
 	int i;
@@ -428,19 +399,20 @@ static int cdl_save_t2_page(struct cdl_page *page, FILE *f)
 	return 0;
 }
 
-void cdl_print_page(struct cdl_page *page, FILE *f)
+void cdl_page_show(struct cdl_page *page)
 {
-	if (page->cdlp == CDLP_A || page->cdlp == CDLP_B) {
-		if (f == stdout)
-			cdl_print_page_simple(page, f);
-		else
-			cdl_save_page_simple(page, f);
-	} else {
-		if (f == stdout)
-			cdl_print_t2_page(page, f);
-		else
-			cdl_save_t2_page(page, f);
-	}
+	if (page->cdlp == CDLP_A || page->cdlp == CDLP_B)
+		cdl_page_show_simple(page);
+	else
+		cdl_page_show_t2(page);
+}
+
+void cdl_page_save(struct cdl_page *page, FILE *f)
+{
+	if (page->cdlp == CDLP_A || page->cdlp == CDLP_B)
+		cdl_page_save_simple(page, f);
+	else
+		cdl_page_save_t2(page, f);
 }
 
 #define CDL_LINE_MAX_LEN	512
@@ -615,7 +587,7 @@ static int cdl_parse_desc(struct cdl_page *page, int d,
 	return 0;
 }
 
-int cdl_parse_page_file(FILE *f, struct cdl_page *page)
+int cdl_page_parse_file(FILE *f, struct cdl_page *page)
 {
 	char line[CDL_LINE_MAX_LEN];
 	int i, ret = 0;
