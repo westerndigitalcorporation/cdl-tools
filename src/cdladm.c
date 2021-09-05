@@ -100,26 +100,11 @@ static int cdladm_show(struct cdl_dev *dev, char *page)
 	return 0;
 }
 
-static int cdladm_save(struct cdl_dev *dev, char *page, char *path)
+static int cdladm_save_page(struct cdl_dev *dev, enum cdl_p cdlp, char *path)
 {
-	char *fpath = path;
-	enum cdl_p cdlp;
+	char *fpath;
+	int ret;
 	FILE *f;
-	int ret = 0;
-
-	if (!page) {
-		fprintf(stderr, "No page specified\n");
-		return 1;
-	}
-
-	cdlp = cdl_page_name2cdlp(page);
-	if (cdlp < 0)
-		return 1;
-
-	if (!cdl_page_supported(dev, cdlp)) {
-		fprintf(stderr, "Page %s is not supported\n", page);
-		return 1;
-	}
 
 	if (!path) {
 		ret = asprintf(&fpath, "%s-%s.cdl",
@@ -128,6 +113,8 @@ static int cdladm_save(struct cdl_dev *dev, char *page, char *path)
 			fprintf(stderr, "Failed to allocate file path\n");
 			return 1;
 		}
+	} else {
+		fpath = path;
 	}
 
 	f = fopen(fpath, "w");
@@ -142,14 +129,43 @@ static int cdladm_save(struct cdl_dev *dev, char *page, char *path)
 	       cdl_page_name(cdlp), fpath);
 
 	cdl_page_save(&dev->cdl_pages[cdlp], f);
+	ret = 0;
 
 	fclose(f);
 
 out:
-	if (fpath != path)
+	if (!path)
 		free(fpath);
 
 	return ret;
+}
+
+static int cdladm_save(struct cdl_dev *dev, char *page, char *path)
+{
+	enum cdl_p cdlp;
+	int i, ret;
+
+	if (page) {
+		cdlp = cdl_page_name2cdlp(page);
+		if (cdlp < 0)
+			return 1;
+		if (!cdl_page_supported(dev, cdlp)) {
+			fprintf(stderr, "Page %s is not supported\n", page);
+			return 1;
+		}
+		return cdladm_save_page(dev, cdlp, path);
+	}
+
+	/* Save all supported pages */
+	for (i = 0; i < CDL_MAX_PAGES; i++) {
+		if (!cdl_page_supported(dev, i))
+			continue;
+		ret = cdladm_save_page(dev, i, NULL);
+		if (ret)
+			return 1;
+	}
+
+	return 0;
 }
 
 static int cdladm_upload(struct cdl_dev *dev, char *path)

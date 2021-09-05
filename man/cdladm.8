@@ -47,11 +47,13 @@ single page to display.
 
 .TP
 \fBsave\fR
-Save to a file a command duration limits page of the target device. The option
-\fB\-\-page\fR must be used to specify the target page to save. If the option
+Save to a file one or all command duration limits page of the target device.
+The option \fB\-\-page\fR must be used to specify the target page to save. If
 \fB\-\-file\fR is used, the page is saved to the specified file path. Otherwise,
 the page is saved to the file named <device name>-<page name>.cdl in the
-current working directory.
+current working directory. If \fB\-\-page\fR is not used, the option
+\fB\-\-file\fR is ignored and all supported pages are saved using the default
+file name for each page.
 
 .TP
 \fBupload\fR
