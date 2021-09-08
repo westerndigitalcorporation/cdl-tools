@@ -133,7 +133,7 @@ static int cdl_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		}
 	} else {
 		/* T2A and T2B limits page */
-		page->perf_vs_duration_guideline = buf[7] >> 4;
+		page->perf_vs_duration_guideline = (buf[7] >> 4) & 0x0f;
 		buf += 8;
 		for (i = 0; i < CDL_MAX_DESC; i++, buf += 32, desc++) {
 			desc->cdltunit = buf[0] & 0x0f;
@@ -256,7 +256,7 @@ int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page)
 	} else {
 		/* T2A and T2B limits page */
 		cdl_sg_set_int16(&buf[2], 0x00e4);
-		buf[7] = page->perf_vs_duration_guideline << 4;
+		buf[7] = (page->perf_vs_duration_guideline & 0x0f) << 4;
 		buf += 8;
 		for (i = 0; i < CDL_MAX_DESC; i++, buf += 32, desc++) {
 			buf[0] = desc->cdltunit & 0x0f;

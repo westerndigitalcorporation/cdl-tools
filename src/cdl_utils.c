@@ -275,9 +275,8 @@ static void cdl_page_show_t2(struct cdl_page *page)
 	char str[64];
 	int i;
 
-	if (page->cdlp == CDLP_T2A)
-		printf("  perf_vs_duration_guideline %s%%\n",
-		       cdl_perf_str(page->perf_vs_duration_guideline));
+	printf("  perf_vs_duration_guideline : %s%%\n",
+	       cdl_perf_str(page->perf_vs_duration_guideline));
 
 	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
 		printf("  Descriptor %d:\n", i + 1);
@@ -321,22 +320,21 @@ static int cdl_page_save_t2(struct cdl_page *page, FILE *f)
 
 	/* File legend */
 	fprintf(f, "# %s page format:\n", cdl_page_name(page->cdlp));
-	if (page->cdlp == CDLP_T2A)
-		fprintf(f,
-			"# perf-vs-duration-guideline can be one of:\n"
-			"#   - 0%%    : 0x0\n"
-			"#   - 0.5%%  : 0x1\n"
-			"#   - 1.0%%  : 0x2\n"
-			"#   - 1.5%%  : 0x3\n"
-			"#   - 2.0%%  : 0x4\n"
-			"#   - 2.5%%  : 0x5\n"
-			"#   - 3%%    : 0x6\n"
-			"#   - 4%%    : 0x7\n"
-			"#   - 5%%    : 0x8\n"
-			"#   - 8%%    : 0x9\n"
-			"#   - 10%%   : 0xa\n"
-			"#   - 15%%   : 0xb\n"
-			"#   - 20%%   : 0xc\n");
+	fprintf(f,
+		"# perf-vs-duration-guideline can be one of:\n"
+		"#   - 0%%    : 0x0\n"
+		"#   - 0.5%%  : 0x1\n"
+		"#   - 1.0%%  : 0x2\n"
+		"#   - 1.5%%  : 0x3\n"
+		"#   - 2.0%%  : 0x4\n"
+		"#   - 2.5%%  : 0x5\n"
+		"#   - 3%%    : 0x6\n"
+		"#   - 4%%    : 0x7\n"
+		"#   - 5%%    : 0x8\n"
+		"#   - 8%%    : 0x9\n"
+		"#   - 10%%   : 0xa\n"
+		"#   - 15%%   : 0xb\n"
+		"#   - 20%%   : 0xc\n");
 	fprintf(f,
 		"# t2cdlunits can be one of:\n"
 		"#   - none   : 0x0\n"
@@ -367,11 +365,9 @@ static int cdl_page_save_t2(struct cdl_page *page, FILE *f)
 	fprintf(f, "cdlp: %s\n", cdl_page_name(page->cdlp));
 	fprintf(f, "\n");
 
-	if (page->cdlp == CDLP_T2A) {
-		fprintf(f, "perf-vs-duration-guideline: 0x%1x\n",
-			page->perf_vs_duration_guideline);
-		fprintf(f, "\n");
-	}
+	fprintf(f, "perf-vs-duration-guideline: 0x%1x\n",
+		page->perf_vs_duration_guideline);
+	fprintf(f, "\n");
 
 	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
 		fprintf(f, "== descriptor: %d\n", i + 1);
@@ -604,12 +600,12 @@ int cdl_page_parse_file(FILE *f, struct cdl_page *page)
 	/*
 	 * For the T2A page, we must have the perf-vs-duration-guideline
 	 * field next.
+	 * XXX current FW seems to need it too for T2B page, at the same
+	 * XXX position as for T2A page.
 	 */
-	if (page->cdlp == CDLP_T2A) {
-		ret = cdl_parse_pvsdg(page, f, line);
-		if (ret)
-			return ret;
-	}
+	ret = cdl_parse_pvsdg(page, f, line);
+	if (ret)
+		return ret;
 
 	/* Next, we should have 7 descriptors */
 	for (i = 0; i < CDL_MAX_DESC; i++) {
