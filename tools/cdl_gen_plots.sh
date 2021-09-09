@@ -13,6 +13,7 @@ function usage()
 	echo "Options:"
 	echo "  -h | --help      : Print this help message"
 	echo "  --save           : Save plots to png files instead of displaying them"
+	echo "  --dld <num>      : Specify the descriptor number used"
 	echo "  --cdl-limit <ms> : Specify the duration limit used in milliseconds"
 }
 
@@ -25,6 +26,7 @@ fi
 gsave=0
 gcmd="gnuplot -p"
 cdllimit="??"
+dld="1"
 
 while [ "${1#-}" != "$1" ]; do
 	case "$1" in
@@ -38,6 +40,10 @@ while [ "${1#-}" != "$1" ]; do
 		;;
 	--cdl-limit)
 		cdllimit="$2"
+		shift
+		;;
+	--dld)
+		dld="$2"
 		shift
 		;;
 	-*)
@@ -234,7 +240,7 @@ function plot_cdl_lat_hist()
 	qds=($(ls -d [123456789]* | sort -n))
 	for qd in ${qds[*]}; do
 		latfilesnocdl+=" ${qd}/priolat.NONE.0.log"
-		latfilescdl+=" ${qd}/priolat.CDL.1.log"
+		latfilescdl+=" ${qd}/priolat.CDL.${dld}.log"
 	done
 	paste -d',' ${latfilesnocdl} > "${lathistnocdl}"
 	paste -d',' ${latfilescdl} > "${lathistcdl}"
