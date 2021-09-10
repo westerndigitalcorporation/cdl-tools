@@ -7,8 +7,6 @@ set key on left
 set border 3
 set grid
 
-cdl = sprintf('%s limit I/Os', limit)
-
 set title "I/O Rate"
 
 set xlabel "I/O Queue Depth"
@@ -17,6 +15,7 @@ set ylabel "IOPS"
 set yrange [0:]
 set ytics 20
 
-plot filename using 1:2 with lp title "No limit I/Os" lc rgb"red" dt "_.", \
-     filename using 1:3 with lp title cdl lc rgb"red", \
-     filename using 1:4 with lp title "All I/Os" lc rgb"blue"
+plot filename index 0 using 1:4 with lp title columnheader(1) lc rgb"blue", \
+     filename index 1 using 1:4 with lp title columnheader(1) lc rgb"red" dt "_.", \
+     filename index 2 using 1:4 with lp title columnheader(1) lc rgb"red", \
+     filename index 3 using 1:4 with lp title columnheader(1) lc rgb"green"

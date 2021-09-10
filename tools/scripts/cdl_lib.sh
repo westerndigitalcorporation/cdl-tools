@@ -13,6 +13,18 @@ function get_prios()
 }
 
 #
+# $1: fio lat log file
+#
+function get_high_prios()
+{
+	local fiolatlog="$1"
+
+	# The priority field is hex (starts with "0x") and
+	# is the last field on each line
+	echo $(awk '/0x/{print $NF}' "${fiolatlog}" | sort -u | grep -v "0x0000")
+}
+
+#
 # $1: a prio value (0x....)
 #
 function get_prio_class()

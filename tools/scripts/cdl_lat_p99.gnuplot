@@ -7,8 +7,6 @@ set key on left
 set border 3
 set grid
 
-cdl = sprintf('%s limit I/Os', limit)
-
 set title "I/O latency 99th Percentile"
 
 set xlabel "I/O Queue Depth"
@@ -16,5 +14,6 @@ set xtics 8
 set ylabel "Latency (ms)"
 set yrange [0:]
 
-plot f1 using 1:21 with lp title "No limit I/Os" lc rgb"red" dt "_.", \
-     f2 using 1:21 with lp title cdl lc rgb"red"
+plot filename index 1 using 1:21 with lp title columnheader(1) lc rgb"red" dt "_.", \
+     filename index 2 using 1:21 with lp title columnheader(1) lc rgb"red", \
+     filename index 3 using 1:21 with lp title columnheader(1) lc rgb"green"

@@ -16,8 +16,11 @@ function usage()
 	echo "  --runtime <sec>  : Specify the run time (seconds) for each run (default: 300)"
 	echo "  --percentage <p> : For cdl run, specify the percentage of commands with cdl"
 	echo "  --dld <num>      : For cdl run, specify the descriptor to use"
+	echo "  --dldsplit <str> : For cdl run, specify the descriptors to use with their"
+	echo "                     percentages, e.g. \"1/33:2/67\". The percentages applies"
+	echo "                     to the <percentage> of IOs that will have a high priority."
 	echo "  --outdir <dir>   : Save results (fio log files) in <dir>"
-	echo "                     (default: <disk>_<dld limit>)"
+	echo "                     (default: cdl_<dld limit>_<percentage>)"
 	echo "  --qds <list>     : Specify the list of queue depth to use as a string,"
 	echo "                     e.g. \"1 2 4 8 16 32\" (default: \"1 2 4 8 16 24 32\")"
 }
@@ -34,6 +37,7 @@ ramptime=60
 runtime=300
 perc=0
 dld=0
+dldsplit=""
 outdir=""
 qds=(1 2 4 8 16 24 32)
 
@@ -69,6 +73,11 @@ while [[ $# -gt 0 ]]; do
 		dld="$2"
 		shift
 		;;
+	--dldsplit)
+		dldsplit="$2"
+		dld=0
+		shift
+		;;
 	--qds)
 		qds=($2)
 		shift
@@ -102,25 +111,25 @@ if [ ${perc} -lt 1 ] || [ ${perc} -gt 100 ]; then
 	exit 1
 fi
 
-if [ ${dld} -eq 0 ]; then
+if [ ${dld} -eq 0 ] && [ "${dldsplit}" == "" ]; then
 	echo "No CDL descriptor specified"
 	exit 1
 fi
 
-if [ ${dld} -lt 1 ] || [ ${dld} -gt 7 ]; then
-	echo "Invalid CDL descriptor"
-	exit 1
-fi
-
-limit=$(cat /sys/block/${bdev}/device/duration_limits/read/${dld}/duration_guideline)
-limit=$(( limit / 1000 ))
-if [ ${limit} -eq 0 ]; then
-	echo "CDL descriptor ${dld} limit is 0"
-	exit 1
-fi
-
-if [ "${outdir}" == "" ]; then
-	outdir="${bdev}_${limit}"
+if [ "${dldsplit}" == "" ]; then
+	if [ ${dld} -lt 1 ] || [ ${dld} -gt 7 ]; then
+		echo "Invalid CDL descriptor"
+		exit 1
+	fi
+	limit=$(cat /sys/block/${bdev}/device/duration_limits/read/${dld}/duration_guideline)
+	limit=$(( limit / 1000 ))
+	if [ "${outdir}" == "" ]; then
+		outdir="cdl_${limit}_${perc}"
+	fi
+else
+	if [ "${outdir}" == "" ]; then
+		outdir="cdl_multi_dld"
+	fi
 fi
 
 mkdir -p "${outdir}"
@@ -160,7 +169,11 @@ function fiorun()
 		if [ "${subdir}" == "cdl" ]; then
 			fioopts+=" --cmdprio_percentage=${perc}"
 			fioopts+=" --cmdprio_class=4"
-			fioopts+=" --cmdprio=${dld}"
+			if [ "${dldsplit}" != "" ]; then
+				fioopts+=" --cmdprio_split=${dldsplit}"
+			else
+				fioopts+=" --cmdprio=${dld}"
+			fi
 		fi
 
 		echo "fio ${fioopts}" > fio.log 2>&1
@@ -184,7 +197,7 @@ if [ ${all} == 1 ]; then
 fi
 
 # Run with CDL enabled
-echo "Running CDL, dld=${dld} (${limit} ms duration limit)..."
+echo "Running CDL..."
 
 echo 1 > /sys/block/${bdev}/device/duration_limits/enable
 sync
@@ -192,8 +205,7 @@ sync
 subdir="cdl"
 rundir="${outdir}/${subdir}"
 mkdir -p "${rundir}"
-echo "${dld}" > "${rundir}/dld"
-echo "${limit}" > "${rundir}/limit"
+grep . /sys/block/${bdev}/device/duration_limits/read/*/duration_guideline > "${rundir}/limits"
 
 fiorun "${subdir}"
 

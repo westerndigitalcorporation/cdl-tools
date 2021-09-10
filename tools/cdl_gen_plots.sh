@@ -23,8 +23,6 @@ fi
 
 gsave=0
 gcmd="gnuplot -p"
-cdllimit="??"
-dld=""
 
 while [ "${1#-}" != "$1" ]; do
 	case "$1" in
@@ -59,6 +57,21 @@ function gopts()
 	else
 		echo ""
 	fi
+}
+
+function fio_iops()
+{
+	local fiolog="$1"
+
+	grep "  read: IOPS=" "${fiolog}" | cut -d'=' -f2 | cut -d',' -f1
+}
+
+function cdl_limit()
+{
+        local dld="$1"
+
+	l=$(grep "device/duration_limits/read/${dld}/" limits | cut -d':' -f2)
+	echo $(( l / 1000 ))
 }
 
 function plot_nocdl_iops()
@@ -100,6 +113,20 @@ function plot_nocdl_lat_p99()
         ${gcmd} -e "${opts}" "${scriptdir}/nocdl_lat_p99.gnuplot" > /dev/null 2>&1
 }
 
+function concat_qd_files()
+{
+	local outfile="$1"
+	local class="$2"
+	local level="$3"
+	local latfiles=""
+
+	qds=($(ls -d [123456789]* | sort -n))
+	for qd in ${qds[*]}; do
+		latfiles+=" ${qd}/priolat.${class}.${level}.log"
+	done
+	paste -d',' ${latfiles} > "${outfile}"
+}
+
 function plot_nocdl_lat_hist()
 {
 	local tmpf="$(mktemp)"
@@ -108,11 +135,7 @@ function plot_nocdl_lat_hist()
 	echo "Plotting latency distribution"
 
 	# Concatenate the sorted IO latency files
-	qds=($(ls -d [123456789]* | sort -n))
-	for qd in ${qds[*]}; do
-		latfiles+=" ${qd}/priolat.NONE.0.log"
-	done
-	paste -d',' ${latfiles} > "${tmpf}"
+	concat_qd_files "${tmpf}" "NONE" "0"
 
 	opts=$(gopts "nocdl_lat_hist.png")
         opts+="filename='${tmpf}';"
@@ -154,119 +177,88 @@ function process_nocdl()
 
 function plot_cdl_iops()
 {
-	local resfnocdl="$1"
-	local resfcdl="$2"
-	local iopsnocdl="$(mktemp)"
-	local iopscdl="$(mktemp)"
-	local iops="$(mktemp)"
-	local iopstotal="$(mktemp)"
-	local qdf="$(mktemp)"
-
-	echo "Plotting IOPS"
-
-	cat ${resfnocdl} | cut -d',' -f4 > "${iopsnocdl}"
-	cat ${resfcdl} | cut -d',' -f4 > "${iopscdl}"
-	paste "${iopsnocdl}" "${iopscdl}" > "${iops}"
-	awk '{print $1 + $2}' "${iops}" > "${iopstotal}"
-
-	# Concatenate the sorted IO latency files
-	qds=($(ls -d [123456789]* | sort -n))
-	for qd in ${qds[*]}; do
-		echo "${qd}" >> "${qdf}"
-	done
-
-	paste -d',' "${qdf}" "${iopsnocdl}" "${iopscdl}" "${iopstotal}" > "${iops}"
+        local csvf="$1"
+        local opts
 
 	opts=$(gopts "cdl_iops.png")
-        opts+="filename='${iops}';"
-	opts+="limit='${cdllimit} ms'"
-	${gcmd} -e "${opts}" "${scriptdir}/cdl_iops.gnuplot" > /dev/null 2>&1
+        opts+="filename='${csvf}'"
 
-	rm -f "${qdf}"
-	rm -f "${iops}"
-	rm -f "${iopscdl}"
-	rm -f "${iopsnocdl}"
-	rm -f "${iopstotal}"
+	${gcmd} -e "${opts}" "${scriptdir}/cdl_iops.gnuplot" > /dev/null 2>&1
 }
 
 function plot_cdl_lat_avg()
 {
-	local resfnocdl="$1"
-	local resfcdl="$2"
+        local csvf="$1"
+        local opts
 
 	echo "Plotting latency average"
 
 	opts=$(gopts "cdl_lat_avg.png")
-        opts+="f1='${resfnocdl}';"
-        opts+="f2='${resfcdl}';"
-	opts+="limit='${cdllimit} ms'"
+        opts+="filename='${csvf}'"
 
 	${gcmd} -e "${opts}" "${scriptdir}/cdl_lat_avg.gnuplot" > /dev/null 2>&1
 }
 
 function plot_cdl_lat_p99()
 {
-	local resfnocdl="$1"
-	local resfcdl="$2"
+        local csvf="$1"
+        local opts
 
 	echo "Plotting latency 99th percentile"
 
 	opts=$(gopts "cdl_lat_p99.png")
-	opts+="f1='${resfnocdl}';"
-	opts+="f2='${resfcdl}';"
-	opts+="limit='${cdllimit} ms'"
+        opts+="filename='${csvf}'"
 
 	${gcmd} -e "${opts}" "${scriptdir}/cdl_lat_p99.gnuplot" > /dev/null 2>&1
 }
 
 function plot_cdl_lat_hist()
 {
-	local lathistnocdl="$(mktemp)"
-	local latfilesnocdl=""
-	local lathistcdl="$(mktemp)"
-	local latfilescdl=""
+	local class="$1"
+	local level="$2"
+	local csvf="$(mktemp)"
+
+	echo "Plotting latency distribution, class ${class}, level ${level}"
 
 	# Concatenate the sorted IO latency files
-	qds=($(ls -d [123456789]* | sort -n))
-	for qd in ${qds[*]}; do
-		latfilesnocdl+=" ${qd}/priolat.NONE.0.log"
-		latfilescdl+=" ${qd}/priolat.CDL.${dld}.log"
-	done
-	paste -d',' ${latfilesnocdl} > "${lathistnocdl}"
-	paste -d',' ${latfilescdl} > "${lathistcdl}"
+	concat_qd_files "${csvf}" "${class}" "${level}"
 
-	opts=$(gopts "cdl_lat_hist_nolimit.png")
-	opts+="filename='${lathistnocdl}';"
-	opts+="ptitle='I/O Latency Distribution, No Limit I/Os'"
+	if [ "${class}" == "NONE" ]; then
+		pngname="cdl_lat_hist_nolimit.png"
+		ptitle="I/O Latency Distribution, No Limit I/Os"
+	else
+		limit="$(cdl_limit ${level})"
+		pngname="cdl_lat_hist_${limit}ms.png"
+		ptitle="I/O Latency Distribution, ${limit} ms Limit I/Os"
+	fi
 
-	${gcmd} -e "${opts}'" "${scriptdir}/lat_hist.gnuplot" > /dev/null 2>&1
+	opts=$(gopts "${pngname}")
+	opts+="ptitle='${ptitle}';"
+	opts+="filename='${csvf}'"
 
-	opts=$(gopts "cdl_lat_hist_${cdllimit}ms.png")
-	opts+="filename='${lathistcdl}';"
-	opts+="ptitle='I/O Latency Distribution, ${cdllimit} ms Limit I/Os'"
+	${gcmd} -e "${opts}" "${scriptdir}/lat_hist.gnuplot" > /dev/null 2>&1
 
-	${gcmd} -e "${opts}'" "${scriptdir}/lat_hist.gnuplot" > /dev/null 2>&1
-
-	rm -f "${lathistnocdl}"
-	rm -f "${lathistcdl}"
+	rm -f "${csvf}"
 }
-
 function process_cdl()
 {
 	local d="$1"
 	local tmpf="$(mktemp)"
+	local priotmpf="$(mktemp)"
+	declare -a classes
+	declare -a levels
+	local nrprios=0
 
 	cd "${d}"
 
-	dld="$(cat dld)"
-	if [ "${dld}" == "" ]; then
-		echo "Could not get descriptor number used"
-		exit 1
-	fi
-	cdllimit="$(cat limit)"
+	echo "Processing CDL results..."
 
-	echo "Processing CDL results (${cdllimit} ms limit)..."
+	resf="randread.csv"
+	rm -rf "${resf}"
 
+	echo "All I/Os" >> "${resf}"
+
+	# Process all QDs, generating the total IOPS as we go
 	qds=($(ls -d [123456789]* | sort -n))
 	for qd in ${qds[*]}; do
 		echo "  QD=${qd}"
@@ -275,20 +267,51 @@ function process_cdl()
 			--terse \
 			--head "${qd}" \
 			${qd}/randread.log_lat.log >> ${tmpf}
+
+		echo "${qd},ALL,0,$(fio_iops ${qd}/fio.log)" >> ${resf}
 	done
 
-	# Separate priorities
-	resfnocdl="randread_nocdl.csv"
-	resfcdl="randread_cdl.csv"
+	echo "" >> "${resf}"
+	echo "" >> "${resf}"
 
-	grep "NONE" "${tmpf}" > "${resfnocdl}"
-	grep -v "NONE" "${tmpf}" > "${resfcdl}"
+	# resf already contains the total IOPS data block. Now add
+	# one data block for the "no limit" I/Os and one per CDL limit found
+	grep "NONE" "${tmpf}" > "${priotmpf}"
+	if [ $(cat "${priotmpf}" | wc -l) -ne 0 ]; then
+		echo "No limit I/Os" >> "${resf}"
+		classes[${nrprios}]="NONE"
+		levels[${nrprios}]="0"
+		cat "${priotmpf}" >> "${resf}"
+		echo "" >> "${resf}"
+		echo "" >> "${resf}"
+
+		nrprios=$(( nrprios + 1 ))
+	fi
+
+	for i in 1 2 3 4 5 6 7; do
+		grep ",CDL,${i}," "${tmpf}" > "${priotmpf}"
+        	if [ $(cat "${priotmpf}" | wc -l) -ne 0 ]; then
+			classes[${nrprios}]="CDL"
+			levels[${nrprios}]="${i}"
+			echo "$(cdl_limit ${i})ms limit I/Os" >> "${resf}"
+                	cat "${priotmpf}" >> "${resf}"
+                	echo "" >> "${resf}"
+                	echo "" >> "${resf}"
+
+			nrprios=$(( nrprios + 1 ))
+		fi
+	done
+
 	rm -f "${tmpf}"
+	rm -f "${priotmpf}"
 
-	plot_cdl_iops "${resfnocdl}" "${resfcdl}"
-	plot_cdl_lat_avg "${resfnocdl}" "${resfcdl}"
-	plot_cdl_lat_p99 "${resfnocdl}" "${resfcdl}"
-	plot_cdl_lat_hist
+	plot_cdl_iops "${resf}"
+	plot_cdl_lat_avg "${resf}"
+	plot_cdl_lat_p99 "${resf}"
+
+	for((i=0;i<${nrprios};i++)); do
+		plot_cdl_lat_hist "${classes[$i]}" "${levels[$i]}"
+	done
 
 	cd ..
 }
