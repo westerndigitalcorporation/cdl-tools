@@ -22,7 +22,6 @@ if [ $# -lt 1 ]; then
 fi
 
 gsave=0
-gcmd="gnuplot -p"
 
 while [ "${1#-}" != "$1" ]; do
 	case "$1" in
@@ -32,7 +31,6 @@ while [ "${1#-}" != "$1" ]; do
 		;;
 	--save)
 		gsave=1
-		gcmd="gnuplot"
 		;;
 	-*)
 		echo "unknow option $1"
@@ -42,21 +40,26 @@ while [ "${1#-}" != "$1" ]; do
 	shift
 done
 
+gcmd="gnuplot"
+if [ ${gsave} -eq 0 ]; then
+	gcmd+=" -p"
+fi
+
 datadir="$(cd "$1" && pwd)"
 basedir="$(pwd)"
 
 function gopts()
 {
         local png="$1"
-        local opts
+        local opts=""
 
         if [ ${gsave} -eq 1 ]; then
 		opts="set terminal pngcairo dashed size 860,400;"
         	opts+="set output '${png}';"
-        	echo "${opts}"
 	else
-		echo ""
+		opts="set terminal qt size 860,400;"
 	fi
+        echo "${opts}"
 }
 
 function fio_iops()
@@ -74,43 +77,46 @@ function cdl_limit()
 	echo $(( l / 1000 ))
 }
 
-function plot_nocdl_iops()
+function plot_iops()
 {
         local csvf="$1"
+        local prefix="$2"
         local opts
 
 	echo "Plotting IOPS"
 
-	opts=$(gopts "nocdl_iops.png")
+	opts=$(gopts "${prefix}_iops.png")
         opts+="filename='${csvf}'"
 
-	${gcmd} -e "${opts}" "${scriptdir}/nocdl_iops.gnuplot" > /dev/null 2>&1
+	${gcmd} -e "${opts}" "${scriptdir}/${prefix}_iops.gnuplot" > /dev/null 2>&1
 }
 
-function plot_nocdl_lat_avg()
+function plot_lat_avg()
 {
         local csvf="$1"
+        local prefix="$2"
         local opts
 
 	echo "Plotting latency average"
 
-	opts=$(gopts "nocdl_lat_avg.png")
+	opts=$(gopts "${prefix}_lat_avg.png")
         opts+="filename='${csvf}'"
 
-	${gcmd} -e "${opts}" "${scriptdir}/nocdl_lat_avg.gnuplot" > /dev/null 2>&1
+	${gcmd} -e "${opts}" "${scriptdir}/${prefix}_lat_avg.gnuplot" > /dev/null 2>&1
 }
 
-function plot_nocdl_lat_p99()
+function plot_lat_p99()
 {
         local csvf="$1"
+        local prefix="$2"
         local opts
 
 	echo "Plotting latency 99th percentile"
 
-        opts=$(gopts "nocdl_lat_p99.png")
+        opts=$(gopts "${prefix}_lat_p99.png")
         opts+="filename='${csvf}'"
 
-        ${gcmd} -e "${opts}" "${scriptdir}/nocdl_lat_p99.gnuplot" > /dev/null 2>&1
+        ${gcmd} -e "${opts}" "${scriptdir}/${prefix}_lat_p99.gnuplot" > /dev/null 2>&1
 }
 
 function concat_qd_files()
@@ -167,49 +173,12 @@ function process_nocdl()
 			${qd}/randread.log_lat.log >> ${resf}
 	done
 
-	plot_nocdl_iops ${resf}
-	plot_nocdl_lat_avg ${resf}
-	plot_nocdl_lat_p99 ${resf}
+	plot_iops "${resf}" "nocdl"
+	plot_lat_avg "${resf}" "nocdl"
+	plot_lat_p99 "${resf}" "nocdl"
 	plot_nocdl_lat_hist
 
 	cd ..
-}
-
-function plot_cdl_iops()
-{
-        local csvf="$1"
-        local opts
-
-	opts=$(gopts "cdl_iops.png")
-        opts+="filename='${csvf}'"
-
-	${gcmd} -e "${opts}" "${scriptdir}/cdl_iops.gnuplot" > /dev/null 2>&1
-}
-
-function plot_cdl_lat_avg()
-{
-        local csvf="$1"
-        local opts
-
-	echo "Plotting latency average"
-
-	opts=$(gopts "cdl_lat_avg.png")
-        opts+="filename='${csvf}'"
-
-	${gcmd} -e "${opts}" "${scriptdir}/cdl_lat_avg.gnuplot" > /dev/null 2>&1
-}
-
-function plot_cdl_lat_p99()
-{
-        local csvf="$1"
-        local opts
-
-	echo "Plotting latency 99th percentile"
-
-	opts=$(gopts "cdl_lat_p99.png")
-        opts+="filename='${csvf}'"
-
-	${gcmd} -e "${opts}" "${scriptdir}/cdl_lat_p99.gnuplot" > /dev/null 2>&1
 }
 
 function plot_cdl_lat_hist()
@@ -240,6 +209,7 @@ function plot_cdl_lat_hist()
 
 	rm -f "${csvf}"
 }
+
 function process_cdl()
 {
 	local d="$1"
@@ -305,9 +275,9 @@ function process_cdl()
 	rm -f "${tmpf}"
 	rm -f "${priotmpf}"
 
-	plot_cdl_iops "${resf}"
-	plot_cdl_lat_avg "${resf}"
-	plot_cdl_lat_p99 "${resf}"
+	plot_iops "${resf}" "cdl"
+	plot_lat_avg "${resf}" "cdl"
+	plot_lat_p99 "${resf}" "cdl"
 
 	for((i=0;i<${nrprios};i++)); do
 		plot_cdl_lat_hist "${classes[$i]}" "${levels[$i]}"
@@ -316,6 +286,107 @@ function process_cdl()
 	cd ..
 }
 
+function plot_ncq_prio_lat_hist()
+{
+	local class="$1"
+	local level="$2"
+	local csvf="$(mktemp)"
+
+	echo "Plotting latency distribution, class ${class}, level ${level}"
+
+	# Concatenate the sorted IO latency files
+	concat_qd_files "${csvf}" "${class}" "${level}"
+
+	if [ "${class}" == "NONE" ]; then
+		pngname="cdl_lat_hist_lopri.png"
+		ptitle="I/O Latency Distribution, Low Priority I/Os"
+	else
+		pngname="cdl_lat_hist_hipri.png"
+		ptitle="I/O Latency Distribution, High Priority I/Os"
+	fi
+
+	opts=$(gopts "${pngname}")
+	opts+="ptitle='${ptitle}';"
+	opts+="filename='${csvf}'"
+
+	${gcmd} -e "${opts}" "${scriptdir}/lat_hist.gnuplot" > /dev/null 2>&1
+
+	rm -f "${csvf}"
+}
+
+function process_ncq_prio()
+{
+	local d="$1"
+	local tmpf="$(mktemp)"
+	local priotmpf="$(mktemp)"
+	declare -a classes
+	declare -a levels
+	local nrprios=0
+
+	cd "${d}"
+
+	echo "Processing NCQ priority results..."
+
+	resf="randread.csv"
+	rm -rf "${resf}"
+
+	echo "All I/Os" >> "${resf}"
+
+	# Process all QDs, generating the total IOPS as we go
+	qds=($(ls -d [123456789]* | sort -n))
+	for qd in ${qds[*]}; do
+		echo "  QD=${qd}"
+		${scriptdir}/../fio-prio-stats.sh \
+			--save-priolat \
+			--terse \
+			--head "${qd}" \
+			${qd}/randread.log_lat.log >> ${tmpf}
+
+		echo "${qd},ALL,0,$(fio_iops ${qd}/fio.log)" >> ${resf}
+	done
+
+	echo "" >> "${resf}"
+	echo "" >> "${resf}"
+
+	# resf already contains the total IOPS data block. Now add
+	# one data block for the low and high priority I/Os.
+	grep "NONE" "${tmpf}" > "${priotmpf}"
+	if [ $(cat "${priotmpf}" | wc -l) -ne 0 ]; then
+		echo "Low priority I/Os" >> "${resf}"
+		classes[${nrprios}]="NONE"
+		levels[${nrprios}]="0"
+		cat "${priotmpf}" >> "${resf}"
+		echo "" >> "${resf}"
+		echo "" >> "${resf}"
+
+		nrprios=$(( nrprios + 1 ))
+	fi
+
+	grep "RT" "${tmpf}" > "${priotmpf}"
+	if [ $(cat "${priotmpf}" | wc -l) -ne 0 ]; then
+		echo "High Priority I/Os" >> "${resf}"
+		classes[${nrprios}]="RT"
+		levels[${nrprios}]="0"
+		cat "${priotmpf}" >> "${resf}"
+		echo "" >> "${resf}"
+		echo "" >> "${resf}"
+
+		nrprios=$(( nrprios + 1 ))
+	fi
+
+	rm -f "${tmpf}"
+	rm -f "${priotmpf}"
+
+	plot_iops "${resf}" "ncqprio"
+	plot_lat_avg "${resf}" "ncqprio"
+	plot_lat_p99 "${resf}" "ncqprio"
+
+	for((i=0;i<${nrprios};i++)); do
+		plot_ncq_prio_lat_hist "${classes[$i]}" "${levels[$i]}"
+	done
+
+	cd ..
+}
 
 cd "${datadir}"
 
@@ -325,6 +396,8 @@ for d in $(ls); do
 		process_nocdl "${d}"
 	elif [ "${d}" == "cdl" ]; then
 		process_cdl "${d}"
+	elif [ "${d}" == "ncqprio" ]; then
+		process_ncq_prio "${d}"
 	else
 		echo "Unknown subdir ${d}"
 		exit 1
