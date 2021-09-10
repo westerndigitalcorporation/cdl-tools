@@ -13,8 +13,6 @@ function usage()
 	echo "Options:"
 	echo "  -h | --help      : Print this help message"
 	echo "  --save           : Save plots to png files instead of displaying them"
-	echo "  --dld <num>      : Specify the descriptor number used"
-	echo "  --cdl-limit <ms> : Specify the duration limit used in milliseconds"
 }
 
 # Parse command line
@@ -26,7 +24,7 @@ fi
 gsave=0
 gcmd="gnuplot -p"
 cdllimit="??"
-dld="1"
+dld=""
 
 while [ "${1#-}" != "$1" ]; do
 	case "$1" in
@@ -37,14 +35,6 @@ while [ "${1#-}" != "$1" ]; do
 	--save)
 		gsave=1
 		gcmd="gnuplot"
-		;;
-	--cdl-limit)
-		cdllimit="$2"
-		shift
-		;;
-	--dld)
-		dld="$2"
-		shift
 		;;
 	-*)
 		echo "unknow option $1"
@@ -266,9 +256,16 @@ function process_cdl()
 	local d="$1"
 	local tmpf="$(mktemp)"
 
-	echo "Processing CDL results (${cdllimit} ms limit)..."
-
 	cd "${d}"
+
+	dld="$(cat dld)"
+	if [ "${dld}" == "" ]; then
+		echo "Could not get descriptor number used"
+		exit 1
+	fi
+	cdllimit="$(cat limit)"
+
+	echo "Processing CDL results (${cdllimit} ms limit)..."
 
 	qds=($(ls -d [123456789]* | sort -n))
 	for qd in ${qds[*]}; do
