@@ -18,6 +18,8 @@ function usage()
 	echo "  --dld <num>      : For cdl run, specify the descriptor to use"
 	echo "  --outdir <dir>   : Save results (fio log files) in <dir>"
 	echo "                     (default: <disk>_<dld limit>)"
+	echo "  --qds <list>     : Specify the list of queue depth to use as a string,"
+	echo "                     e.g. \"1 2 4 8 16 32\" (default: \"1 2 4 8 16 24 32\")"
 }
 
 # Parse command line
@@ -33,6 +35,7 @@ runtime=300
 perc=0
 dld=0
 outdir=""
+qds=(1 2 4 8 16 24 32)
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -64,6 +67,10 @@ while [[ $# -gt 0 ]]; do
 		;;
 	--dld)
 		dld="$2"
+		shift
+		;;
+	--qds)
+		qds=($2)
 		shift
 		;;
 	--outdir)
@@ -122,7 +129,7 @@ function fiorun()
 {
 	local subdir="$1"
 
-	for qd in 1 2 4 8 16 24 32 48 64; do
+	for qd in ${qds[*]}; do
 
 		rundir="${outdir}/${subdir}/${qd}"
 		mkdir -p "${rundir}"
