@@ -14,4 +14,4 @@ set xtics 8
 set ylabel "Latency (ms)"
 set yrange [0:]
 
-plot filename using 1:8 with lp title "Average latency" lc rgb"red"
+plot filename using 1:8 with lp title "Average latency" lc rgb"blue"

@@ -15,7 +15,7 @@ set ylabel "IOPS"
 set yrange [0:]
 set ytics 20
 
-plot filename index 0 using 1:4 with lp title columnheader(1) lc rgb"blue", \
+plot filename index 0 using 1:4 with lp title columnheader(1) lc rgb"violet", \
      filename index 1 using 1:4 with lp title columnheader(1) lc rgb"red" dt "_.", \
      filename index 2 using 1:4 with lp title columnheader(1) lc rgb"red", \
      filename index 3 using 1:4 with lp title columnheader(1) lc rgb"green"

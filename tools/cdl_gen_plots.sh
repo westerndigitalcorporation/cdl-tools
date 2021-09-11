@@ -133,35 +133,35 @@ function concat_qd_files()
 	paste -d',' ${latfiles} > "${outfile}"
 }
 
-function plot_nocdl_lat_hist()
+function plot_baseline_lat_pdf()
 {
-	local tmpf="$(mktemp)"
+	local csvf="lat_pdf.csv"
 	local latfiles=""
 
 	echo "Plotting latency distribution"
 
 	# Concatenate the sorted IO latency files
-	concat_qd_files "${tmpf}" "NONE" "0"
+	concat_qd_files "${csvf}" "NONE" "0"
 
-	opts=$(gopts "nocdl_lat_hist.png")
-        opts+="filename='${tmpf}';"
+	opts=$(gopts "baseline_lat_pdf.png")
+        opts+="filename='${csvf}';"
 	opts+="ptitle='I/O Latency Probability Distribution'"
 
-	${gcmd} -e "${opts}" "${scriptdir}/lat_hist.gnuplot" > /dev/null 2>&1
-
-	rm -f "${tmpf}"
+	${gcmd} -e "${opts}" "${scriptdir}/lat_pdf.gnuplot" > /dev/null 2>&1
 }
 
-function process_nocdl()
+function process_baseline()
 {
 	local d="$1"
 
-	echo "Processing baseline (no CDL) results"
+	echo "Processing baseline results"
 
 	cd "${d}"
 
 	resf="randread.csv"
 	rm -rf "${resf}"
+
+	echo "Baseline" >> "${resf}"
 
 	qds=($(ls -d [123456789]* | sort -n))
 	for qd in ${qds[*]}; do
@@ -173,41 +173,41 @@ function process_nocdl()
 			${qd}/randread.log_lat.log >> ${resf}
 	done
 
-	plot_iops "${resf}" "nocdl"
-	plot_lat_avg "${resf}" "nocdl"
-	plot_lat_p99 "${resf}" "nocdl"
-	plot_nocdl_lat_hist
+	plot_iops "${resf}" "baseline"
+	plot_lat_avg "${resf}" "baseline"
+	plot_lat_p99 "${resf}" "baseline"
+	plot_baseline_lat_pdf
 
 	cd ..
 }
 
-function plot_cdl_lat_hist()
+function plot_cdl_lat_pdf()
 {
 	local class="$1"
 	local level="$2"
-	local csvf="$(mktemp)"
+	local csvf
 
 	echo "Plotting latency distribution, class ${class}, level ${level}"
 
-	# Concatenate the sorted IO latency files
-	concat_qd_files "${csvf}" "${class}" "${level}"
-
 	if [ "${class}" == "NONE" ]; then
-		pngname="cdl_lat_hist_nolimit.png"
+		pngname="cdl_lat_pdf_nolimit.png"
 		ptitle="I/O Latency Distribution, No Limit I/Os"
+		csvf="lat_pdf_nolimit.csv"
 	else
 		limit="$(cdl_limit ${level})"
-		pngname="cdl_lat_hist_${limit}ms.png"
+		pngname="cdl_lat_pdf_${limit}ms.png"
 		ptitle="I/O Latency Distribution, ${limit} ms Limit I/Os"
+		csvf="lat_pdf_${limit}.csv"
 	fi
+
+	# Concatenate the sorted IO latency files
+	concat_qd_files "${csvf}" "${class}" "${level}"
 
 	opts=$(gopts "${pngname}")
 	opts+="ptitle='${ptitle}';"
 	opts+="filename='${csvf}'"
 
-	${gcmd} -e "${opts}" "${scriptdir}/lat_hist.gnuplot" > /dev/null 2>&1
-
-	rm -f "${csvf}"
+	${gcmd} -e "${opts}" "${scriptdir}/lat_pdf.gnuplot" > /dev/null 2>&1
 }
 
 function process_cdl()
@@ -226,7 +226,7 @@ function process_cdl()
 	resf="randread.csv"
 	rm -rf "${resf}"
 
-	echo "All I/Os" >> "${resf}"
+	echo "Total IOPS (all limits)" >> "${resf}"
 
 	# Process all QDs, generating the total IOPS as we go
 	qds=($(ls -d [123456789]* | sort -n))
@@ -280,38 +280,38 @@ function process_cdl()
 	plot_lat_p99 "${resf}" "cdl"
 
 	for((i=0;i<${nrprios};i++)); do
-		plot_cdl_lat_hist "${classes[$i]}" "${levels[$i]}"
+		plot_cdl_lat_pdf "${classes[$i]}" "${levels[$i]}"
 	done
 
 	cd ..
 }
 
-function plot_ncq_prio_lat_hist()
+function plot_ncq_prio_lat_pdf()
 {
 	local class="$1"
 	local level="$2"
-	local csvf="$(mktemp)"
+	local csvf=""
 
 	echo "Plotting latency distribution, class ${class}, level ${level}"
 
+	if [ "${class}" == "NONE" ]; then
+		pngname="cdl_lat_pdf_lopri.png"
+		ptitle="I/O Latency Distribution, Low Priority I/Os"
+		csvf="lat_pdf_lopri.csv"
+	else
+		pngname="cdl_lat_pdf_hipri.png"
+		ptitle="I/O Latency Distribution, High Priority I/Os"
+		csvf="lat_pdf_hipri.csv"
+	fi
+
 	# Concatenate the sorted IO latency files
 	concat_qd_files "${csvf}" "${class}" "${level}"
-
-	if [ "${class}" == "NONE" ]; then
-		pngname="cdl_lat_hist_lopri.png"
-		ptitle="I/O Latency Distribution, Low Priority I/Os"
-	else
-		pngname="cdl_lat_hist_hipri.png"
-		ptitle="I/O Latency Distribution, High Priority I/Os"
-	fi
 
 	opts=$(gopts "${pngname}")
 	opts+="ptitle='${ptitle}';"
 	opts+="filename='${csvf}'"
 
-	${gcmd} -e "${opts}" "${scriptdir}/lat_hist.gnuplot" > /dev/null 2>&1
-
-	rm -f "${csvf}"
+	${gcmd} -e "${opts}" "${scriptdir}/lat_pdf.gnuplot" > /dev/null 2>&1
 }
 
 function process_ncq_prio()
@@ -330,7 +330,7 @@ function process_ncq_prio()
 	resf="randread.csv"
 	rm -rf "${resf}"
 
-	echo "All I/Os" >> "${resf}"
+	echo "Total IOPS (low + high)" >> "${resf}"
 
 	# Process all QDs, generating the total IOPS as we go
 	qds=($(ls -d [123456789]* | sort -n))
@@ -382,7 +382,7 @@ function process_ncq_prio()
 	plot_lat_p99 "${resf}" "ncqprio"
 
 	for((i=0;i<${nrprios};i++)); do
-		plot_ncq_prio_lat_hist "${classes[$i]}" "${levels[$i]}"
+		plot_ncq_prio_lat_pdf "${classes[$i]}" "${levels[$i]}"
 	done
 
 	cd ..
@@ -392,8 +392,8 @@ cd "${datadir}"
 
 for d in $(ls); do
 
-	if [ "${d}" == "nocdl" ]; then
-		process_nocdl "${d}"
+	if [ "${d}" == "baseline" ]; then
+		process_baseline "${d}"
 	elif [ "${d}" == "cdl" ]; then
 		process_cdl "${d}"
 	elif [ "${d}" == "ncqprio" ]; then

@@ -9,19 +9,19 @@ function usage()
 	echo "Usage: ${cmd} [Options]"
 	echo "Options:"
 	echo "  -h | --help      : Print this help message"
-	echo "  --all            : Run baseline (no CDL) and CDL workloads (default)"
-	echo "  --cdl            : Run only CDL workloads"
+	echo "  --baseline       : Run baseline (no CDL) workloads"
+	echo "  --ncq-prio       : Use NCQ high-priority instead of cdl"
+	echo "  --cdl            : Run CDL workloads (default)"
 	echo "  --dev <disk>     : Specify the target disk"
 	echo "  --ramptime <sec> : Specify the ramp time (seconds) for each run (default: 60)"
 	echo "  --runtime <sec>  : Specify the run time (seconds) for each run (default: 300)"
 	echo "  --percentage <p> : For cdl run, specify the percentage of commands with cdl"
-	echo "  --ncq-prio       : Use NCQ high-priority instead of cdl"
 	echo "  --dld <num>      : For cdl run, specify the descriptor to use"
 	echo "  --dldsplit <str> : For cdl run, specify the descriptors to use with their"
 	echo "                     percentages, e.g. \"1/33:2/67\". The percentages applies"
 	echo "                     to the <percentage> of IOs that will have a high priority."
 	echo "  --outdir <dir>   : Save results (fio log files) in <dir>"
-	echo "                     (default: cdl_<dld limit>_<percentage>)"
+	echo "                     (default: cdl_bench_<dev name>)"
 	echo "  --qds <list>     : Specify the list of queue depth to use as a string,"
 	echo "                     e.g. \"1 2 4 8 16 32\" (default: \"1 2 4 8 16 24 32\")"
 }
@@ -33,11 +33,12 @@ if [ $# -le 1 ]; then
 fi
 
 dev=""
-all=1
+baseline=0
+cdl=1
+ncqprio=0
 ramptime=60
 runtime=300
 perc=0
-ncqprio=0
 dld=0
 dldsplit=""
 outdir=""
@@ -49,11 +50,15 @@ while [[ $# -gt 0 ]]; do
 		usage "$0"
 		exit 0
 		;;
-	--all)
-		all=1
+	--baseline)
+		baseline=1
+		cdl=0
 		;;
 	--cdl)
-		all=0
+		cdl=1
+		;;
+	--ncq-prio)
+		ncqprio=1
 		;;
 	--dev)
 		dev="$2"
@@ -70,9 +75,6 @@ while [[ $# -gt 0 ]]; do
 	--percentage)
 		perc="$2"
 		shift
-		;;
-	--ncq-prio)
-		ncqprio=1
 		;;
 	--dld)
 		dld="$2"
@@ -106,53 +108,76 @@ fi
 
 bdev="$(basename $(realpath ${dev}))"
 
-if [ ${perc} -eq 0 ]; then
-	echo "No CDL percentage specified"
-	exit 1
+function ncqprio_supported()
+{
+	local supported="/sys/block/${bdev}/device/ncq_prio_supported"
+
+	if [ -f "${supported}" ]; then
+		cat "/sys/block/${bdev}/device/ncq_prio_supported"
+	else
+		echo "0"
+	fi
+}
+
+function cdl_supported()
+{
+	local supported="/sys/block/${bdev}/device/duration_limits/enable"
+
+	if [ -f "${supported}" ]; then
+		echo "1"
+	else
+		echo "0"
+	fi
+}
+
+if [ ${cdl} -eq 1 ] || [ ${ncqprio} -eq 1 ]; then
+	if [ ${perc} -eq 0 ]; then
+		echo "No CDL percentage specified"
+		exit 1
+	fi
+
+	if [ ${perc} -lt 1 ] || [ ${perc} -gt 100 ]; then
+		echo "Invalid CDL percentage"
+		exit 1
+	fi
 fi
 
-if [ ${perc} -lt 1 ] || [ ${perc} -gt 100 ]; then
-	echo "Invalid CDL percentage"
-	exit 1
-fi
-
-if [ ${ncqprio} == 0 ]; then
+if [ ${cdl} -eq 1 ]; then
+	if [ "$(cdl_supported)" == "0" ]; then
+		echo "${dev} does not support CDL"
+		exit 1
+	fi
 	if [ ${dld} -eq 0 ] && [ "${dldsplit}" == "" ]; then
 		echo "No CDL descriptor specified"
 		exit 1
 	fi
-else
-	if [ ${dld} -ne 0 ] || [ "${dldsplit}" != "" ]; then
-		echo "CDL and NCQ priority are mutually exclusive"
-		exit 1
+	if [ "${dldsplit}" == "" ]; then
+		if [ ${dld} -lt 1 ] || [ ${dld} -gt 7 ]; then
+			echo "Invalid CDL descriptor"
+			exit 1
+		fi
 	fi
 fi
 
-if [ ${ncqprio} == 1 ]; then
-	if [ "${outdir}" == "" ]; then
-		outdir="cdl_ncq_prio_${perc}"
-	fi
-elif [ "${dldsplit}" == "" ]; then
-	if [ ${dld} -lt 1 ] || [ ${dld} -gt 7 ]; then
-		echo "Invalid CDL descriptor"
-		exit 1
-	fi
-	limit=$(cat /sys/block/${bdev}/device/duration_limits/read/${dld}/duration_guideline)
-	limit=$(( limit / 1000 ))
-	if [ "${outdir}" == "" ]; then
-		outdir="cdl_${limit}_${perc}"
-	fi
-else
-	if [ "${outdir}" == "" ]; then
-		outdir="cdl_multi_dld"
-	fi
+if [ ${ncqprio} -eq 1 ] && [ "$(ncqprio_supported)" == "0" ]; then
+	echo "${dev} does not support NCQ priority"
+	exit 1
 fi
 
+if [ "${outdir}" == "" ]; then
+	outdir="cdl_bench_${bdev}"
+fi
 mkdir -p "${outdir}"
 
 function fiorun()
 {
 	local subdir="$1"
+
+	rundir="${outdir}/${subdir}"
+	mkdir -p "${rundir}"
+	if [ "${subdir}" == "cdl" ]; then
+		grep . /sys/block/${bdev}/device/duration_limits/read/*/duration_guideline > "${rundir}/limits"
+	fi
 
 	for qd in ${qds[*]}; do
 
@@ -203,9 +228,13 @@ function fiorun()
 	done
 }
 
-function ncq_enable()
+function ncqprio_enable()
 {
         local onoff="$1"
+
+        if [ $(ncqprio_supported) -eq 0 ]; then
+		return
+	fi
 
 	if [ ${onoff} -eq 1 ]; then
 		# Enable priority mode
@@ -223,46 +252,49 @@ function ncq_enable()
 		# Disable priority mode
 		sg_sat_set_features --feature=0x56 "${dev}"
 	fi
+	sync
 }
 
 function cdl_enable()
 {
 	local onoff="$1"
 
-	if [ ${ncqprio} == 0 ]; then
-		echo "${onoff}" > /sys/block/${bdev}/device/duration_limits/enable
-		sync
-	else
-		ncq_enable "${onoff}"
+        if [ $(cdl_supported) -eq 0 ]; then
+		return
 	fi
+
+	echo "${onoff}" > /sys/block/${bdev}/device/duration_limits/enable
+	sync
 }
 
 echo "Running on ${dev}, ramp time: ${ramptime}s, run time: ${runtime}s"
 
-if [ ${all} == 1 ]; then
-	# Run with CDL disabled
+if [ ${baseline} == 1 ]; then
 	echo "Running baseline (no CDL)..."
+
 	cdl_enable 0
+	ncqprio_enable 0
 
-	fiorun "nocdl"
+	fiorun "baseline"
 fi
 
-# Run with CDL enabled
-if [ ${ncqprio} == 0 ]; then
+if [ ${cdl} == 1 ]; then
 	echo "Running CDL..."
-	subdir="cdl"
-else
+
+	cdl_enable 1
+	ncqprio_enable 0
+
+	fiorun "cdl"
+fi
+
+if [ ${ncqprio} == 1 ]; then
 	echo "Running NCQ priority..."
-	subdir="ncqprio"
-fi
-cdl_enable 1
 
-rundir="${outdir}/${subdir}"
-mkdir -p "${rundir}"
-if [ ${ncqprio} == 0 ]; then
-	grep . /sys/block/${bdev}/device/duration_limits/read/*/duration_guideline > "${rundir}/limits"
-fi
+	cdl_enable 0
+	ncqprio_enable 1
 
-fiorun "${subdir}"
+	fiorun "ncqprio"
+fi
 
 cdl_enable 0
+ncqprio_enable 0

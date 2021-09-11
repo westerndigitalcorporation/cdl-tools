@@ -14,4 +14,4 @@ set xtics 8
 set ylabel "Latency (ms)"
 set yrange [0:]
 
-plot filename using 1:21 with lp title "Latency 99th percentile" lc rgb"red"
+plot filename using 1:21 with lp title "Latency 99th percentile" lc rgb"blue"
