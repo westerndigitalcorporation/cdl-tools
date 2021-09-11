@@ -11,7 +11,7 @@ function usage()
 	echo "  -h | --help      : Print this help message"
 	echo "  --baseline       : Run baseline (no CDL) workloads"
 	echo "  --ncq-prio       : Use NCQ high-priority instead of cdl"
-	echo "  --cdl            : Run CDL workloads (default)"
+	echo "  --cdl            : Run CDL workloads"
 	echo "  --dev <disk>     : Specify the target disk"
 	echo "  --ramptime <sec> : Specify the ramp time (seconds) for each run (default: 60)"
 	echo "  --runtime <sec>  : Specify the run time (seconds) for each run (default: 300)"
@@ -34,7 +34,7 @@ fi
 
 dev=""
 baseline=0
-cdl=1
+cdl=0
 ncqprio=0
 ramptime=60
 runtime=300
@@ -52,7 +52,6 @@ while [[ $# -gt 0 ]]; do
 		;;
 	--baseline)
 		baseline=1
-		cdl=0
 		;;
 	--cdl)
 		cdl=1
@@ -103,6 +102,11 @@ done
 
 if [ "${dev}" == "" ]; then
 	echo "No device specified"
+	exit 1
+fi
+
+if [ ${baseline} -eq 0 ] && [ ${cdl} -eq 0 ] && [ ${ncqprio} -eq 0 ]; then
+	echo "Nothing to run"
 	exit 1
 fi
 
