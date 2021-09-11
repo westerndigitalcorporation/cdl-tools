@@ -84,10 +84,7 @@ function get_runtime()
 	local fiolatlog="$1"
 
 	# Get run time in milliseconds
-        start=$(head -1 "${fiolatlog}" | cut -d',' -f1)
-        end=$(tail -1 "${fiolatlog}" | cut -d',' -f1)
-
-	echo "$(( end - start ))"
+        echo "$(tail -1 "${fiolatlog}" | cut -d',' -f1)"
 }
 
 #
