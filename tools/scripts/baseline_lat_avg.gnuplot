@@ -7,7 +7,7 @@ set key on left
 set border 3
 set grid
 
-set title "I/O Latency Average"
+set title "Baseline I/O Latency Average"
 
 set xlabel "I/O Queue Depth"
 set xtics 8

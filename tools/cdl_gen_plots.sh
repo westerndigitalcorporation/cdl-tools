@@ -145,7 +145,7 @@ function plot_baseline_lat_pdf()
 
 	opts=$(gopts "baseline_lat_pdf.png")
         opts+="filename='${csvf}';"
-	opts+="ptitle='I/O Latency Probability Distribution'"
+	opts+="ptitle='Baseline I/O Latency Probability Distribution'"
 
 	${gcmd} -e "${opts}" "${scriptdir}/lat_pdf.gnuplot" > /dev/null 2>&1
 }
@@ -191,12 +191,12 @@ function plot_cdl_lat_pdf()
 
 	if [ "${class}" == "NONE" ]; then
 		pngname="cdl_lat_pdf_nolimit.png"
-		ptitle="I/O Latency Distribution, No Limit I/Os"
+		ptitle="Command Duration Limits I/O Latency Distribution, No Limit I/Os"
 		csvf="lat_pdf_nolimit.csv"
 	else
 		limit="$(cdl_limit ${level})"
 		pngname="cdl_lat_pdf_${limit}ms.png"
-		ptitle="I/O Latency Distribution, ${limit} ms Limit I/Os"
+		ptitle="Command Duration Limits I/O Latency Distribution, ${limit} ms Limit I/Os"
 		csvf="lat_pdf_${limit}.csv"
 	fi
 
@@ -296,11 +296,11 @@ function plot_ncq_prio_lat_pdf()
 
 	if [ "${class}" == "NONE" ]; then
 		pngname="cdl_lat_pdf_lopri.png"
-		ptitle="I/O Latency Distribution, Low Priority I/Os"
+		ptitle="NCQ Priority I/O Latency Distribution, Low Priority I/Os"
 		csvf="lat_pdf_lopri.csv"
 	else
 		pngname="cdl_lat_pdf_hipri.png"
-		ptitle="I/O Latency Distribution, High Priority I/Os"
+		ptitle="NCQ Priority I/O Latency Distribution, High Priority I/Os"
 		csvf="lat_pdf_hipri.csv"
 	fi
 

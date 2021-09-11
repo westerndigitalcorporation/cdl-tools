@@ -7,7 +7,7 @@ set key on left
 set border 3
 set grid
 
-set title "I/O latency 99th Percentile"
+set title "NCQ Priority I/O latency 99th Percentile"
 
 set xlabel "I/O Queue Depth"
 set xtics 8
