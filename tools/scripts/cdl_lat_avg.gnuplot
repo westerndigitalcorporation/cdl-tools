@@ -16,4 +16,6 @@ set yrange [0:]
 
 plot filename index 1 using 1:8 with lp title columnheader(1) lc rgb"red" dt "_.", \
      filename index 2 using 1:8 with lp title columnheader(1) lc rgb"red", \
-     filename index 3 using 1:8 with lp title columnheader(1) lc rgb"green"
+     filename index 3 using 1:8 with lp title columnheader(1) lc rgb"green", \
+     filename index 4 using 1:8 with lp title columnheader(1) lc rgb"magenta", \
+     filename index 5 using 1:8 with lp title columnheader(1) lc rgb"cyan"
