@@ -11,8 +11,10 @@ function usage()
 
 	echo "Usage: ${cmd} [Options] <data dir>"
 	echo "Options:"
-	echo "  -h | --help      : Print this help message"
-	echo "  --save           : Save plots to png files instead of displaying them"
+	echo "  -h | --help  : Print this help message"
+	echo "  --save       : Save plots to png files instead of displaying them"
+	echo "  --w <width>  : Set plot width (default: 860)"
+	echo "  --h <height> : Set plot height (default: 400)"
 }
 
 # Parse command line
@@ -22,6 +24,8 @@ if [ $# -lt 1 ]; then
 fi
 
 gsave=0
+w=860
+h=400
 
 while [ "${1#-}" != "$1" ]; do
 	case "$1" in
@@ -32,6 +36,15 @@ while [ "${1#-}" != "$1" ]; do
 	--save)
 		gsave=1
 		;;
+	--w)
+		w=$2
+		shift
+		;;
+	--h)
+		h=$2
+		shift
+		;;
+
 	-*)
 		echo "unknow option $1"
 		exit 1
@@ -54,10 +67,10 @@ function gopts()
         local opts=""
 
         if [ ${gsave} -eq 1 ]; then
-		opts="set terminal pngcairo dashed size 860,400;"
+		opts="set terminal pngcairo dashed size ${w},${h};"
         	opts+="set output '${png}';"
 	else
-		opts="set terminal qt size 860,400;"
+		opts="set terminal qt size ${w},${h};"
 	fi
         echo "${opts}"
 }
