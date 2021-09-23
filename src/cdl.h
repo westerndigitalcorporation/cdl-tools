@@ -48,9 +48,9 @@ enum cdl_p {
 
 struct cdl_desc {
 	uint8_t		cdltunit;
-	uint64_t	max_inactive_time;
-	uint64_t	max_active_time;
-	uint64_t	duration;
+	uint16_t	max_inactive_time;
+	uint16_t	max_active_time;
+	uint16_t	duration;
 	uint8_t		max_inactive_policy;
 	uint8_t		max_active_policy;
 	uint8_t		duration_policy;
@@ -69,8 +69,9 @@ struct cdl_page {
 /*
  * Device flags.
  */
-#define CDL_VERBOSE	(1ULL << 0)
-#define CDL_USE_MS_SP	(1ULL << 1)
+#define CDL_VERBOSE		(1 << 0)
+#define CDL_USE_MS_SP		(1 << 1)
+#define CDL_SHOW_RAW_VAL	(1 << 2)
 
 #define CDL_VENDOR_LEN	9
 #define CDL_ID_LEN	17
@@ -85,7 +86,7 @@ struct cdl_dev {
 	int		fd;
 
 	/* Device info */
-	unsigned long long	flags;
+	unsigned int		flags;
 	char			vendor[CDL_VENDOR_LEN];
 	char			id[CDL_ID_LEN];
 	char			rev[CDL_REV_LEN];
@@ -142,7 +143,7 @@ const char *cdl_cmd_str(enum cdl_cmd cmd);
 uint8_t cdl_cmd_opcode(enum cdl_cmd cmd);
 uint16_t cdl_cmd_sa(enum cdl_cmd cmd);
 
-void cdl_page_show(struct cdl_page *page);
+void cdl_page_show(struct cdl_page *page, bool raw);
 void cdl_page_save(struct cdl_page *page, FILE *f);
 int cdl_page_parse_file(FILE *f, struct cdl_page *page);
 

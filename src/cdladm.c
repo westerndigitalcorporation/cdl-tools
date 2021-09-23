@@ -43,6 +43,9 @@ static void cdladm_usage(void)
 	       "\tSpecify that the device should save the page in\n"
 	       "\tnon-volatile memory in addition to updating the current\n"
 	       "\tpage value.\n");
+	printf("  --raw\n"
+	       "\tApply to the show command.\n"
+	       "\tShow the raw values of the CDL pages fields\n");
 }
 
 static int cdladm_list(struct cdl_dev *dev)
@@ -84,7 +87,8 @@ static int cdladm_show(struct cdl_dev *dev, char *page)
 		}
 
 		printf("Page %s:\n", page);
-		cdl_page_show(&dev->cdl_pages[cdlp]);
+		cdl_page_show(&dev->cdl_pages[cdlp],
+			      dev->flags & CDL_SHOW_RAW_VAL);
 
 		return 0;
 	}
@@ -94,7 +98,8 @@ static int cdladm_show(struct cdl_dev *dev, char *page)
 		if (!cdl_page_supported(dev, i))
 			continue;
 		printf("Page %s:\n", cdl_page_name(i));
-		cdl_page_show(&dev->cdl_pages[i]);
+		cdl_page_show(&dev->cdl_pages[i],
+			      dev->flags & CDL_SHOW_RAW_VAL);
 	}
 
 	return 0;
@@ -195,7 +200,7 @@ static int cdladm_upload(struct cdl_dev *dev, char *path)
 
 	printf("Uploading page %s:\n",
 	       cdl_page_name(page.cdlp));
-	cdl_page_show(&page);
+	cdl_page_show(&page, false);
 
 	ret = cdl_write_page(dev, &page);
 	if (ret)
@@ -314,6 +319,13 @@ int main(int argc, char **argv)
 			if (command != CDLADM_UPLOAD)
 				goto err_cmd_line;
 			dev.flags |= CDL_USE_MS_SP;
+			continue;
+		}
+
+		if (strcmp(argv[i], "--raw") == 0) {
+			if (command != CDLADM_SHOW)
+				goto err_cmd_line;
+			dev.flags |= CDL_SHOW_RAW_VAL;
 			continue;
 		}
 

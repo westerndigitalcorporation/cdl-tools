@@ -223,6 +223,18 @@ static const char *cdl_policy_str(uint8_t policy)
 	}
 }
 
+static void cdl_page_show_simple_raw(struct cdl_page *page)
+{
+	struct cdl_desc *desc;
+	int i;
+
+	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
+		printf("  Descriptor %d:\n", i + 1);
+		printf("    duration guideline: 0x%04x\n",
+		       (unsigned int)desc->duration);
+	}
+}
+
 static void cdl_page_show_simple(struct cdl_page *page)
 {
 	struct cdl_desc *desc;
@@ -231,6 +243,7 @@ static void cdl_page_show_simple(struct cdl_page *page)
 
 	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
 		printf("  Descriptor %d:\n", i + 1);
+
 		if (desc->duration)
 			printf("    duration guideline: %s\n",
 			       cdl_simple_time_str(str, desc->duration,
@@ -260,13 +273,45 @@ static int cdl_page_save_simple(struct cdl_page *page, FILE *f)
 	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
 		fprintf(f, "== descriptor: %d\n", i + 1);
 		fprintf(f, "cdlunit: 0x%1x\n",
-			(int)desc->cdltunit);
-		fprintf(f, "duration-guideline: %" PRIu64 "\n",
-		       desc->duration);
+			(unsigned int)desc->cdltunit);
+		fprintf(f, "duration-guideline: %u\n",
+		       (unsigned int)desc->duration);
 		fprintf(f, "\n");
 	}
 
 	return 0;
+}
+
+static void cdl_page_show_t2_raw(struct cdl_page *page)
+{
+	struct cdl_desc *desc;
+	int i;
+
+	if (page->cdlp == CDLP_T2A)
+		printf("  perf_vs_duration_guideline : 0x%1x\n",
+		       (unsigned int)page->perf_vs_duration_guideline);
+
+	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
+		printf("  Descriptor %d:\n", i + 1);
+
+		printf("    T2 CDL units             : 0x%1x\n",
+		       (unsigned int)desc->cdltunit);
+
+		printf("    max inactive time        : 0x%04x\n",
+		       (unsigned int)desc->max_inactive_time);
+		printf("    max inactive policy      : 0x%1x\n",
+		       (unsigned int)desc->max_inactive_policy);
+
+		printf("    max active time          : 0x%04x\n",
+		       (unsigned int)desc->max_active_time);
+		printf("    max active policy        : 0x%1x\n",
+		       (unsigned int)desc->max_active_policy);
+
+		printf("    duration guideline       : 0x%04x\n",
+		       (unsigned int)desc->duration);
+		printf("    duration guideline policy: 0x%1x\n",
+		       (unsigned int)desc->duration_policy);
+	}
 }
 
 static void cdl_page_show_t2(struct cdl_page *page)
@@ -296,7 +341,7 @@ static void cdl_page_show_t2(struct cdl_page *page)
 			printf("    max active time          : %s\n",
 			       cdl_t2time_str(str, desc->max_active_time,
 					      desc->cdltunit));
-			printf("    max active policy        : (%s)\n",
+			printf("    max active policy        : %s\n",
 			       cdl_policy_str(desc->max_active_policy));
 		} else {
 			printf("    max active time          : no limit\n");
@@ -346,22 +391,22 @@ static int cdl_page_save_t2(struct cdl_page *page, FILE *f)
 		"#   - 500ms  : 0xe\n");
 	fprintf(f,
 		"# max-inactive-time-policy can be one of:\n"
-		"#   - complete-earliest    : 0x00\n"
-		"#   - complete-unavailable : 0x0d\n"
-		"#   - abort                : 0x0f\n");
+		"#   - complete-earliest    : 0x0\n"
+		"#   - complete-unavailable : 0xd\n"
+		"#   - abort                : 0xf\n");
 	fprintf(f,
 		"# max-active-time-policy can be one of:\n"
-		"#   - complete-earliest    : 0x00\n"
-		"#   - complete-unavailable : 0x0d\n"
-		"#   - abort-recovery       : 0x0e\n"
-		"#   - abort                : 0x0f\n");
+		"#   - complete-earliest    : 0x0\n"
+		"#   - complete-unavailable : 0xd\n"
+		"#   - abort-recovery       : 0xe\n"
+		"#   - abort                : 0xf\n");
 	fprintf(f,
 		"# duration-guideline-policy can be one of:\n"
-		"#   - complete-earliest    : 0x00\n"
-		"#   - continue-next-limit  : 0x01\n"
-		"#   - continue-no-limit    : 0x02\n"
+		"#   - complete-earliest    : 0x0\n"
+		"#   - continue-next-limit  : 0x1\n"
+		"#   - continue-no-limit    : 0x2\n"
 		"#   - complete-unavailable : 0x0d\n"
-		"#   - abort                : 0x0f\n");
+		"#   - abort                : 0xf\n");
 	fprintf(f, "\n");
 
 	fprintf(f, "cdlp: %s\n\n", cdl_page_name(page->cdlp));
@@ -374,34 +419,45 @@ static int cdl_page_save_t2(struct cdl_page *page, FILE *f)
 		fprintf(f, "== descriptor: %d\n", i + 1);
 
 		fprintf(f, "t2cdlunits: 0x%1x\n",
-			desc->cdltunit);
+			(unsigned int)desc->cdltunit);
 
-		fprintf(f, "max-inactive-time: %" PRIu64 "\n",
-		       desc->max_inactive_time);
-		fprintf(f, "max-inactive-time-policy: 0x%02x\n",
-			desc->max_inactive_policy);
+		fprintf(f, "max-inactive-time: %u\n",
+		       (unsigned int)desc->max_inactive_time);
+		fprintf(f, "max-inactive-time-policy: 0x%1x\n",
+			(unsigned int)desc->max_inactive_policy);
 
-		fprintf(f, "max-active-time: %" PRIu64 "\n",
-		       desc->max_active_time);
-		fprintf(f, "max-active-time-policy: 0x%02x\n",
-			desc->max_active_policy);
+		fprintf(f, "max-active-time: %u\n",
+		       (unsigned int)desc->max_active_time);
+		fprintf(f, "max-active-time-policy: 0x%1x\n",
+			(unsigned int)desc->max_active_policy);
 
-		fprintf(f, "duration-guideline: %" PRIu64 "\n",
-			desc->duration);
-		fprintf(f, "duration-guideline-policy: 0x%02x\n",
-			desc->duration_policy);
+		fprintf(f, "duration-guideline: %u\n",
+			(unsigned int)desc->duration);
+		fprintf(f, "duration-guideline-policy: 0x%1x\n",
+			(unsigned int)desc->duration_policy);
 		fprintf(f, "\n");
 	}
 
 	return 0;
 }
 
-void cdl_page_show(struct cdl_page *page)
+void cdl_page_show(struct cdl_page *page, bool raw)
 {
-	if (page->cdlp == CDLP_A || page->cdlp == CDLP_B)
+	if (page->cdlp == CDLP_A || page->cdlp == CDLP_B) {
+		if (raw) {
+			cdl_page_show_simple_raw(page);
+			return;
+		}
 		cdl_page_show_simple(page);
-	else
-		cdl_page_show_t2(page);
+		return;
+	}
+
+	if (raw) {
+		cdl_page_show_t2_raw(page);
+		return;
+	}
+
+	cdl_page_show_t2(page);
 }
 
 void cdl_page_save(struct cdl_page *page, FILE *f)
