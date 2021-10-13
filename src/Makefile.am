@@ -7,7 +7,8 @@ AM_CFLAGS = -O2 -Wall -Wextra -Wno-unused-parameter -D_GNU_SOURCE
 bin_PROGRAMS = cdladm
 
 CFILES = cdl_dev.c \
-	 cdl_utils.c \
+	 cdl_scsi.c \
+	 cdl_ata.c \
 	 cdl.c \
 	 cdladm.c
 HFILES = cdl.h

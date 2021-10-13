@@ -22,7 +22,7 @@
 /*
  * Status codes.
  */
-#define CDL_SG_CHECK_CONDITION			0x02
+#define CDL_SG_CHECK_CONDITION	0x02
 
 /*
  * Host status codes.
@@ -70,45 +70,145 @@
 					 CDL_SG_DRIVER_FLAGS_MASK)
 
 /*
- * Set bytes in a command cdb.
+ * Set bytes in a SCSI command cdb or buffer.
  */
-void cdl_sg_set_bytes(uint8_t *cmd, void *buf, int bytes)
+void cdl_sg_set_be16(uint8_t *buf, uint16_t val)
 {
-	uint8_t *v = (uint8_t *) buf;
-	int i;
+	uint16_t *v = (uint16_t *)buf;
 
-	for (i = 0; i < bytes; i++) {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-		/* The least significant byte is stored last */
-		cmd[bytes - i - 1] = v[i];
+	*v = __builtin_bswap16(val);
 #else
-		/* The most significant byte is stored first */
-		cmd[i] = v[i];
+	*v = val;
 #endif
-	}
+}
+
+void cdl_sg_set_be32(uint8_t *buf, uint32_t val)
+{
+	uint32_t *v = (uint32_t *)buf;
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	*v = __builtin_bswap32(val);
+#else
+	*v = val;
+#endif
+}
+
+void cdl_sg_set_be64(uint8_t *buf, uint64_t val)
+{
+	uint64_t *v = (uint64_t *)buf;
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	*v = __builtin_bswap64(val);
+#else
+	*v = val;
+#endif
+}
+
+void cdl_sg_set_le16(uint8_t *buf, uint16_t val)
+{
+	uint16_t *v = (uint16_t *)buf;
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	*v = val;
+#else
+	*v = __builtin_bswap16(val);
+#endif
+}
+
+void cdl_sg_set_le32(uint8_t *buf, uint32_t val)
+{
+	uint32_t *v = (uint32_t *)buf;
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	*v = val;
+#else
+	*v = __builtin_bswap32(val);
+#endif
+}
+
+void cdl_sg_set_le64(uint8_t *buf, uint64_t val)
+{
+	uint64_t *v = (uint64_t *)buf;
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	*v = val;
+#else
+	*v = __builtin_bswap64(val);
+#endif
 }
 
 /*
- * Get bytes from a command output buffer.
+ * Get bytes from a SCSI command cdb or buffer.
  */
-void cdl_sg_get_bytes(uint8_t *val, union converter *conv, int bytes)
+uint16_t cdl_sg_get_be16(uint8_t *buf)
 {
-	uint8_t *v = (uint8_t *) val;
-	int i;
+	uint16_t val = *((uint16_t *)buf);
 
-	memset(conv, 0, sizeof(union converter));
-
-	for (i = 0; i < bytes; i++) {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-		conv->val_buf[bytes - i - 1] = v[i];
+	return __builtin_bswap16(val);
 #else
-		conv->val_buf[i] = v[i];
+	return val;
 #endif
-	}
+}
+
+uint32_t cdl_sg_get_be32(uint8_t *buf)
+{
+	uint32_t val = *((uint32_t *)buf);
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	return __builtin_bswap32(val);
+#else
+	return val;
+#endif
+}
+
+uint64_t cdl_sg_get_be64(uint8_t *buf)
+{
+	uint64_t val = *((uint64_t *)buf);
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	return __builtin_bswap64(val);
+#else
+	return val;
+#endif
+}
+
+uint16_t cdl_sg_get_le16(uint8_t *buf)
+{
+	uint16_t val = *((uint16_t *)buf);
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	return val;
+#else
+	return __builtin_bswap16(val);
+#endif
+}
+
+uint32_t cdl_sg_get_le32(uint8_t *buf)
+{
+	uint32_t val = *((uint32_t *)buf);
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	return val;
+#else
+	return __builtin_bswap32(val);
+#endif
+}
+
+uint64_t cdl_sg_get_le64(uint8_t *buf)
+{
+	uint64_t val = *((uint64_t *)buf);
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+	return val;
+#else
+	return __builtin_bswap64(val);
+#endif
 }
 
 /*
- * Get a string from a command output buffer.
+ * Get a string from a SCSI command output buffer.
  */
 void cdl_sg_get_str(char *dst, uint8_t *buf, int len)
 {
@@ -272,6 +372,33 @@ int cdl_exec_cmd(struct cdl_dev *dev, struct cdl_sg_cmd *cmd)
 }
 
 /*
+ * Test if a device is ATA.
+ */
+static int cdl_dev_check_ata(struct cdl_dev *dev)
+{
+	struct cdl_sg_cmd cmd;
+	int ret;
+
+	/*
+	 * Device data log page: if this fails we are likely
+	 * dealing with a SCSI drive.
+	 */
+	ret = cdl_ata_read_log(dev, 0x30, 0, &cmd, 512);
+	if (ret)
+		return 0;
+
+	/* This is an ATA device */
+	dev->flags |= CDL_ATA;
+	dev->ata_cdl_log = calloc(1, CDL_ATA_LOG_SIZE);
+	if (!dev->ata_cdl_log) {
+		cdl_dev_err(dev, "No memory for CDL log buffer\n");
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
+/*
  * Get a device information.
  */
 static int cdl_get_dev_info(struct cdl_dev *dev)
@@ -283,8 +410,8 @@ static int cdl_get_dev_info(struct cdl_dev *dev)
 
 	/* Get device model, vendor and version (INQUIRY) */
 	cdl_init_cmd(&cmd, 16, SG_DXFER_FROM_DEV, 64);
-	cmd.cdb[0] = 0x12;
-	cdl_sg_set_int16(&cmd.cdb[3], 64);
+	cmd.cdb[0] = 0x12; /* INQUIRY */
+	cdl_sg_set_be16(&cmd.cdb[3], 64);
 
 	ret = cdl_exec_cmd(dev, &cmd);
 	if (ret) {
@@ -300,7 +427,7 @@ static int cdl_get_dev_info(struct cdl_dev *dev)
 	cdl_init_cmd(&cmd, 16, SG_DXFER_FROM_DEV, 32);
 	cmd.cdb[0] = 0x9e;
 	cmd.cdb[1] = 0x10;
-	cdl_sg_set_int32(&cmd.cdb[10], 32);
+	cdl_sg_set_be32(&cmd.cdb[10], 32);
 
 	ret = cdl_exec_cmd(dev, &cmd);
 	if (ret) {
@@ -308,11 +435,11 @@ static int cdl_get_dev_info(struct cdl_dev *dev)
 		return -1;
 	}
 
-	capacity = cdl_sg_get_int64(&cmd.buf[0]) + 1;
-	lba_size = cdl_sg_get_int32(&cmd.buf[8]);
+	capacity = cdl_sg_get_be64(&cmd.buf[0]) + 1;
+	lba_size = cdl_sg_get_be32(&cmd.buf[8]);
 	dev->capacity = (capacity * lba_size) >> 9;
 
-	return 0;
+	return cdl_dev_check_ata(dev);
 }
 
 /*

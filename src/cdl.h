@@ -22,6 +22,11 @@
 #include <scsi/sg.h>
 
 /*
+ * ATA Command Duration Limits log page size.
+ */
+#define CDL_ATA_LOG_SIZE	512
+
+/*
  * Commands supporting duration limits.
  */
 enum cdl_cmd {
@@ -72,6 +77,7 @@ struct cdl_page {
 #define CDL_VERBOSE		(1 << 0)
 #define CDL_USE_MS_SP		(1 << 1)
 #define CDL_SHOW_RAW_VAL	(1 << 2)
+#define CDL_ATA			(1 << 3)
 
 #define CDL_VENDOR_LEN	9
 #define CDL_ID_LEN	17
@@ -94,6 +100,9 @@ struct cdl_dev {
 	bool			cdl_supported;
 	enum cdl_p		cmd_cdlp[CDL_CMD_MAX];
 	struct cdl_page		cdl_pages[CDL_MAX_PAGES];
+
+	/* For ATA CDL log page caching */
+	uint8_t			*ata_cdl_log;
 };
 
 /*
@@ -117,12 +126,6 @@ struct cdl_sg_cmd {
 /*
  * Converter structure.
  */
-union converter {
-	uint8_t		val_buf[8];
-	uint16_t	val16;
-	uint32_t	val32;
-	uint64_t	val64;
-};
 
 /* In cdl_dev.c */
 int cdl_open_dev(struct cdl_dev *dev);
@@ -130,14 +133,25 @@ void cdl_close_dev(struct cdl_dev *dev);
 void cdl_init_cmd(struct cdl_sg_cmd *cmd, int cdb_len,
 		  int direction, size_t bufsz);
 int cdl_exec_cmd(struct cdl_dev *dev, struct cdl_sg_cmd *cmd);
-void cdl_sg_set_bytes(uint8_t *cmd, void *buf, int bytes);
-void cdl_sg_get_bytes(uint8_t *val, union converter *conv, int bytes);
 void cdl_sg_get_str(char *dst, uint8_t *buf, int len);
+void cdl_sg_set_be16(uint8_t *buf, uint16_t val);
+void cdl_sg_set_be32(uint8_t *buf, uint32_t val);
+void cdl_sg_set_be64(uint8_t *buf, uint64_t val);
+void cdl_sg_set_le16(uint8_t *buf, uint16_t val);
+void cdl_sg_set_le32(uint8_t *buf, uint32_t val);
+void cdl_sg_set_le64(uint8_t *buf, uint64_t val);
+uint16_t cdl_sg_get_be16(uint8_t *buf);
+uint32_t cdl_sg_get_be32(uint8_t *buf);
+uint64_t cdl_sg_get_be64(uint8_t *buf);
+uint16_t cdl_sg_get_le16(uint8_t *buf);
+uint32_t cdl_sg_get_le32(uint8_t *buf);
+uint64_t cdl_sg_get_le64(uint8_t *buf);
 
 /* In cdl.c */
 const char *cdl_page_name(enum cdl_p cdlp);
 uint8_t cdl_page_code(enum cdl_p cdlp);
 int cdl_page_name2cdlp(char *page);
+uint64_t cdl_t2time(uint64_t val, uint8_t t2cdlunit);
 
 const char *cdl_cmd_str(enum cdl_cmd cmd);
 uint8_t cdl_cmd_opcode(enum cdl_cmd cmd);
@@ -150,12 +164,26 @@ int cdl_page_parse_file(FILE *f, struct cdl_page *page);
 int cdl_read_pages(struct cdl_dev *dev);
 bool cdl_page_supported(struct cdl_dev *dev, enum cdl_p cdlp);
 bool cdl_check_support(struct cdl_dev *dev);
-
-/* In cdl_cmd.c */
-int cdl_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c);
-int cdl_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
-		  struct cdl_page *page);
 int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page);
+
+/* In cdl_ata.c */
+int cdl_ata_read_log(struct cdl_dev *dev, uint8_t log,
+		     uint16_t page, struct cdl_sg_cmd *cmd, size_t bufsz);
+int cdl_ata_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c);
+int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
+		      struct cdl_page *page);
+int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page);
+
+/* In cdl_scsi.c */
+int cdl_scsi_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c);
+int cdl_scsi_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
+		       struct cdl_page *page);
+int cdl_scsi_write_page(struct cdl_dev *dev, struct cdl_page *page);
+
+static inline bool cdl_dev_is_ata(struct cdl_dev *dev)
+{
+	return dev->flags & CDL_ATA;
+}
 
 static inline bool cdl_verbose(struct cdl_dev *dev)
 {
@@ -167,65 +195,5 @@ static inline bool cdl_verbose(struct cdl_dev *dev)
 
 #define cdl_dev_err(dev,format,args...)			\
 	fprintf(stderr, "[ERROR] %s: " format, (dev)->name, ##args)
-
-/*
- * Set a 64 bits integer in a command cdb.
- */
-static inline void cdl_sg_set_int64(uint8_t *buf, uint64_t val)
-{
-	cdl_sg_set_bytes(buf, &val, 8);
-}
-
-/*
- * Set a 32 bits integer in a command cdb.
- */
-static inline void cdl_sg_set_int32(uint8_t *buf, uint32_t val)
-{
-	cdl_sg_set_bytes(buf, &val, 4);
-}
-
-/*
- * Set a 16 bits integer in a command cdb.
- */
-static inline void cdl_sg_set_int16(uint8_t *buf, uint16_t val)
-{
-	cdl_sg_set_bytes(buf, &val, 2);
-}
-
-/*
- * Get a 64 bits integer from a command output buffer.
- */
-static inline uint64_t cdl_sg_get_int64(uint8_t *buf)
-{
-	union converter conv;
-
-	cdl_sg_get_bytes(buf, &conv, 8);
-
-	return conv.val64;
-}
-
-/*
- * Get a 32 bits integer from a command output buffer.
- */
-static inline uint32_t cdl_sg_get_int32(uint8_t *buf)
-{
-	union converter conv;
-
-	cdl_sg_get_bytes(buf, &conv, 4);
-
-	return conv.val32;
-}
-
-/*
- * Get a 16 bits integer from a command output buffer.
- */
-static inline uint16_t cdl_sg_get_int16(uint8_t *buf)
-{
-	union converter conv;
-
-	cdl_sg_get_bytes(buf, &conv, 2);
-
-	return conv.val16;
-}
 
 #endif /* CDL_H */

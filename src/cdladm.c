@@ -354,6 +354,8 @@ int main(int argc, char **argv)
 		return 1;
 
 	printf("%s:\n", dev.name);
+	printf("    Device interface: %s\n",
+	       cdl_dev_is_ata(&dev) ? "ATA" : "SAS");
 	printf("    Vendor: %s\n", dev.vendor);
 	printf("    Product: %s\n", dev.id);
 	printf("    Revision: %s\n", dev.rev);
