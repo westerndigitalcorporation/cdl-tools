@@ -16,22 +16,6 @@
 #include <ctype.h>
 
 /*
- * Some SCSI comamnds.
- */
-#ifndef READ_16
-#define READ_16		0x88
-#endif
-#ifndef READ_32
-#define READ_32		0x09	/* opcode = 0x7F */
-#endif
-#ifndef WRITE_16
-#define WRITE_16	0x8A
-#endif
-#ifndef WRITE_32
-#define WRITE_32	0x0B	/* opcode = 0x7F */
-#endif
-
-/*
  * Command duration limits sub-pages for the control mode page 0Ah.
  */
 static const struct cdlp_info {
