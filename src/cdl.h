@@ -134,7 +134,7 @@ void cdl_sg_set_bytes(uint8_t *cmd, void *buf, int bytes);
 void cdl_sg_get_bytes(uint8_t *val, union converter *conv, int bytes);
 void cdl_sg_get_str(char *dst, uint8_t *buf, int len);
 
-/* In cdl_utils.c */
+/* In cdl.c */
 const char *cdl_page_name(enum cdl_p cdlp);
 uint8_t cdl_page_code(enum cdl_p cdlp);
 int cdl_page_name2cdlp(char *page);
@@ -147,10 +147,14 @@ void cdl_page_show(struct cdl_page *page, bool raw);
 void cdl_page_save(struct cdl_page *page, FILE *f);
 int cdl_page_parse_file(FILE *f, struct cdl_page *page);
 
-/* In cdl.c */
 int cdl_read_pages(struct cdl_dev *dev);
 bool cdl_page_supported(struct cdl_dev *dev, enum cdl_p cdlp);
 bool cdl_check_support(struct cdl_dev *dev);
+
+/* In cdl_cmd.c */
+int cdl_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c);
+int cdl_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
+		  struct cdl_page *page);
 int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page);
 
 static inline bool cdl_verbose(struct cdl_dev *dev)

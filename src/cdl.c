@@ -18,7 +18,7 @@
 /*
  * Get the CDL page type used for a command.
  */
-static int cdl_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
+int cdl_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
 {
 	struct cdl_sg_cmd cmd;
 	uint8_t cdlp;
@@ -70,8 +70,8 @@ static int cdl_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
 /*
  * Read a CDL page from the device.
  */
-static int cdl_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
-			 struct cdl_page *page)
+int cdl_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
+		  struct cdl_page *page)
 {
 	struct cdl_sg_cmd cmd;
 	struct cdl_desc *desc = &page->descs[0];
@@ -148,72 +148,6 @@ static int cdl_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 	}
 
 	return 0;
-}
-
-/*
- * Read all supported pages.
- */
-int cdl_read_pages(struct cdl_dev *dev)
-{
-	struct cdl_page *page;
-	uint8_t cdlp;
-	int i, ret;
-
-	/* Read supported pages */
-	for (i = 0; i < CDL_CMD_MAX; i++) {
-		cdlp = dev->cmd_cdlp[i];
-		if (cdlp == CDLP_NONE)
-			continue;
-
-		page = &dev->cdl_pages[cdlp];
-		if (page->cdlp == cdlp) {
-			/* We already read this one */
-			continue;
-		}
-
-		ret = cdl_read_page(dev, cdlp, page);
-		if (ret)
-			return ret;
-	}
-
-	return 0;
-}
-
-/*
- * Check if a page type is supported.
- */
-bool cdl_page_supported(struct cdl_dev *dev, enum cdl_p cdlp)
-{
-	int i;
-
-	for (i = 0; i < CDL_CMD_MAX; i++) {
-		if (dev->cmd_cdlp[i] == cdlp)
-			return true;
-	}
-
-	return false;
-}
-
-/*
- * Check CDL support.
- */
-bool cdl_check_support(struct cdl_dev *dev)
-{
-	bool cdl_supported = false;
-	int i;
-
-	/*
-	 * Command duration limits is supported only with READ 16, WRITE 16,
-	 * READ 32 and WRITE 32. Go through all these commands one at a time
-	 * and check if any support duration limits.
-	 */
-	for (i = 0; i < CDL_CMD_MAX; i++) {
-		dev->cmd_cdlp[i] = cdl_get_cmd_cdlp(dev, i);
-		if (dev->cmd_cdlp[i] != CDLP_NONE)
-			cdl_supported = true;
-	}
-
-	return cdl_supported;
 }
 
 /*
