@@ -77,10 +77,11 @@ struct cdl_page {
 #define CDL_VERBOSE			(1 << 0)
 #define CDL_ATA				(1 << 1)
 #define CDL_DEV_SUPPORTED		(1 << 2)
-#define CDL_GUIDELINE_DEV_SUPPORTED	(1 << 3)
-#define CDL_HIGHPRI_DEV_SUPPORTED	(1 << 4)
-#define CDL_USE_MS_SP			(1 << 5)
-#define CDL_SHOW_RAW_VAL		(1 << 6)
+#define CDL_SYS_SUPPORTED		(1 << 3)
+#define CDL_GUIDELINE_DEV_SUPPORTED	(1 << 4)
+#define CDL_HIGHPRI_DEV_SUPPORTED	(1 << 5)
+#define CDL_USE_MS_SP			(1 << 6)
+#define CDL_SHOW_RAW_VAL		(1 << 7)
 
 #define CDL_VENDOR_LEN	9
 #define CDL_ID_LEN	17
@@ -171,6 +172,8 @@ int cdl_page_parse_file(FILE *f, struct cdl_page *page);
 int cdl_read_pages(struct cdl_dev *dev);
 bool cdl_page_supported(struct cdl_dev *dev, enum cdl_p cdlp);
 int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page);
+
+bool cdl_sysfs_exists(struct cdl_dev *dev, const char *format, ...);
 
 /* In cdl_ata.c */
 int cdl_ata_init(struct cdl_dev *dev);

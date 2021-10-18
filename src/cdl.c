@@ -9,6 +9,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -721,4 +724,31 @@ int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page)
 	if (cdl_dev_is_ata(dev))
 		return cdl_ata_write_page(dev, page);
 	return cdl_scsi_write_page(dev, page);
+}
+
+/*
+ * Test if a sysfs attribute file exists.
+ */
+bool cdl_sysfs_exists(struct cdl_dev *dev, const char *format, ...)
+{
+	char path[PATH_MAX];
+	struct stat st;
+	va_list argp;
+	int ret;
+
+	va_start(argp, format);
+	vsnprintf(path, sizeof(path) - 1, format, argp);
+	va_end(argp);
+
+	ret = stat(path, &st);
+	if (ret == 0)
+		return true;
+
+	if (errno == ENOENT)
+		return false;
+
+	fprintf(stderr, "stat %s failed %d (%s)\n",
+		path, errno, strerror(errno));
+
+	return false;
 }

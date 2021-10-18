@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
+#include <sys/utsname.h>
 
 /*
  * Print usage.
@@ -209,6 +211,34 @@ static int cdladm_upload(struct cdl_dev *dev, char *path)
 	return 0;
 }
 
+static void cdladm_check_kernel_support(struct cdl_dev *dev)
+{
+	struct utsname buf;
+	bool supported;
+
+	if (uname(&buf) != 0) {
+		fprintf(stderr, "uname failed %d (%s)\n",
+			errno, strerror(errno));
+		return;
+	}
+
+	printf("System:\n");
+	printf("    Node name: %s\n", buf.nodename);
+	printf("    Kernel: %s %s %s\n",
+	       buf.sysname, buf.release, buf.version);
+	printf("    Architecture: %s\n", buf.machine);
+
+	supported = cdl_sysfs_exists(dev,
+				     "/sys/block/%s/device/duration_limits",
+				     dev->name);
+	if (supported)
+		dev->flags |= CDL_SYS_SUPPORTED;
+
+	printf("    %sCommand duration limits: %ssupported\n",
+	       supported ? "" : "[WARNING] ",
+	       supported ? "" : "not ");
+}
+
 /*
  * Possible commands.
  */
@@ -376,6 +406,8 @@ int main(int argc, char **argv)
 
 	printf("    Minimum limit: %llu ns\n", dev.min_limit);
 	printf("    Maximum limit: %llu ns\n", dev.max_limit);
+
+	cdladm_check_kernel_support(&dev);
 
 	ret = cdl_read_pages(&dev);
 	if (ret)
