@@ -24,6 +24,7 @@ static void cdladm_usage(void)
 	printf("Options common to all commands:\n"
 	       "  --verbose | -v       : Verbose output\n");
 	printf("Commands:\n"
+	       "  info   : Show device and system support information\n"
 	       "  list   : List supported pages\n"
 	       "  show   : Display one or all supported pages\n"
 	       "  save   : Save one or all pages to a file\n"
@@ -251,6 +252,7 @@ static void cdladm_check_kernel_support(struct cdl_dev *dev)
  */
 enum cdladm_cmd {
 	CDLADM_NONE,
+	CDLADM_INFO,
 	CDLADM_LIST,
 	CDLADM_SHOW,
 	CDLADM_SAVE,
@@ -294,6 +296,13 @@ int main(int argc, char **argv)
 		}
 
 		/* Commands */
+		if (strcmp(argv[i], "info") == 0) {
+			if (command != CDLADM_NONE)
+				goto err_cmd_line;
+			command = CDLADM_INFO;
+			continue;
+		}
+
 		if (strcmp(argv[i], "list") == 0) {
 			if (command != CDLADM_NONE)
 				goto err_cmd_line;
@@ -417,6 +426,11 @@ int main(int argc, char **argv)
 	printf("    Maximum limit: %llu ns\n", dev.max_limit);
 
 	cdladm_check_kernel_support(&dev);
+
+	if (command == CDLADM_INFO) {
+		ret = 0;
+		goto out;
+	}
 
 	ret = cdl_read_pages(&dev);
 	if (ret)
