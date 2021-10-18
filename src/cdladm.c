@@ -241,8 +241,7 @@ static void cdladm_check_kernel_support(struct cdl_dev *dev)
 			dev->flags |= CDL_SYS_ENABLED;
 	}
 
-	printf("    %sCommand duration limits: %ssupported, %s\n",
-	       supported ? "" : "[WARNING] ",
+	printf("    Command duration limits: %ssupported, %s\n",
 	       supported ? "" : "not ",
 	       enabled ? "enabled" : "disabled");
 }
@@ -426,6 +425,16 @@ int main(int argc, char **argv)
 	printf("    Maximum limit: %llu ns\n", dev.max_limit);
 
 	cdladm_check_kernel_support(&dev);
+
+	/* Some paranoia checks */
+	if (!(dev.flags & CDL_SYS_SUPPORTED))
+		printf("WARNING: System does not support command duration limits\n");
+	if ((dev.flags & CDL_SYS_ENABLED) && !(dev.flags & CDL_DEV_ENABLED))
+		printf("WARNING: Command duration limits is enabled on the "
+		       "system but disabled on the device\n");
+	if ((dev.flags & CDL_DEV_ENABLED) && !(dev.flags & CDL_SYS_ENABLED))
+		printf("WARNING: Command duration limits is enabled on the "
+		       "device but disabled on the system\n");
 
 	if (command == CDLADM_INFO) {
 		ret = 0;
