@@ -24,11 +24,13 @@ static void cdladm_usage(void)
 	printf("Options common to all commands:\n"
 	       "  --verbose | -v       : Verbose output\n");
 	printf("Commands:\n"
-	       "  info   : Show device and system support information\n"
-	       "  list   : List supported pages\n"
-	       "  show   : Display one or all supported pages\n"
-	       "  save   : Save one or all pages to a file\n"
-	       "  upload : Upload a page to the device\n");
+	       "  info    : Show device and system support information\n"
+	       "  list    : List supported pages\n"
+	       "  show    : Display one or all supported pages\n"
+	       "  save    : Save one or all pages to a file\n"
+	       "  upload  : Upload a page to the device\n"
+	       "  enable  : Enable command duration limits\n"
+	       "  disable : Disable command duration limits\n");
 	printf("Command options:\n");
 	printf("  --page <name>\n"
 	       "\tApply to the show and save commands.\n"
@@ -246,6 +248,60 @@ static void cdladm_check_kernel_support(struct cdl_dev *dev)
 	       enabled ? "enabled" : "disabled");
 }
 
+static int cdladm_enable(struct cdl_dev *dev)
+{
+	int ret;
+
+	if (!(dev->flags & CDL_SYS_SUPPORTED)) {
+		fprintf(stderr, "System lacks support\n");
+		return 1;
+	}
+
+	/* Enable system: this should enable the device too */
+	ret = cdl_sysfs_set_attr(dev, "1",
+			"/sys/block/%s/device/duration_limits/enable",
+			dev->name);
+	if (ret)
+		return 1;
+
+	dev->flags |= CDL_SYS_ENABLED;
+	printf("Command duration limits is enabled\n");
+
+	cdl_check_enabled(dev, true);
+	if (!(dev->flags & CDL_DEV_ENABLED))
+		printf("WARNING: Command duration limits is disabled "
+		       "on the device\n");
+
+	return 0;
+}
+
+static int cdladm_disable(struct cdl_dev *dev)
+{
+	int ret;
+
+	if (!(dev->flags & CDL_SYS_SUPPORTED)) {
+		fprintf(stderr, "System lacks support\n");
+		return 1;
+	}
+
+	/* Enable system: this should enable the device too */
+	ret = cdl_sysfs_set_attr(dev, "0",
+			"/sys/block/%s/device/duration_limits/enable",
+			dev->name);
+	if (ret)
+		return 1;
+
+	dev->flags &= ~CDL_SYS_ENABLED;
+	printf("Command duration limits is disabled\n");
+
+	cdl_check_enabled(dev, false);
+	if (dev->flags & CDL_DEV_ENABLED)
+		printf("WARNING: Command duration limits is still enabled "
+		       "on the device\n");
+
+	return 0;
+}
+
 /*
  * Possible commands.
  */
@@ -256,6 +312,8 @@ enum cdladm_cmd {
 	CDLADM_SHOW,
 	CDLADM_SAVE,
 	CDLADM_UPLOAD,
+	CDLADM_ENABLE,
+	CDLADM_DISABLE,
 };
 
 /*
@@ -327,6 +385,20 @@ int main(int argc, char **argv)
 			if (command != CDLADM_NONE)
 				goto err_cmd_line;
 			command = CDLADM_UPLOAD;
+			continue;
+		}
+
+		if (strcmp(argv[i], "enable") == 0) {
+			if (command != CDLADM_NONE)
+				goto err_cmd_line;
+			command = CDLADM_ENABLE;
+			continue;
+		}
+
+		if (strcmp(argv[i], "disable") == 0) {
+			if (command != CDLADM_NONE)
+				goto err_cmd_line;
+			command = CDLADM_DISABLE;
 			continue;
 		}
 
@@ -429,12 +501,16 @@ int main(int argc, char **argv)
 	/* Some paranoia checks */
 	if (!(dev.flags & CDL_SYS_SUPPORTED))
 		printf("WARNING: System does not support command duration limits\n");
-	if ((dev.flags & CDL_SYS_ENABLED) && !(dev.flags & CDL_DEV_ENABLED))
-		printf("WARNING: Command duration limits is enabled on the "
-		       "system but disabled on the device\n");
-	if ((dev.flags & CDL_DEV_ENABLED) && !(dev.flags & CDL_SYS_ENABLED))
-		printf("WARNING: Command duration limits is enabled on the "
-		       "device but disabled on the system\n");
+	if (command != CDLADM_ENABLE && command != CDLADM_DISABLE) {
+		if ((dev.flags & CDL_SYS_ENABLED) &&
+		    !(dev.flags & CDL_DEV_ENABLED))
+			printf("WARNING: Command duration limits is enabled on "
+			       "the system but disabled on the device\n");
+		if ((dev.flags & CDL_DEV_ENABLED) &&
+		    !(dev.flags & CDL_SYS_ENABLED))
+			printf("WARNING: Command duration limits is disabled "
+			       "on the system but enabled on the device\n");
+	}
 
 	if (command == CDLADM_INFO) {
 		ret = 0;
@@ -458,6 +534,12 @@ int main(int argc, char **argv)
 		break;
 	case CDLADM_UPLOAD:
 		ret = cdladm_upload(&dev, path);
+		break;
+	case CDLADM_ENABLE:
+		ret = cdladm_enable(&dev);
+		break;
+	case CDLADM_DISABLE:
+		ret = cdladm_disable(&dev);
 		break;
 	case CDLADM_NONE:
 	default:

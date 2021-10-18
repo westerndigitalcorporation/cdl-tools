@@ -399,3 +399,28 @@ int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page)
 	return 0;
 }
 
+/*
+ * Check the device CDL enable status.
+ */
+int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled)
+{
+	struct cdl_sg_cmd cmd;
+	uint64_t qword;
+	int ret;
+
+	/* Check CDL current settings */
+	ret = cdl_ata_read_log(dev, 0x30, 0x04, &cmd, 512);
+	if (ret) {
+		cdl_dev_err(dev,
+			    "Read current settings log page failed\n");
+		return ret;
+	}
+
+	qword = cdl_sg_get_le64(&cmd.buf[8]);
+	if (qword & (1ULL << 21))
+		dev->flags |= CDL_DEV_ENABLED;
+	else
+		dev->flags &= ~CDL_DEV_ENABLED;
+
+	return 0;
+}

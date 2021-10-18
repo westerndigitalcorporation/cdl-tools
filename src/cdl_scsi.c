@@ -72,6 +72,7 @@ static int cdl_scsi_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
  */
 int cdl_scsi_init(struct cdl_dev *dev)
 {
+	bool enabled = false;
 	int i;
 
 	/*
@@ -95,8 +96,17 @@ int cdl_scsi_init(struct cdl_dev *dev)
 		dev->max_limit = 65535ULL * 500000000ULL;
 	}
 
-	/* CDL is always enabled */
-	dev->flags |= CDL_DEV_ENABLED;
+	/*
+	 * There is no device level CDL feature enable/disable control.
+	 * So align to the system setting.
+	 */
+	enabled = cdl_sysfs_get_ulong_attr(dev,
+				"/sys/block/%s/device/duration_limits/enable",
+				dev->name);
+	if (enabled)
+		dev->flags |= CDL_DEV_ENABLED;
+	else
+		dev->flags &= ~CDL_DEV_ENABLED;
 
 	return 0;
 }
@@ -255,3 +265,19 @@ int cdl_scsi_write_page(struct cdl_dev *dev, struct cdl_page *page)
 	return 0;
 }
 
+/*
+ * Check the device CDL enable status.
+ */
+int cdl_scsi_check_enabled(struct cdl_dev *dev, bool enabled)
+{
+	/*
+	 * There is no device level CDL feature enable/disable control.
+	 * So align to the system setting.
+	 */
+	if (enabled)
+		dev->flags |= CDL_DEV_ENABLED;
+	else
+		dev->flags &= ~CDL_DEV_ENABLED;
+
+	return 0;
+}

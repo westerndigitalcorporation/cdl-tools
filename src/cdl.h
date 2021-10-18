@@ -175,10 +175,13 @@ int cdl_page_parse_file(FILE *f, struct cdl_page *page);
 int cdl_read_pages(struct cdl_dev *dev);
 bool cdl_page_supported(struct cdl_dev *dev, enum cdl_p cdlp);
 int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page);
+int cdl_check_enabled(struct cdl_dev *dev, bool enabled);
 
 bool cdl_sysfs_exists(struct cdl_dev *dev, const char *format, ...);
 unsigned long cdl_sysfs_get_ulong_attr(struct cdl_dev *dev,
 				       const char *format, ...);
+int cdl_sysfs_set_attr(struct cdl_dev *dev, const char *val,
+		       const char *format, ...);
 
 /* In cdl_ata.c */
 int cdl_ata_init(struct cdl_dev *dev);
@@ -187,12 +190,14 @@ int cdl_ata_read_log(struct cdl_dev *dev, uint8_t log,
 int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		      struct cdl_page *page);
 int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page);
+int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled);
 
 /* In cdl_scsi.c */
 int cdl_scsi_init(struct cdl_dev *dev);
 int cdl_scsi_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		       struct cdl_page *page);
 int cdl_scsi_write_page(struct cdl_dev *dev, struct cdl_page *page);
+int cdl_scsi_check_enabled(struct cdl_dev *dev, bool enabled);
 
 static inline bool cdl_dev_is_ata(struct cdl_dev *dev)
 {

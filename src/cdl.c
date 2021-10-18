@@ -727,6 +727,16 @@ int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page)
 }
 
 /*
+ * Check the device CDL enable status.
+ */
+int cdl_check_enabled(struct cdl_dev *dev, bool enabled)
+{
+	if (cdl_dev_is_ata(dev))
+		return cdl_ata_check_enabled(dev, enabled);
+	return cdl_scsi_check_enabled(dev, enabled);
+}
+
+/*
  * Test if a sysfs attribute file exists.
  */
 bool cdl_sysfs_exists(struct cdl_dev *dev, const char *format, ...)
@@ -776,4 +786,32 @@ unsigned long cdl_sysfs_get_ulong_attr(struct cdl_dev *dev,
 	}
 
 	return val;
+}
+
+/*
+ * Set a sysfs attribute value.
+ */
+int cdl_sysfs_set_attr(struct cdl_dev *dev, const char *val,
+			     const char *format, ...)
+{
+	char path[PATH_MAX];
+	va_list argp;
+	FILE *f;
+	int ret = -1;
+
+	va_start(argp, format);
+	vsnprintf(path, sizeof(path) - 1, format, argp);
+	va_end(argp);
+
+	f = fopen(path, "w");
+	if (f) {
+		ret = fwrite(val, strlen(val), 1, f);
+		if (ret <= 0)
+			ret = -1;
+		else
+			ret = 0;
+		fclose(f);
+	}
+
+	return ret;
 }
