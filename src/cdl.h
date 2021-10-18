@@ -74,10 +74,13 @@ struct cdl_page {
 /*
  * Device flags.
  */
-#define CDL_VERBOSE		(1 << 0)
-#define CDL_USE_MS_SP		(1 << 1)
-#define CDL_SHOW_RAW_VAL	(1 << 2)
-#define CDL_ATA			(1 << 3)
+#define CDL_VERBOSE			(1 << 0)
+#define CDL_ATA				(1 << 1)
+#define CDL_DEV_SUPPORTED		(1 << 2)
+#define CDL_GUIDELINE_DEV_SUPPORTED	(1 << 3)
+#define CDL_HIGHPRI_DEV_SUPPORTED	(1 << 4)
+#define CDL_USE_MS_SP			(1 << 5)
+#define CDL_SHOW_RAW_VAL		(1 << 6)
 
 #define CDL_VENDOR_LEN	9
 #define CDL_ID_LEN	17
@@ -100,6 +103,10 @@ struct cdl_dev {
 	bool			cdl_supported;
 	enum cdl_p		cmd_cdlp[CDL_CMD_MAX];
 	struct cdl_page		cdl_pages[CDL_MAX_PAGES];
+
+	/* Minimum and maximum limits in nanoseconds */
+	unsigned long long	min_limit;
+	unsigned long long	max_limit;
 
 	/* For ATA CDL log page caching */
 	uint8_t			*ata_cdl_log;
@@ -163,19 +170,18 @@ int cdl_page_parse_file(FILE *f, struct cdl_page *page);
 
 int cdl_read_pages(struct cdl_dev *dev);
 bool cdl_page_supported(struct cdl_dev *dev, enum cdl_p cdlp);
-bool cdl_check_support(struct cdl_dev *dev);
 int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page);
 
 /* In cdl_ata.c */
+int cdl_ata_init(struct cdl_dev *dev);
 int cdl_ata_read_log(struct cdl_dev *dev, uint8_t log,
 		     uint16_t page, struct cdl_sg_cmd *cmd, size_t bufsz);
-int cdl_ata_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c);
 int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		      struct cdl_page *page);
 int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page);
 
 /* In cdl_scsi.c */
-int cdl_scsi_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c);
+int cdl_scsi_init(struct cdl_dev *dev);
 int cdl_scsi_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		       struct cdl_page *page);
 int cdl_scsi_write_page(struct cdl_dev *dev, struct cdl_page *page);

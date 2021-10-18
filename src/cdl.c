@@ -659,38 +659,6 @@ int cdl_page_parse_file(FILE *f, struct cdl_page *page)
 }
 
 /*
- * Get the CDL page type used for a command.
- */
-static int cdl_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
-{
-	if (cdl_dev_is_ata(dev))
-		return cdl_ata_get_cmd_cdlp(dev, c);
-	return cdl_scsi_get_cmd_cdlp(dev, c);
-}
-
-/*
- * Check CDL support.
- */
-bool cdl_check_support(struct cdl_dev *dev)
-{
-	bool cdl_supported = false;
-	int i;
-
-	/*
-	 * Command duration limits is supported only with READ 16, WRITE 16,
-	 * READ 32 and WRITE 32. Go through all these commands one at a time
-	 * and check if any support duration limits.
-	 */
-	for (i = 0; i < CDL_CMD_MAX; i++) {
-		dev->cmd_cdlp[i] = cdl_get_cmd_cdlp(dev, i);
-		if (dev->cmd_cdlp[i] != CDLP_NONE)
-			cdl_supported = true;
-	}
-
-	return cdl_supported;
-}
-
-/*
  * Check if a page type is supported.
  */
 bool cdl_page_supported(struct cdl_dev *dev, enum cdl_p cdlp)

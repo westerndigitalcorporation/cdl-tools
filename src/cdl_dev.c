@@ -372,33 +372,6 @@ int cdl_exec_cmd(struct cdl_dev *dev, struct cdl_sg_cmd *cmd)
 }
 
 /*
- * Test if a device is ATA.
- */
-static int cdl_dev_check_ata(struct cdl_dev *dev)
-{
-	struct cdl_sg_cmd cmd;
-	int ret;
-
-	/*
-	 * Device data log page: if this fails we are likely
-	 * dealing with a SCSI drive.
-	 */
-	ret = cdl_ata_read_log(dev, 0x30, 0, &cmd, 512);
-	if (ret)
-		return 0;
-
-	/* This is an ATA device */
-	dev->flags |= CDL_ATA;
-	dev->ata_cdl_log = calloc(1, CDL_ATA_LOG_SIZE);
-	if (!dev->ata_cdl_log) {
-		cdl_dev_err(dev, "No memory for CDL log buffer\n");
-		return -ENOMEM;
-	}
-
-	return 0;
-}
-
-/*
  * Get a device information.
  */
 static int cdl_get_dev_info(struct cdl_dev *dev)
@@ -439,7 +412,26 @@ static int cdl_get_dev_info(struct cdl_dev *dev)
 	lba_size = cdl_sg_get_be32(&cmd.buf[8]);
 	dev->capacity = (capacity * lba_size) >> 9;
 
-	return cdl_dev_check_ata(dev);
+	return 0;
+}
+
+/*
+ * Initialize the device CDL handling.
+ */
+static int cdl_dev_init(struct cdl_dev *dev)
+{
+	struct cdl_sg_cmd cmd;
+	int ret;
+
+	/*
+	 * ATA devices have the device data log page. If this fails we are
+	 * likely dealing with a SCSI drive.
+	 */
+	ret = cdl_ata_read_log(dev, 0x30, 0, &cmd, 512);
+	if (ret == 0)
+		return cdl_ata_init(dev);
+
+	return cdl_scsi_init(dev);
 }
 
 /*
@@ -482,6 +474,10 @@ int cdl_open_dev(struct cdl_dev *dev)
 	if (ret)
 		goto err;
 
+	ret = cdl_dev_init(dev);
+	if (ret)
+		goto err;
+
 	return 0;
 
 err:
@@ -494,9 +490,20 @@ err:
  */
 void cdl_close_dev(struct cdl_dev *dev)
 {
-	if (dev->fd >= 0) {
-		close(dev->fd);
-		dev->fd = -1;
+	int i;
+
+	if (dev->fd < 0)
+		return;
+
+	for (i = 0; i < CDL_MAX_PAGES; i++) {
+		free(dev->cdl_pages[i].msbuf);
+		dev->cdl_pages[i].msbuf = NULL;
 	}
+
+	free(dev->ata_cdl_log);
+	dev->ata_cdl_log = NULL;
+
+	close(dev->fd);
+	dev->fd = -1;
 }
 

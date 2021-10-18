@@ -18,7 +18,7 @@
 /*
  * Get the CDL page type used for a command.
  */
-int cdl_scsi_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
+static int cdl_scsi_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
 {
 	struct cdl_sg_cmd cmd;
 	uint8_t cdlp;
@@ -68,6 +68,37 @@ int cdl_scsi_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
 }
 
 /*
+ * Initialize handling of SCSI device.
+ */
+int cdl_scsi_init(struct cdl_dev *dev)
+{
+	int i;
+
+	/*
+	 * Command duration limits is supported only with READ 16, WRITE 16,
+	 * READ 32 and WRITE 32. Go through all these commands one at a time
+	 * and check if any support duration limits.
+	 */
+	for (i = 0; i < CDL_CMD_MAX; i++) {
+		dev->cmd_cdlp[i] = cdl_scsi_get_cmd_cdlp(dev, i);
+		if (dev->cmd_cdlp[i] != CDLP_NONE) {
+			dev->flags |= CDL_DEV_SUPPORTED;
+			if (dev->cmd_cdlp[i] == CDLP_T2A ||
+			    dev->cmd_cdlp[i] == CDLP_T2B)
+				dev->flags |= CDL_GUIDELINE_DEV_SUPPORTED;
+		}
+	}
+
+	if (dev->flags & CDL_DEV_SUPPORTED) {
+		/* Set the minimum and maximum limits */
+		dev->min_limit = 500;
+		dev->max_limit = 65535ULL * 500000000ULL;
+	}
+
+	return 0;
+}
+
+/*
  * Read a CDL page from the device.
  */
 int cdl_scsi_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
@@ -105,11 +136,13 @@ int cdl_scsi_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 	 * when changing the page descriptors.
 	 */
 	page->msbufsz = cmd.bufsz;
-	page->msbuf = malloc(page->msbufsz);
 	if (!page->msbuf) {
-		fprintf(stderr, "%s: No memory for page %s mode sense buffer\n",
-			dev->name, cdl_page_name(cdlp));
-		return -ENOMEM;
+		page->msbuf = malloc(page->msbufsz);
+		if (!page->msbuf) {
+			fprintf(stderr, "%s: No memory for page %s mode sense buffer\n",
+				dev->name, cdl_page_name(cdlp));
+			return -ENOMEM;
+		}
 	}
 	memcpy(page->msbuf, cmd.buf, page->msbufsz);
 

@@ -226,7 +226,6 @@ enum cdladm_cmd {
 int main(int argc, char **argv)
 {
 	struct cdl_dev dev;
-	bool cdl_supported;
 	char *page = NULL;
 	char *path = NULL;
 	int command = CDLADM_NONE;
@@ -354,8 +353,6 @@ int main(int argc, char **argv)
 		return 1;
 
 	printf("%s:\n", dev.name);
-	printf("    Device interface: %s\n",
-	       cdl_dev_is_ata(&dev) ? "ATA" : "SAS");
 	printf("    Vendor: %s\n", dev.vendor);
 	printf("    Product: %s\n", dev.id);
 	printf("    Revision: %s\n", dev.rev);
@@ -363,17 +360,23 @@ int main(int argc, char **argv)
 	       dev.capacity,
 	       (dev.capacity << 9) / 1000000000000,
 	       ((dev.capacity << 9) % 1000000000000) / 1000000000);
-
-	cdl_supported = cdl_check_support(&dev);
-	if (!cdl_supported) {
-		printf("%s: command duration limits is not supported\n",
-		       dev.name);
+	printf("    Device interface: %s\n",
+	       cdl_dev_is_ata(&dev) ? "ATA" : "SAS");
+	printf("    Command duration limits: %ssupported\n",
+	       dev.flags & CDL_DEV_SUPPORTED ? "" : "not ");
+	if (!(dev.flags & CDL_DEV_SUPPORTED)) {
 		ret = 1;
 		goto out;
 	}
 
-	printf("%s: command duration limits is supported\n",
-	       dev.name);
+	printf("    Command duration guidelines: %ssupported\n",
+	       dev.flags & CDL_GUIDELINE_DEV_SUPPORTED ? "" : "not ");
+	printf("    High priority enhancement: %ssupported\n",
+	       dev.flags & CDL_HIGHPRI_DEV_SUPPORTED ? "" : "not ");
+
+	printf("    Minimum limit: %llu ns\n", dev.min_limit);
+	printf("    Maximum limit: %llu ns\n", dev.max_limit);
+
 	ret = cdl_read_pages(&dev);
 	if (ret)
 		goto out;

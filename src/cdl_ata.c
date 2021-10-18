@@ -142,47 +142,64 @@ int cdl_ata_write_log(struct cdl_dev *dev, uint8_t log,
 }
 
 /*
- * Check if the ATA device supports CDL.
+ * Initialize handling of ATA device.
  */
-static bool cdl_ata_cdl_supported(struct cdl_dev *dev)
+int cdl_ata_init(struct cdl_dev *dev)
 {
 	struct cdl_sg_cmd cmd;
+	uint64_t qword;
 	int ret;
+
+	/* This is an ATA device */
+	dev->flags |= CDL_ATA;
 
 	/* Supported capabilities log page */
 	ret = cdl_ata_read_log(dev, 0x30, 0x03, &cmd, 512);
 	if (ret) {
 		cdl_dev_err(dev,
 			    "Read supported capabilities log page failed\n");
-		return false;
+		return ret;
 	}
 
-	/* QWord content valid ? */
-	if (!(cmd.buf[175] & (1 << 7)))
-		return false;
-
-	/* CDL Feature set supported ? */
-	return cmd.buf[168] & (1 << 0);
-}
-
-/*
- * Get the CDL page type used for a command.
- */
-int cdl_ata_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
-{
-	if (!cdl_ata_cdl_supported(dev))
-		return CDLP_NONE;
-
-	switch (c) {
-	case CDL_READ_16:
-		return CDLP_T2A;
-	case CDL_WRITE_16:
-		return CDLP_T2B;
-	case CDL_READ_32:
-	case CDL_WRITE_32:
-	default:
-		return CDLP_NONE;
+	/* Check CDL features bits using the supported capabilities log page */
+	qword = cdl_sg_get_le64(&cmd.buf[168]);
+	if (qword & (1ULL << 63)) {
+		/* QWord content is valid: check CDL feature */
+		if (qword & (1 << 0))
+			dev->flags |= CDL_DEV_SUPPORTED;
+		/* Check CDL guideline feature */
+		if (qword & (1 << 1))
+			dev->flags |= CDL_GUIDELINE_DEV_SUPPORTED;
+		/* Check CDL high-priority enhancement feature */
+		if (qword & (1 << 2))
+			dev->flags |= CDL_HIGHPRI_DEV_SUPPORTED;
 	}
+
+	if (!(dev->flags & CDL_DEV_SUPPORTED))
+		return 0;
+
+	/* Get the minimum and maximum limits */
+	qword = cdl_sg_get_le64(&cmd.buf[176]);
+	if (qword & (1ULL << 63))
+		dev->min_limit = (qword & 0xffffffff) * 1000;
+	qword = cdl_sg_get_le64(&cmd.buf[184]);
+	if (qword & (1ULL << 63))
+		dev->max_limit = (qword & 0xffffffff) * 1000;
+
+	/* Set the CDL page type used for a command */
+	dev->cmd_cdlp[CDL_READ_16] = CDLP_T2A;
+	dev->cmd_cdlp[CDL_WRITE_16] = CDLP_T2B;
+	dev->cmd_cdlp[CDL_READ_32] = CDLP_NONE;
+	dev->cmd_cdlp[CDL_WRITE_32] = CDLP_NONE;
+
+	/* Allocate a buffer to cache the CDL log page */
+	dev->ata_cdl_log = calloc(1, CDL_ATA_LOG_SIZE);
+	if (!dev->ata_cdl_log) {
+		cdl_dev_err(dev, "No memory for CDL log buffer\n");
+		return -ENOMEM;
+	}
+
+	return 0;
 }
 
 static uint16_t cdl_ata_a2s_limit(uint8_t *buf)
