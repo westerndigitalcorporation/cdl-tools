@@ -95,6 +95,9 @@ int cdl_scsi_init(struct cdl_dev *dev)
 		dev->max_limit = 65535ULL * 500000000ULL;
 	}
 
+	/* CDL is always enabled */
+	dev->flags |= CDL_DEV_ENABLED;
+
 	return 0;
 }
 

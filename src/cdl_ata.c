@@ -153,7 +153,7 @@ int cdl_ata_init(struct cdl_dev *dev)
 	/* This is an ATA device */
 	dev->flags |= CDL_ATA;
 
-	/* Supported capabilities log page */
+	/* Check CDL features bits using the supported capabilities log page */
 	ret = cdl_ata_read_log(dev, 0x30, 0x03, &cmd, 512);
 	if (ret) {
 		cdl_dev_err(dev,
@@ -161,7 +161,6 @@ int cdl_ata_init(struct cdl_dev *dev)
 		return ret;
 	}
 
-	/* Check CDL features bits using the supported capabilities log page */
 	qword = cdl_sg_get_le64(&cmd.buf[168]);
 	if (qword & (1ULL << 63)) {
 		/* QWord content is valid: check CDL feature */
@@ -198,6 +197,20 @@ int cdl_ata_init(struct cdl_dev *dev)
 		cdl_dev_err(dev, "No memory for CDL log buffer\n");
 		return -ENOMEM;
 	}
+
+	/* Check CDL current settings */
+	ret = cdl_ata_read_log(dev, 0x30, 0x04, &cmd, 512);
+	if (ret) {
+		cdl_dev_err(dev,
+			    "Read current settings log page failed\n");
+		return ret;
+	}
+
+	qword = cdl_sg_get_le64(&cmd.buf[8]);
+	if (qword & (1ULL << 21))
+		dev->flags |= CDL_DEV_ENABLED;
+	if (qword & (1ULL << 22))
+		dev->flags |= CDL_HIGHPRI_DEV_ENABLED;
 
 	return 0;
 }

@@ -214,7 +214,7 @@ static int cdladm_upload(struct cdl_dev *dev, char *path)
 static void cdladm_check_kernel_support(struct cdl_dev *dev)
 {
 	struct utsname buf;
-	bool supported;
+	bool supported, enabled = false;
 
 	if (uname(&buf) != 0) {
 		fprintf(stderr, "uname failed %d (%s)\n",
@@ -231,12 +231,19 @@ static void cdladm_check_kernel_support(struct cdl_dev *dev)
 	supported = cdl_sysfs_exists(dev,
 				     "/sys/block/%s/device/duration_limits",
 				     dev->name);
-	if (supported)
+	if (supported) {
 		dev->flags |= CDL_SYS_SUPPORTED;
+		enabled = cdl_sysfs_get_ulong_attr(dev,
+				"/sys/block/%s/device/duration_limits/enable",
+				dev->name);
+		if (enabled)
+			dev->flags |= CDL_SYS_ENABLED;
+	}
 
-	printf("    %sCommand duration limits: %ssupported\n",
+	printf("    %sCommand duration limits: %ssupported, %s\n",
 	       supported ? "" : "[WARNING] ",
-	       supported ? "" : "not ");
+	       supported ? "" : "not ",
+	       enabled ? "enabled" : "disabled");
 }
 
 /*
@@ -392,8 +399,9 @@ int main(int argc, char **argv)
 	       ((dev.capacity << 9) % 1000000000000) / 1000000000);
 	printf("    Device interface: %s\n",
 	       cdl_dev_is_ata(&dev) ? "ATA" : "SAS");
-	printf("    Command duration limits: %ssupported\n",
-	       dev.flags & CDL_DEV_SUPPORTED ? "" : "not ");
+	printf("    Command duration limits: %ssupported, %s\n",
+	       dev.flags & CDL_DEV_SUPPORTED ? "" : "not ",
+	       dev.flags & CDL_DEV_ENABLED ? "enabled" : "disabled");
 	if (!(dev.flags & CDL_DEV_SUPPORTED)) {
 		ret = 1;
 		goto out;
@@ -401,8 +409,9 @@ int main(int argc, char **argv)
 
 	printf("    Command duration guidelines: %ssupported\n",
 	       dev.flags & CDL_GUIDELINE_DEV_SUPPORTED ? "" : "not ");
-	printf("    High priority enhancement: %ssupported\n",
-	       dev.flags & CDL_HIGHPRI_DEV_SUPPORTED ? "" : "not ");
+	printf("    High priority enhancement: %ssupported, %s\n",
+	       dev.flags & CDL_HIGHPRI_DEV_SUPPORTED ? "" : "not ",
+	       dev.flags & CDL_HIGHPRI_DEV_ENABLED ? "enabled" : "disabled");
 
 	printf("    Minimum limit: %llu ns\n", dev.min_limit);
 	printf("    Maximum limit: %llu ns\n", dev.max_limit);
