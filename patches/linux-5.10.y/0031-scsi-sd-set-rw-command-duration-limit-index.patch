@@ -1,0 +1,337 @@
+From 5595db66e434eeed3a600ed8a60db92c3a9ffaf9 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@wdc.com>
+Date: Sat, 14 Aug 2021 18:30:14 +0900
+Subject: [PATCH 31/31] scsi: sd: set rw command duration limit index
+
+Introduce the command duration limits helper functions
+sd_cdl_setup_rw16() and sd_cdl_setup_rw32() to set the DLD bits of
+the READ/WRITE 16 and READ/WRITE 32 commands to indicate to the device
+the command duration limit descriptor to apply to the command.
+
+This is done only for requests that have the IOPRIO_CLASS_DL priority
+class with a priority data sepcifying a valid descriptor index (<= 7).
+
+The read-write sysfs attribute "enable" is introduced to control
+setting the command duration limits indexes. If this attribute is set
+to 0 (default), command duration limits specified by the user are
+ignored.  The user must set this attribute to 1 for command duration
+limits to be set. Enabling and disabling the command duration limits
+feature for ATA devices must be done using the ATA feature sub-page of
+the control mode page. The sd_cdl_enable() function is introduce to
+check if this mode page is supported by the device and if it is, use
+it to enable/disable CDL.
+
+Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+---
+ drivers/scsi/sd.c     |   4 +
+ drivers/scsi/sd.h     |  11 +++
+ drivers/scsi/sd_cdl.c | 174 +++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 187 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
+index 4cf9a9063419..973c2cb2451c 100644
+--- a/drivers/scsi/sd.c
++++ b/drivers/scsi/sd.c
+@@ -1282,9 +1282,13 @@ static blk_status_t sd_setup_read_write_cmnd(struct scsi_cmnd *cmd)
+ 	if (protect && sdkp->protection_type == T10_PI_TYPE2_PROTECTION) {
+ 		ret = sd_setup_rw32_cmnd(cmd, write, lba, nr_blocks,
+ 					 protect | fua);
++		if (ret == BLK_STS_OK && sd_cdl_enabled(sdkp))
++			sd_cdl_setup_rw32(sdkp, cmd);
+ 	} else if (sdp->use_16_for_rw || (nr_blocks > 0xffff)) {
+ 		ret = sd_setup_rw16_cmnd(cmd, write, lba, nr_blocks,
+ 					 protect | fua);
++		if (ret == BLK_STS_OK && sd_cdl_enabled(sdkp))
++			sd_cdl_setup_rw16(sdkp, cmd);
+ 	} else if ((nr_blocks > 0xff) || (lba > 0x1fffff) ||
+ 		   sdp->use_10_for_rw || protect) {
+ 		ret = sd_setup_rw10_cmnd(cmd, write, lba, nr_blocks,
+diff --git a/drivers/scsi/sd.h b/drivers/scsi/sd.h
+index cdf924537ba3..b65b7f2136cf 100644
+--- a/drivers/scsi/sd.h
++++ b/drivers/scsi/sd.h
+@@ -116,8 +116,11 @@ struct sd_cdl_page {
+ 	struct sd_cdl_desc      descs[SD_CDL_MAX_DESC];
+ };
+ 
++struct scsi_disk;
++
+ struct sd_cdl {
+ 	struct kobject		kobj;
++	struct scsi_disk	*sdkp;
+ 	bool			sysfs_registered;
+ 	u8			perf_vs_duration_guideline;
+ 	struct sd_cdl_page	pages[SD_CDL_RW];
+@@ -163,6 +166,7 @@ struct scsi_disk {
+ 	u8		provisioning_mode;
+ 	u8		zeroing_mode;
+ 	struct sd_cdl	*cdl;
++	unsigned	cdl_enabled : 1;
+ 	unsigned	ATO : 1;	/* state of disk ATO bit */
+ 	unsigned	cache_override : 1; /* temp override of WCE,RCD */
+ 	unsigned	WCE : 1;	/* state of disk WCE bit */
+@@ -331,5 +335,12 @@ void sd_print_result(const struct scsi_disk *sdkp, const char *msg, int result);
+ /* Command duration limits support (in sd_cdl.c) */
+ void sd_read_cdl(struct scsi_disk *sdkp, unsigned char *buf);
+ void sd_cdl_release(struct scsi_disk *sdkp);
++void sd_cdl_setup_rw16(struct scsi_disk *sdkp, struct scsi_cmnd *scmd);
++void sd_cdl_setup_rw32(struct scsi_disk *sdkp, struct scsi_cmnd *scmd);
++
++static inline bool sd_cdl_enabled(struct scsi_disk *sdkp)
++{
++	return sdkp->cdl && sdkp->cdl_enabled;
++}
+ 
+ #endif /* _SCSI_DISK_H */
+diff --git a/drivers/scsi/sd_cdl.c b/drivers/scsi/sd_cdl.c
+index 4f2d4679fada..a26135be8cdd 100644
+--- a/drivers/scsi/sd_cdl.c
++++ b/drivers/scsi/sd_cdl.c
+@@ -93,6 +93,52 @@ static const char *sd_cdl_policy_name(u8 policy)
+ 	}
+ }
+ 
++/*
++ * Enable/disable CDL.
++ */
++static int sd_cdl_enable(struct scsi_disk *sdkp, bool enable)
++{
++	struct scsi_device *sdp = sdkp->device;
++	struct scsi_mode_data data;
++	struct scsi_sense_hdr sshdr;
++	char buf[64];
++	int ret;
++
++	/*
++	 * See if the device supports the ATA feature sub-page of the
++	 * control mode page.
++	 */
++	ret = scsi_mode_sense(sdp, 0x08, 0x0a, 0xf2, buf, sizeof(buf),
++			      SD_TIMEOUT, sdkp->max_retries, &data, NULL);
++	if (!ret) {
++		char *buf_data;
++		int len;
++
++		/* Enable CDL using the ATA feature page */
++		len = min_t(size_t, sizeof(buf),
++			    data.length - data.header_length -
++			    data.block_descriptor_length);
++		buf_data = buf + data.header_length +
++			data.block_descriptor_length;
++		if (enable)
++			buf_data[4] = 0x02;
++		else
++			buf_data[4] = 0;
++
++		ret = scsi_mode_select(sdp, 1, 0, buf_data, len, SD_TIMEOUT,
++				       sdkp->max_retries, &data, &sshdr);
++		if (ret) {
++			if (scsi_sense_valid(&sshdr))
++				sd_print_sense_hdr(sdkp, &sshdr);
++			return -EINVAL;
++		}
++	}
++
++	sdkp->cdl_enabled = enable;
++
++	return 0;
++}
++
+ /*
+  * Command duration limits descriptors sysfs plumbing.
+  */
+@@ -313,6 +359,7 @@ static int sd_cdl_sysfs_register_page(struct scsi_disk *sdkp,
+ struct sd_cdl_sysfs_entry {
+ 	struct attribute attr;
+ 	ssize_t (*show)(struct sd_cdl *cdl, char *buf);
++	ssize_t (*store)(struct sd_cdl *cdl, const char *buf, size_t length);
+ };
+ 
+ #define CDL_ATTR_RO(_name)	\
+@@ -321,6 +368,13 @@ struct sd_cdl_sysfs_entry {
+ 		.show	= cdl_##_name##_show,				\
+ 	}
+ 
++#define CDL_ATTR_RW(_name)	\
++	static struct sd_cdl_sysfs_entry cdl_##_name##_entry = {	\
++		.attr	= { .name = __stringify(_name), .mode = 0644 },	\
++		.show	= cdl_##_name##_show,				\
++		.store	= cdl_##_name##_store,				\
++	}
++
+ static ssize_t cdl_perf_vs_duration_guideline_show(struct sd_cdl *cdl,
+ 						   char *buf)
+ {
+@@ -329,8 +383,31 @@ static ssize_t cdl_perf_vs_duration_guideline_show(struct sd_cdl *cdl,
+ }
+ CDL_ATTR_RO(perf_vs_duration_guideline);
+ 
++static ssize_t cdl_enable_show(struct sd_cdl *cdl, char *buf)
++{
++	return sysfs_emit(buf, "%d\n", (int)cdl->sdkp->cdl_enabled);
++}
++
++static ssize_t cdl_enable_store(struct sd_cdl *cdl,
++				const char *buf, size_t count)
++{
++	int ret;
++	bool v;
++
++	if (kstrtobool(buf, &v))
++		return -EINVAL;
++
++	ret = sd_cdl_enable(cdl->sdkp, v);
++	if (ret)
++		return ret;
++
++	return count;
++}
++CDL_ATTR_RW(enable);
++
+ static struct attribute *sd_cdl_attrs[] = {
+ 	&cdl_perf_vs_duration_guideline_entry.attr,
++	&cdl_enable_entry.attr,
+ 	NULL,
+ };
+ 
+@@ -364,8 +441,25 @@ static ssize_t sd_cdl_sysfs_show(struct kobject *kobj,
+ 	return entry->show(cdl, page);
+ }
+ 
++static ssize_t sd_cdl_sysfs_store(struct kobject *kobj, struct attribute *attr,
++				  const char *buf, size_t length)
++{
++	struct sd_cdl_sysfs_entry *entry =
++		container_of(attr, struct sd_cdl_sysfs_entry, attr);
++	struct sd_cdl *cdl = container_of(kobj, struct sd_cdl, kobj);
++
++	if (!capable(CAP_SYS_ADMIN))
++		return -EACCES;
++
++	if (!entry->store)
++		return -EIO;
++
++	return entry->store(cdl, buf, length);
++}
++
+ static const struct sysfs_ops sd_cdl_sysfs_ops = {
+ 	.show	= sd_cdl_sysfs_show,
++	.store	= sd_cdl_sysfs_store,
+ };
+ 
+ static void sd_cdl_sysfs_release(struct kobject *kobj)
+@@ -400,6 +494,7 @@ static void sd_cdl_sysfs_unregister(struct scsi_disk *sdkp)
+ 			sd_cdl_sysfs_unregister_page(&cdl->pages[i]);
+ 	}
+ 
++	cdl->sdkp->cdl_enabled = 0;
+ 	kobject_del(&cdl->kobj);
+ 	kobject_put(&cdl->kobj);
+ }
+@@ -676,7 +771,7 @@ static bool sd_cdl_supported(struct scsi_disk *sdkp, enum sd_cdlp *rw_cdlp,
+ 		rw_cdlp[SD_CDL_WRITE] != SD_CDLP_NONE;
+ }
+ 
+-static struct sd_cdl *sd_cdl_alloc(void)
++static struct sd_cdl *sd_cdl_alloc(struct scsi_disk *sdkp)
+ {
+ 	struct sd_cdl *cdl;
+ 	struct sd_cdl_page *page;
+@@ -686,6 +781,7 @@ static struct sd_cdl *sd_cdl_alloc(void)
+ 	if (!cdl)
+ 		return NULL;
+ 
++	cdl->sdkp = sdkp;
+ 	kobject_init(&cdl->kobj, &sd_cdl_ktype);
+ 	for (i = 0; i < SD_CDL_RW; i++) {
+ 		page = &cdl->pages[i];
+@@ -712,7 +808,7 @@ void sd_read_cdl(struct scsi_disk *sdkp, unsigned char *buf)
+ 		goto unregister;
+ 
+ 	if (!cdl) {
+-		cdl = sd_cdl_alloc();
++		cdl = sd_cdl_alloc(sdkp);
+ 		if (!cdl)
+ 			return;
+ 	}
+@@ -749,3 +845,77 @@ void sd_cdl_release(struct scsi_disk *sdkp)
+ {
+ 	sd_cdl_sysfs_unregister(sdkp);
+ }
++
++static inline unsigned int sd_cdl_cmd_desc_index(struct scsi_cmnd *scmd)
++{
++	unsigned int ioprio = req_get_ioprio(scmd->request);
++	unsigned int data;
++
++	/*
++	 * Use "no limit" if the request ioprio class is not IOPRIO_CLASS_DL
++	 * or if the user specified an invalid CDL descriptor index.
++	 */
++	if (IOPRIO_PRIO_CLASS(ioprio) != IOPRIO_CLASS_DL)
++		return 0;
++
++	data = IOPRIO_PRIO_DATA(ioprio);
++	if (data > SD_CDL_MAX_DESC)
++		return 0;
++
++	return data;
++}
++
++void sd_cdl_setup_rw16(struct scsi_disk *sdkp, struct scsi_cmnd *scmd)
++{
++	enum sd_cdl_rw rw;
++	unsigned int dld;
++
++	dld = sd_cdl_cmd_desc_index(scmd);
++	if (!dld)
++		return;
++
++	switch (scmd->cmnd[0]) {
++	case READ_16:
++		rw = SD_CDL_READ;
++		break;
++	case WRITE_16:
++		rw = SD_CDL_WRITE;
++		break;
++	default:
++		return;
++	}
++
++	if (sdkp->cdl->pages[rw].cdlp == SD_CDLP_NONE)
++		return;
++
++	/* Set the DLD bits */
++	scmd->cmnd[1] |= (dld >> 2) & 0x01;
++	scmd->cmnd[14] |= (dld << 6) & 0xc0;
++}
++
++void sd_cdl_setup_rw32(struct scsi_disk *sdkp, struct scsi_cmnd *scmd)
++{
++	enum sd_cdl_rw rw;
++	unsigned int dld;
++
++	dld = sd_cdl_cmd_desc_index(scmd);
++	if (!dld)
++		return;
++
++	switch (scmd->cmnd[9]) {
++	case READ_32:
++		rw = SD_CDL_READ_32;
++		break;
++	case WRITE_32:
++		rw = SD_CDL_WRITE_32;
++		break;
++	default:
++		return;
++	}
++
++	if (sdkp->cdl->pages[rw].cdlp == SD_CDLP_NONE)
++		return;
++
++	/* Set the DLD bits */
++	scmd->cmnd[11] |= dld & 0x07;
++}
+-- 
+2.31.1
+

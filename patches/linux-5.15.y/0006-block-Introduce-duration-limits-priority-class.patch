@@ -1,0 +1,151 @@
+From 19a56e849de6e2edf70726338d16a631a8715706 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@wdc.com>
+Date: Sat, 31 Jul 2021 11:06:09 +0900
+Subject: [PATCH 06/17] block: Introduce duration-limits priority class
+
+Introduce the IOPRIO_CLASS_DL priority class to indicate that IOs should
+be executed using duration-limits targets. The duration target to apply
+to a command is indicated using the priority level. Up to 8 levels are
+supported, with level 0 indiating "no limit".
+
+This priority class has effect only if the target device supports the
+command duration limits feature and this feature is enabled by the user.
+In BFQ and mq-deadline, all requests with this new priority class are
+handled using the highest prioty class RT and priority level 0.
+
+Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+---
+ block/bfq-iosched.c         | 10 ++++++++++
+ block/blk-ioprio.c          |  3 +++
+ block/ioprio.c              |  3 ++-
+ block/mq-deadline.c         |  1 +
+ include/linux/ioprio.h      |  2 +-
+ include/uapi/linux/ioprio.h |  7 +++++++
+ 6 files changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/block/bfq-iosched.c b/block/bfq-iosched.c
+index 480e1a134859..33844e09be22 100644
+--- a/block/bfq-iosched.c
++++ b/block/bfq-iosched.c
+@@ -5291,6 +5291,14 @@ bfq_set_next_ioprio_data(struct bfq_queue *bfqq, struct bfq_io_cq *bic)
+ 		bfqq->new_ioprio_class = IOPRIO_CLASS_IDLE;
+ 		bfqq->new_ioprio = 7;
+ 		break;
++	case IOPRIO_CLASS_DL:
++		/*
++		 * For the duration-limits class, we want the disk to do the
++		 * scheduling. So map all levels to the highest RT level.
++		 */
++		bfqq->new_ioprio = 0;
++		bfqq->new_ioprio_class = IOPRIO_CLASS_RT;
++		break;
+ 	}
+ 
+ 	if (bfqq->new_ioprio >= IOPRIO_NR_LEVELS) {
+@@ -5417,6 +5425,8 @@ static struct bfq_queue **bfq_async_queue_prio(struct bfq_data *bfqd,
+ 		return &bfqg->async_bfqq[1][ioprio];
+ 	case IOPRIO_CLASS_IDLE:
+ 		return &bfqg->async_idle_bfqq;
++	case IOPRIO_CLASS_DL:
++		return &bfqg->async_bfqq[0][0];
+ 	default:
+ 		return NULL;
+ 	}
+diff --git a/block/blk-ioprio.c b/block/blk-ioprio.c
+index 332a07761bf8..73ee10ebfbdc 100644
+--- a/block/blk-ioprio.c
++++ b/block/blk-ioprio.c
+@@ -27,6 +27,7 @@
+  * @POLICY_RESTRICT_TO_BE: modify IOPRIO_CLASS_NONE and IOPRIO_CLASS_RT into
+  *		IOPRIO_CLASS_BE.
+  * @POLICY_ALL_TO_IDLE: change the I/O priority class into IOPRIO_CLASS_IDLE.
++ * @POLICY_ALL_TO_DL: change the I/O priority class into IOPRIO_CLASS_DL.
+  *
+  * See also <linux/ioprio.h>.
+  */
+@@ -35,6 +36,7 @@ enum prio_policy {
+ 	POLICY_NONE_TO_RT	= 1,
+ 	POLICY_RESTRICT_TO_BE	= 2,
+ 	POLICY_ALL_TO_IDLE	= 3,
++	POLICY_ALL_TO_DL	= 4,
+ };
+ 
+ static const char *policy_name[] = {
+@@ -42,6 +44,7 @@ static const char *policy_name[] = {
+ 	[POLICY_NONE_TO_RT]	= "none-to-rt",
+ 	[POLICY_RESTRICT_TO_BE]	= "restrict-to-be",
+ 	[POLICY_ALL_TO_IDLE]	= "idle",
++	[POLICY_ALL_TO_DL]	= "duration-limits",
+ };
+ 
+ static struct blkcg_policy ioprio_policy;
+diff --git a/block/ioprio.c b/block/ioprio.c
+index 0e4ff245f2bf..cfe660aa2a97 100644
+--- a/block/ioprio.c
++++ b/block/ioprio.c
+@@ -69,10 +69,11 @@ int ioprio_check_cap(int ioprio)
+ 
+ 	switch (class) {
+ 		case IOPRIO_CLASS_RT:
++		case IOPRIO_CLASS_DL:
+ 			if (!capable(CAP_SYS_NICE) && !capable(CAP_SYS_ADMIN))
+ 				return -EPERM;
+ 			fallthrough;
+-			/* rt has prio field too */
++			/* RT and DL have prio field too */
+ 		case IOPRIO_CLASS_BE:
+ 			if (data >= IOPRIO_NR_LEVELS || data < 0)
+ 				return -EINVAL;
+diff --git a/block/mq-deadline.c b/block/mq-deadline.c
+index 7f3c3932b723..3ac424040baa 100644
+--- a/block/mq-deadline.c
++++ b/block/mq-deadline.c
+@@ -136,6 +136,7 @@ static const enum dd_prio ioprio_class_to_prio[] = {
+ 	[IOPRIO_CLASS_RT]	= DD_RT_PRIO,
+ 	[IOPRIO_CLASS_BE]	= DD_BE_PRIO,
+ 	[IOPRIO_CLASS_IDLE]	= DD_IDLE_PRIO,
++	[IOPRIO_CLASS_DL]	= DD_RT_PRIO,
+ };
+ 
+ static inline struct rb_root *
+diff --git a/include/linux/ioprio.h b/include/linux/ioprio.h
+index 3f53bc27a19b..d3537fc4f1b9 100644
+--- a/include/linux/ioprio.h
++++ b/include/linux/ioprio.h
+@@ -20,7 +20,7 @@ static inline bool ioprio_valid(unsigned short ioprio)
+ {
+ 	unsigned short class = IOPRIO_PRIO_CLASS(ioprio);
+ 
+-	return class > IOPRIO_CLASS_NONE && class <= IOPRIO_CLASS_IDLE;
++	return class > IOPRIO_CLASS_NONE && class <= IOPRIO_CLASS_DL;
+ }
+ 
+ /*
+diff --git a/include/uapi/linux/ioprio.h b/include/uapi/linux/ioprio.h
+index f70f2596a6bf..d6b2784dc2fb 100644
+--- a/include/uapi/linux/ioprio.h
++++ b/include/uapi/linux/ioprio.h
+@@ -29,6 +29,7 @@ enum {
+ 	IOPRIO_CLASS_RT,
+ 	IOPRIO_CLASS_BE,
+ 	IOPRIO_CLASS_IDLE,
++	IOPRIO_CLASS_DL,
+ };
+ 
+ /*
+@@ -37,6 +38,12 @@ enum {
+ #define IOPRIO_NR_LEVELS	8
+ #define IOPRIO_BE_NR		IOPRIO_NR_LEVELS
+ 
++/*
++ * The Duration limits class allows 8 levels: level 0 for "no limit" and levels
++ * 1 to 7, each corresponding to a read or write limit descriptor.
++ */
++#define IOPRIO_DL_NR_LEVELS	IOPRIO_NR_LEVELS
++
+ enum {
+ 	IOPRIO_WHO_PROCESS = 1,
+ 	IOPRIO_WHO_PGRP,
+-- 
+2.31.1
+
