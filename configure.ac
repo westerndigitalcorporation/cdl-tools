@@ -2,7 +2,7 @@
 #
 # Copyright (C) 2021 Western Digital Corporation or its affiliates.
 
-AC_INIT([cdl-tools], [0.0.2],
+AC_INIT([cdl-tools], [0.1.0],
 	[damien.lemoal@wdc.com, niklas.cassel@wdc.com],
         [cdl-tools], [https://github.com/westerndigitalcorporation/cdl-tools])
 
