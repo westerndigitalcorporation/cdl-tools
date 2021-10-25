@@ -113,6 +113,7 @@ struct cdl_dev {
 	bool			cdl_supported;
 	enum cdl_p		cmd_cdlp[CDL_CMD_MAX];
 	struct cdl_page		cdl_pages[CDL_MAX_PAGES];
+	uint64_t		cmd_timeout;
 
 	/* Minimum and maximum limits in nanoseconds */
 	unsigned long long	min_limit;

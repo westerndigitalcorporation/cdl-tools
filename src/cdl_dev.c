@@ -377,7 +377,7 @@ int cdl_exec_cmd(struct cdl_dev *dev, struct cdl_sg_cmd *cmd)
 static int cdl_get_dev_info(struct cdl_dev *dev)
 {
 	struct cdl_sg_cmd cmd;
-	uint64_t capacity;
+	uint64_t capacity, timeout;
 	uint32_t lba_size;
 	int ret;
 
@@ -411,6 +411,11 @@ static int cdl_get_dev_info(struct cdl_dev *dev)
 	capacity = cdl_sg_get_be64(&cmd.buf[0]) + 1;
 	lba_size = cdl_sg_get_be32(&cmd.buf[8]);
 	dev->capacity = (capacity * lba_size) >> 9;
+
+	/* Get the device command timeout */
+	timeout = cdl_sysfs_get_ulong_attr(dev, "/sys/block/%s/device/timeout",
+					   dev->name);
+	dev->cmd_timeout = timeout * 1000000000ULL;
 
 	return 0;
 }
