@@ -588,6 +588,63 @@ static unsigned long cdl_parse_val(FILE *f, char *line, char *field, int base)
 	return strtol(str, NULL, base);
 }
 
+static unsigned long cdl_parse_policy(FILE *f, char *line, char *field,
+				      int base, int d, enum cdl_limit limit)
+{
+	unsigned long policy = cdl_parse_val(f, line, field, base);
+
+	switch (limit) {
+	case CDLP_MAX_INACTIVE_TIME:
+		switch (policy) {
+		case 0x00:
+		case 0x0d:
+		case 0x0f:
+			return policy;
+		default:
+			fprintf(stderr,
+				"Descriptor %d: invalid max inactive time "
+				"policy\n", d);
+			return 0xff;
+		}
+		break;
+
+	case CDLP_MAX_ACTIVE_TIME:
+		switch (policy) {
+		case 0x00:
+		case 0x0d:
+		case 0x0e:
+		case 0x0f:
+			return policy;
+		default:
+			fprintf(stderr,
+				"Descriptor %d: invalid max active time "
+				"policy\n", d);
+			return 0xff;
+		}
+		break;
+
+	case CDLP_DURATION_GUIDELINE:
+		switch (policy) {
+		case 0x00:
+		case 0x01:
+		case 0x02:
+		case 0x0d:
+		case 0x0f:
+			return policy;
+		default:
+			fprintf(stderr,
+				"Descriptor %d: invalid command duration "
+				"guideline policy\n", d);
+			return 0xff;
+		}
+		break;
+
+	default:
+		/* This should not happen */
+		return 0xff;
+	}
+}
+
 static int cdl_parse_desc(struct cdl_page *page, int d,
 			  FILE *f, char *line)
 {
@@ -605,23 +662,36 @@ static int cdl_parse_desc(struct cdl_page *page, int d,
 	if (page->cdlp == CDLP_A || page->cdlp == CDLP_B) {
 		desc->cdltunit =
 			cdl_parse_val(f, line, "cdlunit:", 16);
+
 		desc->duration =
 			cdl_parse_val(f, line, "duration-guideline:", 10);
 	} else {
 		desc->cdltunit =
 			cdl_parse_val(f, line, "t2cdlunits:", 16);
+
 		desc->max_inactive_time =
 			cdl_parse_val(f, line, "max-inactive-time:", 10);
 		desc->max_inactive_policy =
-			cdl_parse_val(f, line, "max-inactive-time-policy:", 16);
+			cdl_parse_policy(f, line, "max-inactive-time-policy:",
+					 16, d, CDLP_MAX_INACTIVE_TIME);
+		if (desc->max_inactive_policy == 0xff)
+			return -1;
+
 		desc->max_active_time =
 			cdl_parse_val(f, line, "max-active-time:", 10);
 		desc->max_active_policy =
-			cdl_parse_val(f, line, "max-active-time-policy:", 16);
+			cdl_parse_policy(f, line, "max-active-time-policy:",
+					 16, d, CDLP_MAX_ACTIVE_TIME);
+		if (desc->max_active_policy == 0xff)
+			return -1;
+
 		desc->duration =
 			cdl_parse_val(f, line, "duration-guideline:", 10);
 		desc->duration_policy =
-			cdl_parse_val(f, line, "duration-guideline-policy:", 16);
+			cdl_parse_policy(f, line, "duration-guideline-policy:",
+					 16, d, CDLP_DURATION_GUIDELINE);
+		if (desc->duration_policy == 0xff)
+			return -1;
 	}
 
 	return 0;

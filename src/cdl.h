@@ -51,6 +51,12 @@ enum cdl_p {
 	CDL_MAX_PAGES = CDLP_NONE,
 };
 
+enum cdl_limit {
+	CDLP_MAX_INACTIVE_TIME,
+	CDLP_MAX_ACTIVE_TIME,
+	CDLP_DURATION_GUIDELINE,
+};
+
 struct cdl_desc {
 	uint8_t		cdltunit;
 	uint16_t	max_inactive_time;
