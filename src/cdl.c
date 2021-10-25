@@ -697,7 +697,81 @@ static int cdl_parse_desc(struct cdl_page *page, int d,
 	return 0;
 }
 
-int cdl_page_parse_file(FILE *f, struct cdl_page *page)
+static int cdl_check_simple_desc(struct cdl_dev *dev,
+				 struct cdl_desc *desc, int i)
+{
+	if (cdl_t2time(desc->duration, desc->cdltunit) > dev->cmd_timeout)
+		printf("[WARNING] descriptor %d: duration guideline "
+		       "greater than the device command timeout\n", i);
+
+	return 0;
+}
+
+static int cdl_check_t2desc(struct cdl_dev *dev, struct cdl_desc *desc, int i)
+{
+	int ret = 0;
+	uint64_t t;
+
+	/* Check max active time */
+	t = cdl_t2time(desc->max_active_time, desc->cdltunit);
+	if (desc->max_active_policy && t > dev->max_limit) {
+		fprintf(stderr,
+			"[ERROR] descriptor %d: max active time is greater "
+			"than the device maximum time limit\n", i);
+		ret = -1;
+	}
+	if (t > dev->cmd_timeout)
+		printf("[WARNING] descriptor %d: max active time is "
+		       "greater than the device command timeout\n", i);
+
+	/* Check max inactive time */
+	t = cdl_t2time(desc->max_inactive_time, desc->cdltunit);
+	if (desc->max_inactive_policy && t > dev->max_limit) {
+		fprintf(stderr,
+			"[ERROR] descriptor %d: max inactive time is greater "
+			"than the device maximum time limit\n", i);
+		ret = -1;
+	}
+	if (t > dev->cmd_timeout)
+		printf("[WARNING] descriptor %d: max inactive time is "
+		       "greater than the device command timeout\n", i);
+
+	/* Check command duration guideline */
+	t = cdl_t2time(desc->duration, desc->cdltunit);
+	if (t > dev->cmd_timeout)
+		printf("[WARNING] descriptor %d: duration guideline "
+		       "greater than the device command timeout\n", i);
+
+	return ret;
+}
+
+static int cdl_check_desc(struct cdl_dev *dev, struct cdl_page *page,
+			  struct cdl_desc *desc, int i)
+{
+	if (page->cdlp == CDLP_A || page->cdlp == CDLP_B)
+		return cdl_check_simple_desc(dev, desc, i);
+	return cdl_check_t2desc(dev, desc, i);
+}
+
+static int cdl_check_page(struct cdl_dev *dev, struct cdl_page *page)
+{
+	struct cdl_desc *desc;
+	int i, err, ret = 0;
+
+	if (page->cdlp == CDLP_T2A && (!page->perf_vs_duration_guideline))
+		printf("[WARNING] perf-vs-duration-guideline is zero: "
+		       "duration limits will have no effect\n");
+
+	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
+		err = cdl_check_desc(dev, page, desc, i);
+		if (err)
+			ret = err;
+	}
+
+	return ret;
+}
+
+int cdl_page_parse_file(FILE *f, struct cdl_dev *dev, struct cdl_page *page)
 {
 	char line[CDL_LINE_MAX_LEN];
 	int i, ret = 0;
@@ -728,7 +802,8 @@ int cdl_page_parse_file(FILE *f, struct cdl_page *page)
 			return ret;
 	}
 
-	return 0;
+	/* Do some final checks on the page, warning about invalid values */
+	return cdl_check_page(dev, page);
 }
 
 /*

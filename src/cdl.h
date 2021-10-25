@@ -177,7 +177,7 @@ uint16_t cdl_cmd_sa(enum cdl_cmd cmd);
 
 void cdl_page_show(struct cdl_page *page, bool raw);
 void cdl_page_save(struct cdl_page *page, FILE *f);
-int cdl_page_parse_file(FILE *f, struct cdl_page *page);
+int cdl_page_parse_file(FILE *f, struct cdl_dev *dev, struct cdl_page *page);
 
 int cdl_read_pages(struct cdl_dev *dev);
 bool cdl_page_supported(struct cdl_dev *dev, enum cdl_p cdlp);

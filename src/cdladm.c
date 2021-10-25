@@ -198,7 +198,7 @@ static int cdladm_upload(struct cdl_dev *dev, char *path)
 	}
 
 	printf("Parsing file %s...\n", path);
-	ret = cdl_page_parse_file(f, &page);
+	ret = cdl_page_parse_file(f, dev, &page);
 	fclose(f);
 	if (ret)
 		return 1;
