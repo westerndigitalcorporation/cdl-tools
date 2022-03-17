@@ -7,8 +7,7 @@ feature to fio. The patches apply against fio latest tree available from:
 
 https://github.com/axboe/fio
 
-The first patch is the only patch needed to support command duration limits in
-fio.
+This is the only patch needed to support command duration limits in fio.
 
-The second patch adds the cmdprio_split option to facilitate creating workloads
-that more than two command duration limits for read, write and read/write IOs.
+Note that since fio 3.29, completion latencies are reported per IO priority
+level, that is, per CDL limit used.

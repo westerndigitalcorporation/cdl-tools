@@ -1,0 +1,40 @@
+From a794495d66f8457a318f635f335de89698001413 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@wdc.com>
+Date: Mon, 2 Aug 2021 14:49:29 +0900
+Subject: [PATCH 1/2] os-linux: Add IORPIO_CLASS_DL definition
+
+Add the command duration limits priority class IORPIO_CLASS_DL
+definition. With this, change the value of IOPRIO_MAX_PRIO_CLASS to
+accept IORPIO_CLASS_DL as a valid priority class.
+
+Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+---
+ os/os-linux.h | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/os/os-linux.h b/os/os-linux.h
+index 808f1d02..315ca011 100644
+--- a/os/os-linux.h
++++ b/os/os-linux.h
+@@ -101,6 +101,7 @@ enum {
+ 	IOPRIO_CLASS_RT,
+ 	IOPRIO_CLASS_BE,
+ 	IOPRIO_CLASS_IDLE,
++	IOPRIO_CLASS_DL,
+ };
+ 
+ enum {
+@@ -115,8 +116,8 @@ enum {
+ #define IOPRIO_MIN_PRIO		0	/* highest priority */
+ #define IOPRIO_MAX_PRIO		7	/* lowest priority */
+ 
+-#define IOPRIO_MIN_PRIO_CLASS	0
+-#define IOPRIO_MAX_PRIO_CLASS	3
++#define IOPRIO_MIN_PRIO_CLASS	IOPRIO_CLASS_NONE
++#define IOPRIO_MAX_PRIO_CLASS	IOPRIO_CLASS_DL
+ 
+ static inline int ioprio_value(int ioprio_class, int ioprio)
+ {
+-- 
+2.31.1
+
