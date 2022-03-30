@@ -1,7 +1,7 @@
-From 355a0dcdc52ff4c6af62713dbbb039263a1f6f30 Mon Sep 17 00:00:00 2001
+From f55088798084f108f2fb4c17af177106a2d50f6c Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:56 +0900
-Subject: [PATCH 04/31] docs: sysfs-block-device: document ncq_prio_supported
+Subject: [PATCH 04/32] docs: sysfs-block-device: document ncq_prio_supported
 
 Upstream commit f5975d18d46ae8485bb08161086e59360844840b
 
@@ -68,5 +68,5 @@ index aa0fb500e3c9..7ac7b19b2f72 100644
 +		support for the SATA NCQ priority feature, regardless of the
 +		device support for this feature.
 -- 
-2.31.1
+2.35.1
 

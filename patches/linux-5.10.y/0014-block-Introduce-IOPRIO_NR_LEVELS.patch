@@ -1,7 +1,7 @@
-From ce0e1a1561d87a92bece53a6b9ebdecf447d093c Mon Sep 17 00:00:00 2001
+From b8cc9f8638549cfb4772f71d479674d937bba1e9 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 11 Aug 2021 12:37:01 +0900
-Subject: [PATCH 14/31] block: Introduce IOPRIO_NR_LEVELS
+Subject: [PATCH 14/32] block: Introduce IOPRIO_NR_LEVELS
 
 Upstream commit 202bc942c5cd4340d37b06c4e0b8b03f9925d818
 
@@ -27,7 +27,7 @@ Signed-off-by: Jens Axboe <axboe@kernel.dk>
  5 files changed, 13 insertions(+), 13 deletions(-)
 
 diff --git a/block/bfq-iosched.c b/block/bfq-iosched.c
-index b8c2ddc01aec..15417bffd748 100644
+index 8d95bf7765b1..bdc730ce9c0d 100644
 --- a/block/bfq-iosched.c
 +++ b/block/bfq-iosched.c
 @@ -2372,7 +2372,7 @@ void bfq_end_wr_async_queues(struct bfq_data *bfqd,
@@ -112,10 +112,10 @@ index 26776bdbdf36..0f7d90de2bc7 100644
  
  static void bfq_get_entity(struct bfq_entity *entity)
 diff --git a/block/ioprio.c b/block/ioprio.c
-index 364d2294ba90..d7ae22784f2f 100644
+index c8878647de40..0103a86f1fa4 100644
 --- a/block/ioprio.c
 +++ b/block/ioprio.c
-@@ -74,9 +74,8 @@ int ioprio_check_cap(int ioprio)
+@@ -81,9 +81,8 @@ int ioprio_check_cap(int ioprio)
  			fallthrough;
  			/* rt has prio field too */
  		case IOPRIO_CLASS_BE:
@@ -144,5 +144,5 @@ index 936f0d8f30e1..aac39338d02c 100644
  enum {
  	IOPRIO_WHO_PROCESS = 1,
 -- 
-2.31.1
+2.35.1
 

@@ -1,7 +1,7 @@
-From 3ce51f90c4af2f65eef53a3764dcbf97ce1a2218 Mon Sep 17 00:00:00 2001
+From 17341159ae523dd6ca4aec8c4f354a71dc5a2966 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:52 +0900
-Subject: [PATCH 08/31] libata: fix ata_read_log_page() warning
+Subject: [PATCH 08/32] libata: fix ata_read_log_page() warning
 
 upstream commit fc5c8aa7bc4977205e0ceb93425075f8a8f49501
 
@@ -30,7 +30,7 @@ Signed-off-by: Jens Axboe <axboe@kernel.dk>
  1 file changed, 13 insertions(+), 34 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index 5236e1b191c0..724bb31a85ea 100644
+index abd5f83837db..a3ab509b45c9 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
 @@ -2026,13 +2026,15 @@ unsigned int ata_read_log_page(struct ata_device *dev, u8 log,
@@ -136,5 +136,5 @@ index 5236e1b191c0..724bb31a85ea 100644
  	dev->flags |= ATA_DFLAG_DEVSLP;
  	for (i = 0; i < ATA_LOG_DEVSLP_SIZE; i++) {
 -- 
-2.31.1
+2.35.1
 

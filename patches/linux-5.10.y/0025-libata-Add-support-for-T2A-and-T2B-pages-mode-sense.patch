@@ -1,7 +1,7 @@
-From 60405a159c59f51ae65792f7085a326dc68120d4 Mon Sep 17 00:00:00 2001
+From ab2b551a20aeb81e2bcb38139d87d2645896daaa Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Tue, 28 Sep 2021 21:00:02 +0900
-Subject: [PATCH 25/31] libata: Add support for T2A and T2B pages mode sense
+Subject: [PATCH 25/32] libata: Add support for T2A and T2B pages mode sense
 
 Modify ata_scsiop_mode_sense() and ata_msense_control() to support mode
 sense access to the T2A and T2B sub-pages of the control mode page.
@@ -19,7 +19,7 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  1 file changed, 124 insertions(+), 22 deletions(-)
 
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index b83d9f9d654e..42519a8cb68e 100644
+index 0d07da0750f5..c9ad066ecf02 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -37,7 +37,7 @@
@@ -228,7 +228,7 @@ index b83d9f9d654e..42519a8cb68e 100644
  		rbuf[3] |= dpofua;
  		if (ebd) {
  			rbuf[7] = sizeof(sat_blk_desc);
-@@ -3639,7 +3741,7 @@ static int ata_mselect_control(struct ata_queued_cmd *qc,
+@@ -3650,7 +3752,7 @@ static int ata_mselect_control(struct ata_queued_cmd *qc,
  	/*
  	 * Check that read-only bits are not modified.
  	 */
@@ -238,5 +238,5 @@ index b83d9f9d654e..42519a8cb68e 100644
  		if (i == 0)
  			continue;
 -- 
-2.31.1
+2.35.1
 

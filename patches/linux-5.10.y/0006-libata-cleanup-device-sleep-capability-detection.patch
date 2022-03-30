@@ -1,7 +1,7 @@
-From 2e69bc54a602989101ecfcb0647e654ac05de8b7 Mon Sep 17 00:00:00 2001
+From a2a7004e4d254683f59aab09ba9ce2b4ac3ee432 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:49 +0900
-Subject: [PATCH 06/31] libata: cleanup device sleep capability detection
+Subject: [PATCH 06/32] libata: cleanup device sleep capability detection
 
 Upstream commit d8d8778c24cc4689250b59c426489a360032d912
 
@@ -20,7 +20,7 @@ Signed-off-by: Jens Axboe <axboe@kernel.dk>
  1 file changed, 32 insertions(+), 23 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index 11290c15a33c..cf7ccb4af888 100644
+index b747db74dc76..29e4fbae84fb 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
 @@ -2385,6 +2385,37 @@ static void ata_dev_config_trusted(struct ata_device *dev)
@@ -93,5 +93,5 @@ index 11290c15a33c..cf7ccb4af888 100644
  		ata_dev_config_zac(dev);
  		ata_dev_config_trusted(dev);
 -- 
-2.31.1
+2.35.1
 

@@ -1,7 +1,7 @@
-From d2faa6a0f94f741ff5fc399ac8b6bae7558acde1 Mon Sep 17 00:00:00 2001
+From 7ca0a1a41390d4b573c219b76dd71af223858cd3 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:48 +0900
-Subject: [PATCH 05/31] libata: simplify ata_scsi_rbuf_fill()
+Subject: [PATCH 05/32] libata: simplify ata_scsi_rbuf_fill()
 
 Upstream commit 56b4f06c55add95fe508a1746d9173bade6388bf
 
@@ -22,7 +22,7 @@ Signed-off-by: Jens Axboe <axboe@kernel.dk>
  1 file changed, 9 insertions(+), 51 deletions(-)
 
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index 48b8934970f3..1336bf6bd9ea 100644
+index a0e788b64821..a7fbe2329726 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -1767,53 +1767,6 @@ struct ata_scsi_args {
@@ -104,5 +104,5 @@ index 48b8934970f3..1336bf6bd9ea 100644
  	if (rc == 0)
  		cmd->result = SAM_STAT_GOOD;
 -- 
-2.31.1
+2.35.1
 

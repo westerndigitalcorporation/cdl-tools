@@ -1,4 +1,4 @@
-From c3d533b5a73bfdd59f78583ceec3f276b73a74fc Mon Sep 17 00:00:00 2001
+From 0d1e071ecd3bb581baa64cd145340ec5ee159667 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Thu, 4 Nov 2021 17:32:54 +0900
 Subject: [PATCH 32/32] scsi: sd: handle command duration limit timeout
@@ -35,7 +35,7 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  6 files changed, 96 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
-index 75c914cf1738..311324831f02 100644
+index d48a53ee5184..b8a8938d8fb2 100644
 --- a/drivers/scsi/scsi_lib.c
 +++ b/drivers/scsi/scsi_lib.c
 @@ -643,6 +643,9 @@ static blk_status_t scsi_result_to_blk_status(struct scsi_cmnd *cmd, int result)
@@ -75,7 +75,7 @@ index b65b7f2136cf..c307332538eb 100644
 +
  #endif /* _SCSI_DISK_H */
 diff --git a/drivers/scsi/sd_cdl.c b/drivers/scsi/sd_cdl.c
-index a26135be8cdd..47bea132f527 100644
+index 19efe718a056..4c6808111ff0 100644
 --- a/drivers/scsi/sd_cdl.c
 +++ b/drivers/scsi/sd_cdl.c
 @@ -11,6 +11,7 @@
@@ -208,5 +208,5 @@ index c36860111932..8cdcbb6800be 100644
  /*
   *  DEVICE TYPES
 -- 
-2.31.1
+2.35.1
 

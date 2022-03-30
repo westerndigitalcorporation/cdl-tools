@@ -1,7 +1,7 @@
-From 774d590f780bf898af719fed9ec39c20805796ce Mon Sep 17 00:00:00 2001
+From 68d7265c0c70de95bb1287c9d77ce9e92bc7cfd6 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 11 Aug 2021 12:37:00 +0900
-Subject: [PATCH 13/31] block: fix IOPRIO_PRIO_CLASS() and IOPRIO_PRIO_VALUE()
+Subject: [PATCH 13/32] block: fix IOPRIO_PRIO_CLASS() and IOPRIO_PRIO_VALUE()
  macros
 
 Upstream commit ba05200fcce0a73fa8db16c514fbaa476d1d9399
@@ -60,5 +60,5 @@ index 5064e230374c..936f0d8f30e1 100644
  /*
   * These are the io priority groups as implemented by the BFQ and mq-deadline
 -- 
-2.31.1
+2.35.1
 

@@ -1,7 +1,7 @@
-From 4c6d1d4d80392dc8af6ff0a09c359a019ef6255e Mon Sep 17 00:00:00 2001
+From 8a591b2e54b1bb39b41bfff5678d3f56a59a4d7a Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 29 Sep 2021 15:01:38 +0900
-Subject: [PATCH 26/31] libata: support ATA feature mode page translation
+Subject: [PATCH 26/32] libata: support ATA feature mode page translation
 
 Add support for the ATA feature sub-page of the control mode page to
 enable/disable the command duration limits feature using the cdl_ctrl
@@ -18,7 +18,7 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  4 files changed, 123 insertions(+), 27 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index 721da4157b98..ca1d72a8e03e 100644
+index 62ed6651712f..8f4eb8cd6aea 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
 @@ -2410,7 +2410,7 @@ static void ata_dev_config_cdl(struct ata_device *dev)
@@ -31,7 +31,7 @@ index 721da4157b98..ca1d72a8e03e 100644
  
  static int ata_dev_config_lba(struct ata_device *dev)
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index 42519a8cb68e..c28b6956f2a0 100644
+index c9ad066ecf02..eea6584ba491 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -58,6 +58,8 @@ static struct ata_device *__ata_scsi_find_dev(struct ata_port *ap,
@@ -81,7 +81,7 @@ index 42519a8cb68e..c28b6956f2a0 100644
  		return n;
  	default:
  		return 0;
-@@ -3703,20 +3725,11 @@ static int ata_mselect_caching(struct ata_queued_cmd *qc,
+@@ -3714,20 +3736,11 @@ static int ata_mselect_caching(struct ata_queued_cmd *qc,
  	return 0;
  }
  
@@ -106,7 +106,7 @@ index 42519a8cb68e..c28b6956f2a0 100644
  {
  	struct ata_device *dev = qc->dev;
  	u8 mpage[CONTROL_MPAGE_LEN];
-@@ -3757,6 +3770,69 @@ static int ata_mselect_control(struct ata_queued_cmd *qc,
+@@ -3768,6 +3781,69 @@ static int ata_mselect_control(struct ata_queued_cmd *qc,
  	return 0;
  }
  
@@ -176,7 +176,7 @@ index 42519a8cb68e..c28b6956f2a0 100644
  /**
   *	ata_scsi_mode_select_xlat - Simulate MODE SELECT 6, 10 commands
   *	@qc: Storage for translated ATA taskfile
-@@ -3774,7 +3850,7 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
+@@ -3785,7 +3861,7 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
  	const u8 *cdb = scmd->cmnd;
  	u8 pg, spg;
  	unsigned six_byte, pg_len, hdr_len, bd_len;
@@ -185,7 +185,7 @@ index 42519a8cb68e..c28b6956f2a0 100644
  	u16 fp = (u16)-1;
  	u8 bp = 0xff;
  	u8 buffer[64];
-@@ -3797,7 +3873,7 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
+@@ -3808,7 +3884,7 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
  			goto invalid_fld;
  		}
  
@@ -194,7 +194,7 @@ index 42519a8cb68e..c28b6956f2a0 100644
  		hdr_len = 8;
  	}
  
-@@ -3861,13 +3937,29 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
+@@ -3872,13 +3948,29 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
  	}
  
  	/*
@@ -230,7 +230,7 @@ index 42519a8cb68e..c28b6956f2a0 100644
  	}
  	if (pg_len > len)
  		goto invalid_param_len;
-@@ -3880,14 +3972,16 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
+@@ -3891,14 +3983,16 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
  		}
  		break;
  	case CONTROL_MPAGE:
@@ -251,7 +251,7 @@ index 42519a8cb68e..c28b6956f2a0 100644
  		fp = bd_len + hdr_len;
  		goto invalid_param;
  	}
-@@ -4058,7 +4152,6 @@ static inline ata_xlat_func_t ata_get_xlat_func(struct ata_device *dev, u8 cmd)
+@@ -4069,7 +4163,6 @@ static inline ata_xlat_func_t ata_get_xlat_func(struct ata_device *dev, u8 cmd)
  	case MODE_SELECT:
  	case MODE_SELECT_10:
  		return ata_scsi_mode_select_xlat;
@@ -273,7 +273,7 @@ index 47a341a19e6e..3e10de03c17b 100644
  	SATA_FPDMA_OFFSET	= 0x01,	/* FPDMA non-zero buffer offsets */
  	SATA_FPDMA_AA		= 0x02, /* FPDMA Setup FIS Auto-Activate */
 diff --git a/include/linux/libata.h b/include/linux/libata.h
-index 62fdc1f089dd..1e0e7273ebe7 100644
+index 4b1f0b38c917..6bfaa2376f1c 100644
 --- a/include/linux/libata.h
 +++ b/include/linux/libata.h
 @@ -151,6 +151,7 @@ enum {
@@ -285,5 +285,5 @@ index 62fdc1f089dd..1e0e7273ebe7 100644
  
  	ATA_DFLAG_DETACH	= (1 << 24),
 -- 
-2.31.1
+2.35.1
 

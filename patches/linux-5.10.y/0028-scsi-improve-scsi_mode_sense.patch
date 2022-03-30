@@ -1,7 +1,7 @@
-From 6320e3a4e5aa9707d0dcb55bb1323a89f908fbbf Mon Sep 17 00:00:00 2001
+From 38f74e411a51109345fd2c7f07983baca40cb5ff Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 30 Jul 2021 16:51:22 +0900
-Subject: [PATCH 28/31] scsi: improve scsi_mode_sense()
+Subject: [PATCH 28/32] scsi: improve scsi_mode_sense()
 
 Allow scsi_mode_sense() to retreive sub-pages of mode pages by adding
 the subpage argument. Change all the current caller sites to specify
@@ -17,10 +17,10 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  5 files changed, 11 insertions(+), 10 deletions(-)
 
 diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
-index cd981bb7f30f..75c914cf1738 100644
+index d5b9dc9cd502..d48a53ee5184 100644
 --- a/drivers/scsi/scsi_lib.c
 +++ b/drivers/scsi/scsi_lib.c
-@@ -2067,6 +2067,7 @@ EXPORT_SYMBOL_GPL(scsi_mode_select);
+@@ -2065,6 +2065,7 @@ EXPORT_SYMBOL_GPL(scsi_mode_select);
   *	@sdev:	SCSI device to be queried
   *	@dbd:	set to prevent mode sense from returning block descriptors
   *	@modepage: mode page being requested
@@ -28,7 +28,7 @@ index cd981bb7f30f..75c914cf1738 100644
   *	@buffer: request buffer (may not be smaller than eight bytes)
   *	@len:	length of request buffer.
   *	@timeout: command timeout
-@@ -2078,7 +2079,7 @@ EXPORT_SYMBOL_GPL(scsi_mode_select);
+@@ -2076,7 +2077,7 @@ EXPORT_SYMBOL_GPL(scsi_mode_select);
   *	Returns zero if successful, or a negative error number on failure
   */
  int
@@ -37,7 +37,7 @@ index cd981bb7f30f..75c914cf1738 100644
  		  unsigned char *buffer, int len, int timeout, int retries,
  		  struct scsi_mode_data *data, struct scsi_sense_hdr *sshdr)
  {
-@@ -2094,6 +2095,7 @@ scsi_mode_sense(struct scsi_device *sdev, int dbd, int modepage,
+@@ -2092,6 +2093,7 @@ scsi_mode_sense(struct scsi_device *sdev, int dbd, int modepage,
  	dbd = sdev->set_dbd_for_ms ? 8 : dbd;
  	cmd[1] = dbd & 0x18;	/* allows DBD and LLBA bits */
  	cmd[2] = modepage;
@@ -93,7 +93,7 @@ index 28fbad45b5cb..80e587a50d87 100644
  
  	if (res < 0 || !data.header_length ||
 diff --git a/drivers/scsi/sr.c b/drivers/scsi/sr.c
-index 4cb4ab9c6137..2f0b6e27f728 100644
+index 464418413ced..1ea24cb86eae 100644
 --- a/drivers/scsi/sr.c
 +++ b/drivers/scsi/sr.c
 @@ -927,7 +927,7 @@ static void get_capabilities(struct scsi_cd *cd)
@@ -121,5 +121,5 @@ index 9aa631a426ad..c7e1bad1ca96 100644
  extern int scsi_mode_select(struct scsi_device *sdev, int pf, int sp,
  			    unsigned char *buffer, int len, int timeout,
 -- 
-2.31.1
+2.35.1
 

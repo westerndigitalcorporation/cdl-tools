@@ -1,7 +1,7 @@
-From 60434ebe0381c3246518d2f7ac688bd278f8f55c Mon Sep 17 00:00:00 2001
+From 849906f33e7d9bdd74dd3fefb18609ee9343dee2 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 20 Aug 2021 16:02:55 +0900
-Subject: [PATCH 18/31] scsi: sd: Fix sd_do_mode_sense() buffer length handling
+Subject: [PATCH 18/32] scsi: sd: Fix sd_do_mode_sense() buffer length handling
 
 For devices that explicitly asked for MODE SENSE(10) use, make sure that
 scsi_mode_sense() is called with a buffer of at least 8 bytes so that the
@@ -33,5 +33,5 @@ index 56e291708587..d465e6ead16a 100644
  			       SD_TIMEOUT, sdkp->max_retries, data,
  			       sshdr);
 -- 
-2.31.1
+2.35.1
 

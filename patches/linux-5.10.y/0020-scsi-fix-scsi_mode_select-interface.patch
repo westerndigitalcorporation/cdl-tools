@@ -1,7 +1,7 @@
-From e605e1b58c4a39f34904ca48d306d903d5a5890b Mon Sep 17 00:00:00 2001
+From 0f932e600482fb025fc06de633f96fffb3e57ac6 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 29 Sep 2021 18:01:21 +0900
-Subject: [PATCH 20/31] scsi: fix scsi_mode_select() interface
+Subject: [PATCH 20/32] scsi: fix scsi_mode_select() interface
 
 The modepage argument is unused. Remove it.
 
@@ -13,10 +13,10 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  3 files changed, 6 insertions(+), 9 deletions(-)
 
 diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
-index ac8fd145c08a..cd981bb7f30f 100644
+index cb92f7b4348b..d5b9dc9cd502 100644
 --- a/drivers/scsi/scsi_lib.c
 +++ b/drivers/scsi/scsi_lib.c
-@@ -1988,7 +1988,6 @@ void scsi_exit_queue(void)
+@@ -1986,7 +1986,6 @@ void scsi_exit_queue(void)
   *	@sdev:	SCSI device to be queried
   *	@pf:	Page format bit (1 == standard, 0 == vendor specific)
   *	@sp:	Save page bit (0 == don't save, 1 == save)
@@ -24,7 +24,7 @@ index ac8fd145c08a..cd981bb7f30f 100644
   *	@buffer: request buffer (may not be smaller than eight bytes)
   *	@len:	length of request buffer.
   *	@timeout: command timeout
-@@ -2001,10 +2000,9 @@ void scsi_exit_queue(void)
+@@ -1999,10 +1998,9 @@ void scsi_exit_queue(void)
   *	status on error
   *
   */
@@ -68,5 +68,5 @@ index 1a5c9a3df6d6..9aa631a426ad 100644
  extern int scsi_test_unit_ready(struct scsi_device *sdev, int timeout,
  				int retries, struct scsi_sense_hdr *sshdr);
 -- 
-2.31.1
+2.35.1
 

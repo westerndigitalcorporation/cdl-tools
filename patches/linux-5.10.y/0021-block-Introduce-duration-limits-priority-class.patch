@@ -1,7 +1,7 @@
-From c80270ab3b1f3cdae8f06c817c3c7a7a0bd534dd Mon Sep 17 00:00:00 2001
+From 30347cb9fbe3c2da9669e55b8154d298982668b1 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Sat, 31 Jul 2021 11:06:09 +0900
-Subject: [PATCH 21/31] block: Introduce duration-limits priority class
+Subject: [PATCH 21/32] block: Introduce duration-limits priority class
 
 Introduce the IOPRIO_CLASS_DL priority class to indicate that IOs should
 be executed using duration-limits targets. The duration target to apply
@@ -16,13 +16,13 @@ the highest prioty class RT and priority level 0.
 Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
 ---
  block/bfq-iosched.c         | 10 ++++++++++
- block/ioprio.c              |  3 ++-
+ block/ioprio.c              | 12 +++---------
  include/linux/ioprio.h      |  2 +-
  include/uapi/linux/ioprio.h |  7 +++++++
- 4 files changed, 20 insertions(+), 2 deletions(-)
+ 4 files changed, 21 insertions(+), 10 deletions(-)
 
 diff --git a/block/bfq-iosched.c b/block/bfq-iosched.c
-index fe073011f5fe..0f4f84d28318 100644
+index 170c3163d768..1a7f7e6013f2 100644
 --- a/block/bfq-iosched.c
 +++ b/block/bfq-iosched.c
 @@ -5006,6 +5006,14 @@ bfq_set_next_ioprio_data(struct bfq_queue *bfqq, struct bfq_io_cq *bic)
@@ -50,15 +50,23 @@ index fe073011f5fe..0f4f84d28318 100644
  		return NULL;
  	}
 diff --git a/block/ioprio.c b/block/ioprio.c
-index 6af023ecad26..c4408f256f90 100644
+index 81f059abf87c..51d8ff365db4 100644
 --- a/block/ioprio.c
 +++ b/block/ioprio.c
-@@ -69,10 +69,11 @@ int ioprio_check_cap(int ioprio)
+@@ -69,17 +69,11 @@ int ioprio_check_cap(int ioprio)
  
  	switch (class) {
  		case IOPRIO_CLASS_RT:
+-			/*
+-			 * Originally this only checked for CAP_SYS_ADMIN,
+-			 * which was implicitly allowed for pid 0 by security
+-			 * modules such as SELinux. Make sure we check
+-			 * CAP_SYS_ADMIN first to avoid a denial/avc for
+-			 * possibly missing CAP_SYS_NICE permission.
+-			 */
+-			if (!capable(CAP_SYS_ADMIN) && !capable(CAP_SYS_NICE))
 +		case IOPRIO_CLASS_DL:
- 			if (!capable(CAP_SYS_NICE) && !capable(CAP_SYS_ADMIN))
++			if (!capable(CAP_SYS_NICE) && !capable(CAP_SYS_ADMIN))
  				return -EPERM;
  			fallthrough;
 -			/* rt has prio field too */
@@ -105,5 +113,5 @@ index f70f2596a6bf..d6b2784dc2fb 100644
  	IOPRIO_WHO_PROCESS = 1,
  	IOPRIO_WHO_PGRP,
 -- 
-2.31.1
+2.35.1
 

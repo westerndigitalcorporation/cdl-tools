@@ -1,7 +1,7 @@
-From 9e3b54fd5ba65e27a683c555bae70ff135c06212 Mon Sep 17 00:00:00 2001
+From bf3f6da9e92ce88e9a609403f28ec4b78badf8c4 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Thu, 29 Jul 2021 16:29:08 +0900
-Subject: [PATCH 23/31] libata: detect command duration limits support
+Subject: [PATCH 23/32] libata: detect command duration limits support
 
 Use the supported capabilities log page to detect if a device supports
 the command duration limits feature. For devices supporting this
@@ -18,7 +18,7 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  4 files changed, 65 insertions(+), 13 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index eed65311b5d1..721da4157b98 100644
+index dc2739311f0e..62ed6651712f 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
 @@ -2373,6 +2373,46 @@ static void ata_dev_config_trusted(struct ata_device *dev)
@@ -93,7 +93,7 @@ index eed65311b5d1..721da4157b98 100644
  
  		if (ata_msg_drv(ap) && print_info)
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index bc9634237fc6..fd3e0730d5f7 100644
+index ad18e0e390c0..ab19461c2002 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -47,15 +47,14 @@ typedef unsigned int (*ata_xlat_func_t)(struct ata_queued_cmd *qc);
@@ -148,7 +148,7 @@ index 6e67aded28f8..47a341a19e6e 100644
  	ATA_LOG_DEVSLP_SIZE	  = 0x08,
  	ATA_LOG_DEVSLP_MDAT	  = 0x00,
 diff --git a/include/linux/libata.h b/include/linux/libata.h
-index 688d150bc10c..62fdc1f089dd 100644
+index bb657b79fb0f..4b1f0b38c917 100644
 --- a/include/linux/libata.h
 +++ b/include/linux/libata.h
 @@ -150,6 +150,7 @@ enum {
@@ -179,5 +179,5 @@ index 688d150bc10c..62fdc1f089dd 100644
  	int			spdn_cnt;
  	/* ering is CLEAR_END, read comment above CLEAR_END */
 -- 
-2.31.1
+2.35.1
 

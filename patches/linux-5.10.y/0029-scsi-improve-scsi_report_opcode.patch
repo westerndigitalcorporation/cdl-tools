@@ -1,7 +1,7 @@
-From 0dee07fa00ad81202f8d25c66037b8940b5b4418 Mon Sep 17 00:00:00 2001
+From 15ff478c6d70e3a0b559dde7da310a3d36ab4c5e Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 16:48:08 +0900
-Subject: [PATCH 29/31] scsi: improve scsi_report_opcode()
+Subject: [PATCH 29/32] scsi: improve scsi_report_opcode()
 
 The REPORT_SUPPORTED_OPERATION_CODES command allows testing for support
 of commands that have the same opcode but different service actions,
@@ -23,7 +23,7 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  3 files changed, 26 insertions(+), 15 deletions(-)
 
 diff --git a/drivers/scsi/scsi.c b/drivers/scsi/scsi.c
-index a07b52fca011..05240e1146a7 100644
+index af6fb6c4bf9a..c2928eeddbd8 100644
 --- a/drivers/scsi/scsi.c
 +++ b/drivers/scsi/scsi.c
 @@ -461,18 +461,22 @@ void scsi_attach_vpd(struct scsi_device *sdev)
@@ -126,5 +126,5 @@ index c7e1bad1ca96..668622679f91 100644
  				 enum scsi_device_state state);
  extern struct scsi_event *sdev_evt_alloc(enum scsi_device_event evt_type,
 -- 
-2.31.1
+2.35.1
 

@@ -1,7 +1,7 @@
-From 60c5ee552003ff5f3e2c57fc4a120a65b98fb566 Mon Sep 17 00:00:00 2001
+From 146c22aa30b143a5b61aedeacf3a574d449d0c61 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 20 Aug 2021 16:02:53 +0900
-Subject: [PATCH 16/31] scsi: core: Fix scsi_mode_sense() buffer length
+Subject: [PATCH 16/32] scsi: core: Fix scsi_mode_sense() buffer length
  handling
 
 Several problems exist with scsi_mode_sense() buffer length handling:
@@ -47,10 +47,10 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  1 file changed, 13 insertions(+), 7 deletions(-)
 
 diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
-index d89db29fa829..ec04f8452de2 100644
+index 6f3d29d16d1f..0bc326743155 100644
 --- a/drivers/scsi/scsi_lib.c
 +++ b/drivers/scsi/scsi_lib.c
-@@ -2062,7 +2062,7 @@ EXPORT_SYMBOL_GPL(scsi_mode_select);
+@@ -2060,7 +2060,7 @@ EXPORT_SYMBOL_GPL(scsi_mode_select);
  /**
   *	scsi_mode_sense - issue a mode sense, falling back from 10 to six bytes if necessary.
   *	@sdev:	SCSI device to be queried
@@ -59,7 +59,7 @@ index d89db29fa829..ec04f8452de2 100644
   *	@modepage: mode page being requested
   *	@buffer: request buffer (may not be smaller than eight bytes)
   *	@len:	length of request buffer.
-@@ -2097,18 +2097,18 @@ scsi_mode_sense(struct scsi_device *sdev, int dbd, int modepage,
+@@ -2095,18 +2095,18 @@ scsi_mode_sense(struct scsi_device *sdev, int dbd, int modepage,
  		sshdr = &my_sshdr;
  
   retry:
@@ -83,7 +83,7 @@ index d89db29fa829..ec04f8452de2 100644
  
  		cmd[0] = MODE_SENSE;
  		cmd[4] = len;
-@@ -2133,8 +2133,14 @@ scsi_mode_sense(struct scsi_device *sdev, int dbd, int modepage,
+@@ -2131,8 +2131,14 @@ scsi_mode_sense(struct scsi_device *sdev, int dbd, int modepage,
  			if ((sshdr->sense_key == ILLEGAL_REQUEST) &&
  			    (sshdr->asc == 0x20) && (sshdr->ascq == 0)) {
  				/*
@@ -100,5 +100,5 @@ index d89db29fa829..ec04f8452de2 100644
  				goto retry;
  			}
 -- 
-2.31.1
+2.35.1
 

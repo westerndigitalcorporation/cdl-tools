@@ -1,7 +1,7 @@
-From 96204961625803f123ebff2d17cbc1f93923eb6d Mon Sep 17 00:00:00 2001
+From a55578fb42ead34f4a6ae6d5ff998ac6235c472c Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 11 Aug 2021 12:37:02 +0900
-Subject: [PATCH 15/31] block: fix default IO priority handling
+Subject: [PATCH 15/32] block: fix default IO priority handling
 
 Upstream commit e70344c05995a190a56bbd1a23dc2218bcc8c924
 
@@ -31,7 +31,7 @@ Signed-off-by: Jens Axboe <axboe@kernel.dk>
  4 files changed, 13 insertions(+), 7 deletions(-)
 
 diff --git a/block/bfq-iosched.c b/block/bfq-iosched.c
-index 15417bffd748..fe073011f5fe 100644
+index bdc730ce9c0d..170c3163d768 100644
 --- a/block/bfq-iosched.c
 +++ b/block/bfq-iosched.c
 @@ -5117,7 +5117,7 @@ static struct bfq_queue **bfq_async_queue_prio(struct bfq_data *bfqd,
@@ -44,10 +44,10 @@ index 15417bffd748..fe073011f5fe 100644
  	case IOPRIO_CLASS_BE:
  		return &bfqg->async_bfqq[1][ioprio];
 diff --git a/block/ioprio.c b/block/ioprio.c
-index d7ae22784f2f..6af023ecad26 100644
+index 0103a86f1fa4..81f059abf87c 100644
 --- a/block/ioprio.c
 +++ b/block/ioprio.c
-@@ -163,7 +163,7 @@ static int get_task_ioprio(struct task_struct *p)
+@@ -170,7 +170,7 @@ static int get_task_ioprio(struct task_struct *p)
  	ret = security_task_getioprio(p);
  	if (ret)
  		goto out;
@@ -56,7 +56,7 @@ index d7ae22784f2f..6af023ecad26 100644
  	task_lock(p);
  	if (p->io_context)
  		ret = p->io_context->ioprio;
-@@ -175,9 +175,9 @@ static int get_task_ioprio(struct task_struct *p)
+@@ -182,9 +182,9 @@ static int get_task_ioprio(struct task_struct *p)
  int ioprio_best(unsigned short aprio, unsigned short bprio)
  {
  	if (!ioprio_valid(aprio))
@@ -110,5 +110,5 @@ index aac39338d02c..f70f2596a6bf 100644
  
  #endif /* _UAPI_LINUX_IOPRIO_H */
 -- 
-2.31.1
+2.35.1
 

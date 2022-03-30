@@ -1,7 +1,7 @@
-From 19517c82997fa558f2c8e91fd4dea0851b87bc72 Mon Sep 17 00:00:00 2001
+From 45ee8887e6826b2adb98258090b85718ecc203a5 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:53 +0900
-Subject: [PATCH 09/31] libata: print feature list on device scan
+Subject: [PATCH 09/32] libata: print feature list on device scan
 
 Upstream commit d633b8a702ab2eb4ef9263f1ab1610bb8cdf71a5
 
@@ -21,7 +21,7 @@ Signed-off-by: Jens Axboe <axboe@kernel.dk>
  2 files changed, 21 insertions(+)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index 724bb31a85ea..eed65311b5d1 100644
+index a3ab509b45c9..dc2739311f0e 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
 @@ -2459,6 +2459,20 @@ static void ata_dev_config_devslp(struct ata_device *dev)
@@ -56,7 +56,7 @@ index 724bb31a85ea..eed65311b5d1 100644
  
  	/* ATAPI-specific feature tests */
 diff --git a/include/linux/libata.h b/include/linux/libata.h
-index 70320152f3ce..688d150bc10c 100644
+index 52c8fb610906..bb657b79fb0f 100644
 --- a/include/linux/libata.h
 +++ b/include/linux/libata.h
 @@ -161,6 +161,10 @@ enum {
@@ -71,5 +71,5 @@ index 70320152f3ce..688d150bc10c 100644
  	ATA_DEV_ATA		= 1,	/* ATA device */
  	ATA_DEV_ATA_UNSUP	= 2,	/* ATA device (unsupported) */
 -- 
-2.31.1
+2.35.1
 

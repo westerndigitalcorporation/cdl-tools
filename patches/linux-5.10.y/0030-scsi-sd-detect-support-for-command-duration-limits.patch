@@ -1,7 +1,7 @@
-From 43dedc4357f3dbe6cbc2e36a9326a4147a1f7733 Mon Sep 17 00:00:00 2001
+From 3ca8929b0c68c3f0a6e3c81eb5a6d191ce038e86 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 30 Jul 2021 18:01:24 +0900
-Subject: [PATCH 30/31] scsi: sd: detect support for command duration limits
+Subject: [PATCH 30/32] scsi: sd: detect support for command duration limits
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -941,5 +941,5 @@ index 000000000000..4f2d4679fada
 +	sd_cdl_sysfs_unregister(sdkp);
 +}
 -- 
-2.31.1
+2.35.1
 
