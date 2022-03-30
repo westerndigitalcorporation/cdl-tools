@@ -1,7 +1,7 @@
-From afa7d087982be7cfd822ee14bc9042b1adf9b84f Mon Sep 17 00:00:00 2001
+From ec6bbfdaa8652cb4b976551a7e5c41122dbb60f0 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 30 Jul 2021 18:01:24 +0900
-Subject: [PATCH 15/17] scsi: sd: detect support for command duration limits
+Subject: [PATCH 13/15] scsi: sd: detect support for command duration limits
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -72,10 +72,10 @@ index 19814c26c908..7965d4d56050 100644
  sd_mod-$(CONFIG_BLK_DEV_ZONED) += sd_zbc.o
  
 diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
-index 737d58e54767..77c7d3e8709d 100644
+index 623a349d77b2..356f14cee2a0 100644
 --- a/drivers/scsi/sd.c
 +++ b/drivers/scsi/sd.c
-@@ -3208,6 +3208,7 @@ static int sd_revalidate_disk(struct gendisk *disk)
+@@ -3209,6 +3209,7 @@ static int sd_revalidate_disk(struct gendisk *disk)
  		sd_read_app_tag_own(sdkp, buffer);
  		sd_read_write_same(sdkp, buffer);
  		sd_read_security(sdkp, buffer);
@@ -83,7 +83,7 @@ index 737d58e54767..77c7d3e8709d 100644
  	}
  
  	/*
-@@ -3479,6 +3480,7 @@ static int sd_probe(struct device *dev)
+@@ -3480,6 +3481,7 @@ static int sd_probe(struct device *dev)
  	put_disk(gd);
   out_free:
  	sd_zbc_release_disk(sdkp);
@@ -91,7 +91,7 @@ index 737d58e54767..77c7d3e8709d 100644
  	kfree(sdkp);
   out:
  	scsi_autopm_put_device(sdp);
-@@ -3551,6 +3553,7 @@ static void scsi_disk_release(struct device *dev)
+@@ -3552,6 +3554,7 @@ static void scsi_disk_release(struct device *dev)
  	put_device(&sdkp->device->sdev_gendev);
  
  	sd_zbc_release_disk(sdkp);
@@ -941,5 +941,5 @@ index 000000000000..4f2d4679fada
 +	sd_cdl_sysfs_unregister(sdkp);
 +}
 -- 
-2.31.1
+2.35.1
 

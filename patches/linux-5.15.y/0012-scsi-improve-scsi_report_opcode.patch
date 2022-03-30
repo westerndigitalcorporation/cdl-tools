@@ -1,7 +1,7 @@
-From 59774eed49f0eadd5a069a6b9b7d58ffc6efe138 Mon Sep 17 00:00:00 2001
+From d0236a05bc7e1ee9c0f2885a115b9af30f370a44 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 16:48:08 +0900
-Subject: [PATCH 14/17] scsi: improve scsi_report_opcode()
+Subject: [PATCH 12/15] scsi: improve scsi_report_opcode()
 
 The REPORT_SUPPORTED_OPERATION_CODES command allows testing for support
 of commands that have the same opcode but different service actions,
@@ -23,7 +23,7 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  3 files changed, 26 insertions(+), 15 deletions(-)
 
 diff --git a/drivers/scsi/scsi.c b/drivers/scsi/scsi.c
-index 6be68b3427a0..43af394fc737 100644
+index ab8af6eacb7a..f7f25b86b61f 100644
 --- a/drivers/scsi/scsi.c
 +++ b/drivers/scsi/scsi.c
 @@ -467,18 +467,22 @@ void scsi_attach_vpd(struct scsi_device *sdev)
@@ -74,10 +74,10 @@ index 6be68b3427a0..43af394fc737 100644
  	memset(buffer, 0, len);
  
 diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
-index 68b04842d5d3..737d58e54767 100644
+index 169c6405d452..623a349d77b2 100644
 --- a/drivers/scsi/sd.c
 +++ b/drivers/scsi/sd.c
-@@ -3058,7 +3058,7 @@ static void sd_read_write_same(struct scsi_disk *sdkp, unsigned char *buffer)
+@@ -3059,7 +3059,7 @@ static void sd_read_write_same(struct scsi_disk *sdkp, unsigned char *buffer)
  		return;
  	}
  
@@ -86,7 +86,7 @@ index 68b04842d5d3..737d58e54767 100644
  		/* too large values might cause issues with arcmsr */
  		int vpd_buf_len = 64;
  
-@@ -3072,10 +3072,10 @@ static void sd_read_write_same(struct scsi_disk *sdkp, unsigned char *buffer)
+@@ -3073,10 +3073,10 @@ static void sd_read_write_same(struct scsi_disk *sdkp, unsigned char *buffer)
  			sdev->no_write_same = 1;
  	}
  
@@ -99,7 +99,7 @@ index 68b04842d5d3..737d58e54767 100644
  		sdkp->ws10 = 1;
  }
  
-@@ -3087,9 +3087,9 @@ static void sd_read_security(struct scsi_disk *sdkp, unsigned char *buffer)
+@@ -3088,9 +3088,9 @@ static void sd_read_security(struct scsi_disk *sdkp, unsigned char *buffer)
  		return;
  
  	if (scsi_report_opcode(sdev, buffer, SD_BUF_SIZE,
@@ -126,5 +126,5 @@ index 452728a68111..7d4c24f59ac7 100644
  				 enum scsi_device_state state);
  extern struct scsi_event *sdev_evt_alloc(enum scsi_device_event evt_type,
 -- 
-2.31.1
+2.35.1
 

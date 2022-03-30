@@ -1,7 +1,7 @@
-From 900476f354c6f6b4c5991c244c9944ca5cd27455 Mon Sep 17 00:00:00 2001
+From d47959a0cd7fe3d31d421997c6dd048f0124ae76 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Thu, 19 Aug 2021 16:19:44 +0900
-Subject: [PATCH 07/17] libata: improve ata_scsiop_maint_in()
+Subject: [PATCH 05/15] libata: improve ata_scsiop_maint_in()
 
 Allow translation of the REPORT_SUPPORTED_OPERATION_CODES commands
 using the command format 0x3, that is, REPORT_SUPPORTED_OPERATION_CODES
@@ -14,10 +14,10 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index 1fb4611f7eeb..434ad34338db 100644
+index 10303611d17b..7f7d71a4378e 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
-@@ -3234,11 +3234,12 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
+@@ -3245,11 +3245,12 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
  	u8 supported = 0;
  	unsigned int err = 0;
  
@@ -32,5 +32,5 @@ index 1fb4611f7eeb..434ad34338db 100644
  	case INQUIRY:
  	case MODE_SENSE:
 -- 
-2.31.1
+2.35.1
 

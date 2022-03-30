@@ -1,7 +1,7 @@
-From 19a56e849de6e2edf70726338d16a631a8715706 Mon Sep 17 00:00:00 2001
+From 99af42266a521b79e7b1200be6a25b9aabf8607a Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Sat, 31 Jul 2021 11:06:09 +0900
-Subject: [PATCH 06/17] block: Introduce duration-limits priority class
+Subject: [PATCH 04/15] block: Introduce duration-limits priority class
 
 Introduce the IOPRIO_CLASS_DL priority class to indicate that IOs should
 be executed using duration-limits targets. The duration target to apply
@@ -17,14 +17,14 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
 ---
  block/bfq-iosched.c         | 10 ++++++++++
  block/blk-ioprio.c          |  3 +++
- block/ioprio.c              |  3 ++-
+ block/ioprio.c              | 12 +++---------
  block/mq-deadline.c         |  1 +
  include/linux/ioprio.h      |  2 +-
  include/uapi/linux/ioprio.h |  7 +++++++
- 6 files changed, 24 insertions(+), 2 deletions(-)
+ 6 files changed, 25 insertions(+), 10 deletions(-)
 
 diff --git a/block/bfq-iosched.c b/block/bfq-iosched.c
-index 480e1a134859..33844e09be22 100644
+index e66970bf27db..8414cdf2dee5 100644
 --- a/block/bfq-iosched.c
 +++ b/block/bfq-iosched.c
 @@ -5291,6 +5291,14 @@ bfq_set_next_ioprio_data(struct bfq_queue *bfqq, struct bfq_io_cq *bic)
@@ -80,15 +80,23 @@ index 332a07761bf8..73ee10ebfbdc 100644
  
  static struct blkcg_policy ioprio_policy;
 diff --git a/block/ioprio.c b/block/ioprio.c
-index 0e4ff245f2bf..cfe660aa2a97 100644
+index 6f01d35a5145..03346a73b55b 100644
 --- a/block/ioprio.c
 +++ b/block/ioprio.c
-@@ -69,10 +69,11 @@ int ioprio_check_cap(int ioprio)
+@@ -69,17 +69,11 @@ int ioprio_check_cap(int ioprio)
  
  	switch (class) {
  		case IOPRIO_CLASS_RT:
+-			/*
+-			 * Originally this only checked for CAP_SYS_ADMIN,
+-			 * which was implicitly allowed for pid 0 by security
+-			 * modules such as SELinux. Make sure we check
+-			 * CAP_SYS_ADMIN first to avoid a denial/avc for
+-			 * possibly missing CAP_SYS_NICE permission.
+-			 */
+-			if (!capable(CAP_SYS_ADMIN) && !capable(CAP_SYS_NICE))
 +		case IOPRIO_CLASS_DL:
- 			if (!capable(CAP_SYS_NICE) && !capable(CAP_SYS_ADMIN))
++			if (!capable(CAP_SYS_NICE) && !capable(CAP_SYS_ADMIN))
  				return -EPERM;
  			fallthrough;
 -			/* rt has prio field too */
@@ -97,7 +105,7 @@ index 0e4ff245f2bf..cfe660aa2a97 100644
  			if (data >= IOPRIO_NR_LEVELS || data < 0)
  				return -EINVAL;
 diff --git a/block/mq-deadline.c b/block/mq-deadline.c
-index 7f3c3932b723..3ac424040baa 100644
+index cd2342d29704..0cb2b739020b 100644
 --- a/block/mq-deadline.c
 +++ b/block/mq-deadline.c
 @@ -136,6 +136,7 @@ static const enum dd_prio ioprio_class_to_prio[] = {
@@ -147,5 +155,5 @@ index f70f2596a6bf..d6b2784dc2fb 100644
  	IOPRIO_WHO_PROCESS = 1,
  	IOPRIO_WHO_PGRP,
 -- 
-2.31.1
+2.35.1
 

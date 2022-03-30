@@ -1,7 +1,7 @@
-From b855e96f6fecf34c02df2a239db7dc6ca866d523 Mon Sep 17 00:00:00 2001
+From e75fdc1f664e4bdb589358edcc23046ccd821892 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 29 Sep 2021 17:02:58 +0900
-Subject: [PATCH 12/17] libata: Set read/write command duration limit index
+Subject: [PATCH 10/15] libata: Set read/write command duration limit index
 
 For devices supporting the command duration limits feature, when a read
 or write operation has the IOPRIOr_CLASS_DL priority class and the
@@ -21,7 +21,7 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  3 files changed, 13 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index ca1d72a8e03e..387ede7bd147 100644
+index 9781a91eaf11..581396565411 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
 @@ -679,7 +679,7 @@ u64 ata_tf_read_block(const struct ata_taskfile *tf, struct ata_device *dev)
@@ -57,7 +57,7 @@ index ca1d72a8e03e..387ede7bd147 100644
  	} else {
  		/* CHS */
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index ed34a0286094..18be7f34b32b 100644
+index af4b7883b19c..5240fa16aa6f 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -1537,6 +1537,7 @@ static unsigned int ata_scsi_rw_xlat(struct ata_queued_cmd *qc)
@@ -91,5 +91,5 @@ index 68cdd81d747c..8d265def894e 100644
  			     struct ata_device *dev);
  extern unsigned ata_exec_internal(struct ata_device *dev,
 -- 
-2.31.1
+2.35.1
 

@@ -1,7 +1,7 @@
-From c2560870e701c321715f2d6fb21bc69718bdba46 Mon Sep 17 00:00:00 2001
+From 08c558cbebe8af501797ee19c7fb7c0e284721b8 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 30 Jul 2021 11:47:43 +0900
-Subject: [PATCH 04/17] scsi: simplify scsi_get_vpd_page()
+Subject: [PATCH 02/15] scsi: simplify scsi_get_vpd_page()
 
 Remove unnecessary gotos in scsi_get_vpd_page() to improve the code
 readability and use memchr() instead of an open coded search loop.
@@ -13,7 +13,7 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  1 file changed, 14 insertions(+), 17 deletions(-)
 
 diff --git a/drivers/scsi/scsi.c b/drivers/scsi/scsi.c
-index b241f9e3885c..6be68b3427a0 100644
+index 4fc9466d820a..ab8af6eacb7a 100644
 --- a/drivers/scsi/scsi.c
 +++ b/drivers/scsi/scsi.c
 @@ -339,47 +339,44 @@ static int scsi_vpd_inquiry(struct scsi_device *sdev, unsigned char *buffer,
@@ -79,5 +79,5 @@ index b241f9e3885c..6be68b3427a0 100644
  EXPORT_SYMBOL_GPL(scsi_get_vpd_page);
  
 -- 
-2.31.1
+2.35.1
 

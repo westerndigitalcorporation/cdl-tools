@@ -1,7 +1,7 @@
-From facb6f6427e9c8de023a13bddf046861ed71ef4a Mon Sep 17 00:00:00 2001
+From 06bd67cc2b31ef2143c185715788016aa402da57 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 29 Sep 2021 15:01:38 +0900
-Subject: [PATCH 11/17] libata: support ATA feature mode page translation
+Subject: [PATCH 09/15] libata: support ATA feature mode page translation
 
 Add support for the ATA feature sub-page of the control mode page to
 enable/disable the command duration limits feature using the cdl_ctrl
@@ -18,10 +18,10 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  4 files changed, 123 insertions(+), 27 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index 721da4157b98..ca1d72a8e03e 100644
+index b5b1d5b55218..9781a91eaf11 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
-@@ -2410,7 +2410,7 @@ static void ata_dev_config_cdl(struct ata_device *dev)
+@@ -2414,7 +2414,7 @@ static void ata_dev_config_cdl(struct ata_device *dev)
  	return;
  
  not_supported:
@@ -31,7 +31,7 @@ index 721da4157b98..ca1d72a8e03e 100644
  
  static int ata_dev_config_lba(struct ata_device *dev)
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index 716d950e20ce..ed34a0286094 100644
+index af1657e1bf24..af4b7883b19c 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -58,6 +58,8 @@ static struct ata_device *__ata_scsi_find_dev(struct ata_port *ap,
@@ -81,7 +81,7 @@ index 716d950e20ce..ed34a0286094 100644
  		return n;
  	default:
  		return 0;
-@@ -3701,20 +3723,11 @@ static int ata_mselect_caching(struct ata_queued_cmd *qc,
+@@ -3712,20 +3734,11 @@ static int ata_mselect_caching(struct ata_queued_cmd *qc,
  	return 0;
  }
  
@@ -106,7 +106,7 @@ index 716d950e20ce..ed34a0286094 100644
  {
  	struct ata_device *dev = qc->dev;
  	u8 mpage[CONTROL_MPAGE_LEN];
-@@ -3755,6 +3768,69 @@ static int ata_mselect_control(struct ata_queued_cmd *qc,
+@@ -3766,6 +3779,69 @@ static int ata_mselect_control(struct ata_queued_cmd *qc,
  	return 0;
  }
  
@@ -176,7 +176,7 @@ index 716d950e20ce..ed34a0286094 100644
  /**
   *	ata_scsi_mode_select_xlat - Simulate MODE SELECT 6, 10 commands
   *	@qc: Storage for translated ATA taskfile
-@@ -3772,7 +3848,7 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
+@@ -3783,7 +3859,7 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
  	const u8 *cdb = scmd->cmnd;
  	u8 pg, spg;
  	unsigned six_byte, pg_len, hdr_len, bd_len;
@@ -185,7 +185,7 @@ index 716d950e20ce..ed34a0286094 100644
  	u16 fp = (u16)-1;
  	u8 bp = 0xff;
  	u8 buffer[64];
-@@ -3795,7 +3871,7 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
+@@ -3806,7 +3882,7 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
  			goto invalid_fld;
  		}
  
@@ -194,7 +194,7 @@ index 716d950e20ce..ed34a0286094 100644
  		hdr_len = 8;
  	}
  
-@@ -3859,13 +3935,29 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
+@@ -3870,13 +3946,29 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
  	}
  
  	/*
@@ -230,7 +230,7 @@ index 716d950e20ce..ed34a0286094 100644
  	}
  	if (pg_len > len)
  		goto invalid_param_len;
-@@ -3878,14 +3970,16 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
+@@ -3889,14 +3981,16 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
  		}
  		break;
  	case CONTROL_MPAGE:
@@ -251,7 +251,7 @@ index 716d950e20ce..ed34a0286094 100644
  		fp = bd_len + hdr_len;
  		goto invalid_param;
  	}
-@@ -4056,7 +4150,6 @@ static inline ata_xlat_func_t ata_get_xlat_func(struct ata_device *dev, u8 cmd)
+@@ -4067,7 +4161,6 @@ static inline ata_xlat_func_t ata_get_xlat_func(struct ata_device *dev, u8 cmd)
  	case MODE_SELECT:
  	case MODE_SELECT_10:
  		return ata_scsi_mode_select_xlat;
@@ -273,7 +273,7 @@ index 2ae42e9c49d6..c293383abe5c 100644
  	SATA_FPDMA_OFFSET	= 0x01,	/* FPDMA non-zero buffer offsets */
  	SATA_FPDMA_AA		= 0x02, /* FPDMA Setup FIS Auto-Activate */
 diff --git a/include/linux/libata.h b/include/linux/libata.h
-index 7a8d934b20e5..4d0109d224a6 100644
+index cc78a75c3ea4..861c73e9ed93 100644
 --- a/include/linux/libata.h
 +++ b/include/linux/libata.h
 @@ -151,6 +151,7 @@ enum {
@@ -285,5 +285,5 @@ index 7a8d934b20e5..4d0109d224a6 100644
  
  	ATA_DFLAG_DETACH	= (1 << 24),
 -- 
-2.31.1
+2.35.1
 

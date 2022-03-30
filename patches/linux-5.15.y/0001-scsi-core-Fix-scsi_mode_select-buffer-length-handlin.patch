@@ -1,7 +1,7 @@
-From 4fea0e1c1e43aa77358b9870084cba19475cfb88 Mon Sep 17 00:00:00 2001
+From 99faba3206829df95c6ab37f664b76252c887b6b Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 20 Aug 2021 16:02:54 +0900
-Subject: [PATCH 02/17] scsi: core: Fix scsi_mode_select() buffer length
+Subject: [PATCH 01/15] scsi: core: Fix scsi_mode_select() buffer length
  handling
 
 The MODE SELECT(6) command allows handling mode page buffers that are up to
@@ -26,10 +26,10 @@ Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
  1 file changed, 13 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
-index 701d8e8480f2..dcf105287a76 100644
+index ef4361b2d142..9764230ec11e 100644
 --- a/drivers/scsi/scsi_lib.c
 +++ b/drivers/scsi/scsi_lib.c
-@@ -2026,8 +2026,15 @@ scsi_mode_select(struct scsi_device *sdev, int pf, int sp, int modepage,
+@@ -2025,8 +2025,15 @@ scsi_mode_select(struct scsi_device *sdev, int pf, int sp, int modepage,
  	memset(cmd, 0, sizeof(cmd));
  	cmd[1] = (pf ? 0x10 : 0) | (sp ? 0x01 : 0);
  
@@ -47,7 +47,7 @@ index 701d8e8480f2..dcf105287a76 100644
  			return -EINVAL;
  		real_buffer = kmalloc(8 + len, GFP_KERNEL);
  		if (!real_buffer)
-@@ -2040,15 +2047,13 @@ scsi_mode_select(struct scsi_device *sdev, int pf, int sp, int modepage,
+@@ -2039,15 +2046,13 @@ scsi_mode_select(struct scsi_device *sdev, int pf, int sp, int modepage,
  		real_buffer[3] = data->device_specific;
  		real_buffer[4] = data->longlba ? 0x01 : 0;
  		real_buffer[5] = 0;
@@ -68,5 +68,5 @@ index 701d8e8480f2..dcf105287a76 100644
  
  		real_buffer = kmalloc(4 + len, GFP_KERNEL);
 -- 
-2.31.1
+2.35.1
 

@@ -1,7 +1,7 @@
-From 8960fa6646187910e0f774273c2d9e23df0c3b44 Mon Sep 17 00:00:00 2001
+From a51c55ed05ff5d6fc07a1e45c64b2de1cedc627e Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 29 Sep 2021 18:01:21 +0900
-Subject: [PATCH 05/17] scsi: fix scsi_mode_select() interface
+Subject: [PATCH 03/15] scsi: fix scsi_mode_select() interface
 
 The modepage argument is unused. Remove it.
 
@@ -13,10 +13,10 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  3 files changed, 6 insertions(+), 9 deletions(-)
 
 diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
-index dcf105287a76..f1fe5803d7ec 100644
+index 9764230ec11e..8e402313ee36 100644
 --- a/drivers/scsi/scsi_lib.c
 +++ b/drivers/scsi/scsi_lib.c
-@@ -2001,7 +2001,6 @@ void scsi_exit_queue(void)
+@@ -2000,7 +2000,6 @@ void scsi_exit_queue(void)
   *	@sdev:	SCSI device to be queried
   *	@pf:	Page format bit (1 == standard, 0 == vendor specific)
   *	@sp:	Save page bit (0 == don't save, 1 == save)
@@ -24,7 +24,7 @@ index dcf105287a76..f1fe5803d7ec 100644
   *	@buffer: request buffer (may not be smaller than eight bytes)
   *	@len:	length of request buffer.
   *	@timeout: command timeout
-@@ -2014,10 +2013,9 @@ void scsi_exit_queue(void)
+@@ -2013,10 +2012,9 @@ void scsi_exit_queue(void)
   *	status on error
   *
   */
@@ -39,10 +39,10 @@ index dcf105287a76..f1fe5803d7ec 100644
  	unsigned char cmd[10];
  	unsigned char *real_buffer;
 diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
-index 5df665edf82a..d2de982b876f 100644
+index 564a21b5da9d..07efece1197d 100644
 --- a/drivers/scsi/sd.c
 +++ b/drivers/scsi/sd.c
-@@ -209,7 +209,7 @@ cache_type_store(struct device *dev, struct device_attribute *attr,
+@@ -210,7 +210,7 @@ cache_type_store(struct device *dev, struct device_attribute *attr,
  	 */
  	data.device_specific = 0;
  
@@ -68,5 +68,5 @@ index b97e142a7ca9..b9276dc3f7c6 100644
  extern int scsi_test_unit_ready(struct scsi_device *sdev, int timeout,
  				int retries, struct scsi_sense_hdr *sshdr);
 -- 
-2.31.1
+2.35.1
 

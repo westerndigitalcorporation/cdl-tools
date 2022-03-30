@@ -1,7 +1,7 @@
-From 1a8864201d9be53d84fa3e0b76a8fa2458d3cf04 Mon Sep 17 00:00:00 2001
+From 6044b3281e8d57af7ccd56ff6c864ad0d3fa2ef4 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Thu, 29 Jul 2021 16:29:08 +0900
-Subject: [PATCH 08/17] libata: detect command duration limits support
+Subject: [PATCH 06/15] libata: detect command duration limits support
 
 Use the supported capabilities log page to detect if a device supports
 the command duration limits feature. For devices supporting this
@@ -18,10 +18,10 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  4 files changed, 65 insertions(+), 13 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index eed65311b5d1..721da4157b98 100644
+index 24b67d78cb83..b5b1d5b55218 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
-@@ -2373,6 +2373,46 @@ static void ata_dev_config_trusted(struct ata_device *dev)
+@@ -2377,6 +2377,46 @@ static void ata_dev_config_trusted(struct ata_device *dev)
  		dev->flags |= ATA_DFLAG_TRUSTED;
  }
  
@@ -68,7 +68,7 @@ index eed65311b5d1..721da4157b98 100644
  static int ata_dev_config_lba(struct ata_device *dev)
  {
  	struct ata_port *ap = dev->link->ap;
-@@ -2465,12 +2505,13 @@ static void ata_dev_print_features(struct ata_device *dev)
+@@ -2470,12 +2510,13 @@ static void ata_dev_print_features(struct ata_device *dev)
  		return;
  
  	ata_dev_info(dev,
@@ -84,7 +84,7 @@ index eed65311b5d1..721da4157b98 100644
  }
  
  /**
-@@ -2634,6 +2675,7 @@ int ata_dev_configure(struct ata_device *dev)
+@@ -2639,6 +2680,7 @@ int ata_dev_configure(struct ata_device *dev)
  		ata_dev_config_sense_reporting(dev);
  		ata_dev_config_zac(dev);
  		ata_dev_config_trusted(dev);
@@ -93,7 +93,7 @@ index eed65311b5d1..721da4157b98 100644
  
  		if (ata_msg_drv(ap) && print_info)
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index 434ad34338db..ade28f9472d9 100644
+index 7f7d71a4378e..b889d3995f62 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -47,15 +47,14 @@ typedef unsigned int (*ata_xlat_func_t)(struct ata_queued_cmd *qc);
@@ -148,7 +148,7 @@ index 1b44f40c7700..2ae42e9c49d6 100644
  	ATA_LOG_DEVSLP_SIZE	  = 0x08,
  	ATA_LOG_DEVSLP_MDAT	  = 0x00,
 diff --git a/include/linux/libata.h b/include/linux/libata.h
-index c0c64f03e107..7a8d934b20e5 100644
+index a64e12605d31..cc78a75c3ea4 100644
 --- a/include/linux/libata.h
 +++ b/include/linux/libata.h
 @@ -150,6 +150,7 @@ enum {
@@ -179,5 +179,5 @@ index c0c64f03e107..7a8d934b20e5 100644
  	int			spdn_cnt;
  	/* ering is CLEAR_END, read comment above CLEAR_END */
 -- 
-2.31.1
+2.35.1
 

@@ -1,7 +1,7 @@
-From 1187fa331e0089df078e76eb036816bb953bb6bf Mon Sep 17 00:00:00 2001
+From 09653c542003cf709737f38f2e577a0548948223 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Tue, 28 Sep 2021 17:39:30 +0900
-Subject: [PATCH 09/17] libata: handle rwcdlp and cdlp bits in
+Subject: [PATCH 07/15] libata: handle rwcdlp and cdlp bits in
  ata_scsiop_maint_in()
 
 For a scsi MAINTENANCE_IN/MI_REPORT_SUPPORTED_OPERATION_CODES operation,
@@ -20,10 +20,10 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  1 file changed, 26 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index ade28f9472d9..05d31b046634 100644
+index b889d3995f62..a51716da48fc 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
-@@ -3230,7 +3230,7 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
+@@ -3241,7 +3241,7 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
  {
  	struct ata_device *dev = args->dev;
  	u8 *cdb = args->cmd->cmnd;
@@ -32,7 +32,7 @@ index ade28f9472d9..05d31b046634 100644
  	unsigned int err = 0;
  
  	if (cdb[2] != 1 && cdb[2] != 3) {
-@@ -3256,10 +3256,8 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
+@@ -3267,10 +3267,8 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
  	case MAINTENANCE_IN:
  	case READ_6:
  	case READ_10:
@@ -43,7 +43,7 @@ index ade28f9472d9..05d31b046634 100644
  	case ATA_12:
  	case ATA_16:
  	case VERIFY:
-@@ -3269,6 +3267,28 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
+@@ -3280,6 +3278,28 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
  	case START_STOP:
  		supported = 3;
  		break;
@@ -72,7 +72,7 @@ index ade28f9472d9..05d31b046634 100644
  	case ZBC_IN:
  	case ZBC_OUT:
  		if (ata_id_zoned_cap(dev->id) ||
-@@ -3284,7 +3304,9 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
+@@ -3295,7 +3315,9 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
  		break;
  	}
  out:
@@ -84,5 +84,5 @@ index ade28f9472d9..05d31b046634 100644
  }
  
 -- 
-2.31.1
+2.35.1
 

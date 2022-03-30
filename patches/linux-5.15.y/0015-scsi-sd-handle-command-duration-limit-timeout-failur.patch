@@ -1,7 +1,7 @@
-From 7fe8c16d127f7bb82e3a1fbc6cf281465daa8b2c Mon Sep 17 00:00:00 2001
+From ac126ea7ef7b4a4a418373a4227811eef16604ac Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 3 Sep 2021 17:37:54 +0900
-Subject: [PATCH 17/17] scsi: sd: handle command duration limit timeout
+Subject: [PATCH 15/15] scsi: sd: handle command duration limit timeout
  failures
 
 Commands using a duration limit descriptors that has policies other than
@@ -35,7 +35,7 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  6 files changed, 96 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
-index 8d7424a5510c..65dfc5659e62 100644
+index 65cc86348ec4..b80a9ccd9872 100644
 --- a/drivers/scsi/scsi_lib.c
 +++ b/drivers/scsi/scsi_lib.c
 @@ -611,6 +611,9 @@ static blk_status_t scsi_result_to_blk_status(struct scsi_cmnd *cmd, int result)
@@ -49,10 +49,10 @@ index 8d7424a5510c..65dfc5659e62 100644
  		return BLK_STS_IOERR;
  	}
 diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
-index da14c4ed4585..7f1b2c587be4 100644
+index 0f9a14ccf1c7..748beab5fab1 100644
 --- a/drivers/scsi/sd.c
 +++ b/drivers/scsi/sd.c
-@@ -2100,6 +2100,9 @@ static int sd_done(struct scsi_cmnd *SCpnt)
+@@ -2101,6 +2101,9 @@ static int sd_done(struct scsi_cmnd *SCpnt)
  	if (sd_is_zoned(sdkp))
  		good_bytes = sd_zbc_complete(SCpnt, good_bytes, &sshdr);
  
@@ -75,7 +75,7 @@ index b65b7f2136cf..c307332538eb 100644
 +
  #endif /* _SCSI_DISK_H */
 diff --git a/drivers/scsi/sd_cdl.c b/drivers/scsi/sd_cdl.c
-index a07c66e08bb9..eae9391684d7 100644
+index 4f506d68852d..d89980ab8bca 100644
 --- a/drivers/scsi/sd_cdl.c
 +++ b/drivers/scsi/sd_cdl.c
 @@ -11,6 +11,7 @@
@@ -182,7 +182,7 @@ index a07c66e08bb9..eae9391684d7 100644
 +	return 0;
  }
 diff --git a/include/scsi/scsi_cmnd.h b/include/scsi/scsi_cmnd.h
-index eaf04c9a1dfc..55d6cd909f16 100644
+index 59afe8787cf7..63075e3a7e51 100644
 --- a/include/scsi/scsi_cmnd.h
 +++ b/include/scsi/scsi_cmnd.h
 @@ -58,6 +58,8 @@ struct scsi_pointer {
@@ -208,5 +208,5 @@ index f017843a8124..beb6a59e6c2b 100644
  /*
   *  DEVICE TYPES
 -- 
-2.31.1
+2.35.1
 

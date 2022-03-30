@@ -1,7 +1,7 @@
-From eebbc76d13d161db0f272131602e9c30ec26e3e2 Mon Sep 17 00:00:00 2001
+From 035701d0d91f75a2a4b2764ea16218f62de3a163 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 30 Jul 2021 16:51:22 +0900
-Subject: [PATCH 13/17] scsi: improve scsi_mode_sense()
+Subject: [PATCH 11/15] scsi: improve scsi_mode_sense()
 
 Allow scsi_mode_sense() to retreive sub-pages of mode pages by adding
 the subpage argument. Change all the current caller sites to specify
@@ -17,10 +17,10 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  5 files changed, 11 insertions(+), 10 deletions(-)
 
 diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
-index f1fe5803d7ec..8d7424a5510c 100644
+index 8e402313ee36..65cc86348ec4 100644
 --- a/drivers/scsi/scsi_lib.c
 +++ b/drivers/scsi/scsi_lib.c
-@@ -2080,6 +2080,7 @@ EXPORT_SYMBOL_GPL(scsi_mode_select);
+@@ -2079,6 +2079,7 @@ EXPORT_SYMBOL_GPL(scsi_mode_select);
   *	@sdev:	SCSI device to be queried
   *	@dbd:	set to prevent mode sense from returning block descriptors
   *	@modepage: mode page being requested
@@ -28,7 +28,7 @@ index f1fe5803d7ec..8d7424a5510c 100644
   *	@buffer: request buffer (may not be smaller than eight bytes)
   *	@len:	length of request buffer.
   *	@timeout: command timeout
-@@ -2091,7 +2092,7 @@ EXPORT_SYMBOL_GPL(scsi_mode_select);
+@@ -2090,7 +2091,7 @@ EXPORT_SYMBOL_GPL(scsi_mode_select);
   *	Returns zero if successful, or a negative error number on failure
   */
  int
@@ -37,7 +37,7 @@ index f1fe5803d7ec..8d7424a5510c 100644
  		  unsigned char *buffer, int len, int timeout, int retries,
  		  struct scsi_mode_data *data, struct scsi_sense_hdr *sshdr)
  {
-@@ -2107,6 +2108,7 @@ scsi_mode_sense(struct scsi_device *sdev, int dbd, int modepage,
+@@ -2106,6 +2107,7 @@ scsi_mode_sense(struct scsi_device *sdev, int dbd, int modepage,
  	dbd = sdev->set_dbd_for_ms ? 8 : dbd;
  	cmd[1] = dbd & 0x18;	/* allows DBD and LLBA bits */
  	cmd[2] = modepage;
@@ -59,10 +59,10 @@ index 4a96fb05731d..65a390693ded 100644
  
  	if (error)
 diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
-index d2de982b876f..68b04842d5d3 100644
+index 07efece1197d..169c6405d452 100644
 --- a/drivers/scsi/sd.c
 +++ b/drivers/scsi/sd.c
-@@ -191,7 +191,7 @@ cache_type_store(struct device *dev, struct device_attribute *attr,
+@@ -192,7 +192,7 @@ cache_type_store(struct device *dev, struct device_attribute *attr,
  		return count;
  	}
  
@@ -71,7 +71,7 @@ index d2de982b876f..68b04842d5d3 100644
  			    sdkp->max_retries, &data, NULL))
  		return -EINVAL;
  	len = min_t(size_t, sizeof(buffer), data.length - data.header_length -
-@@ -2614,9 +2614,8 @@ sd_do_mode_sense(struct scsi_disk *sdkp, int dbd, int modepage,
+@@ -2615,9 +2615,8 @@ sd_do_mode_sense(struct scsi_disk *sdkp, int dbd, int modepage,
  	if (sdkp->device->use_10_for_ms && len < 8)
  		len = 8;
  
@@ -83,7 +83,7 @@ index d2de982b876f..68b04842d5d3 100644
  }
  
  /*
-@@ -2872,7 +2871,7 @@ static void sd_read_app_tag_own(struct scsi_disk *sdkp, unsigned char *buffer)
+@@ -2873,7 +2872,7 @@ static void sd_read_app_tag_own(struct scsi_disk *sdkp, unsigned char *buffer)
  	if (sdkp->protection_type == 0)
  		return;
  
@@ -93,10 +93,10 @@ index d2de982b876f..68b04842d5d3 100644
  
  	if (res < 0 || !data.header_length ||
 diff --git a/drivers/scsi/sr.c b/drivers/scsi/sr.c
-index 8b17b35283aa..8d8a7b555e0c 100644
+index 973d6e079b02..31f6020a94bc 100644
 --- a/drivers/scsi/sr.c
 +++ b/drivers/scsi/sr.c
-@@ -861,7 +861,7 @@ static void get_capabilities(struct scsi_cd *cd)
+@@ -862,7 +862,7 @@ static void get_capabilities(struct scsi_cd *cd)
  	scsi_test_unit_ready(cd->device, SR_TIMEOUT, MAX_RETRIES, &sshdr);
  
  	/* ask for mode page 0x2a */
@@ -121,5 +121,5 @@ index b9276dc3f7c6..452728a68111 100644
  extern int scsi_mode_select(struct scsi_device *sdev, int pf, int sp,
  			    unsigned char *buffer, int len, int timeout,
 -- 
-2.31.1
+2.35.1
 

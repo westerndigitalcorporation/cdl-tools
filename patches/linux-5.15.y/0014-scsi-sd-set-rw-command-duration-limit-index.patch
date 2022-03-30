@@ -1,7 +1,7 @@
-From f5c248fb5727466e070e009ba4b69ebd9328c776 Mon Sep 17 00:00:00 2001
+From 9b8d166d1ebe6061ae77385c8534d1ff7537dced Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Sat, 14 Aug 2021 18:30:14 +0900
-Subject: [PATCH 16/17] scsi: sd: set rw command duration limit index
+Subject: [PATCH 14/15] scsi: sd: set rw command duration limit index
 
 Introduce the command duration limits helper functions
 sd_cdl_setup_rw16() and sd_cdl_setup_rw32() to set the DLD bits of
@@ -29,10 +29,10 @@ Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
  3 files changed, 187 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
-index 77c7d3e8709d..da14c4ed4585 100644
+index 356f14cee2a0..0f9a14ccf1c7 100644
 --- a/drivers/scsi/sd.c
 +++ b/drivers/scsi/sd.c
-@@ -1279,9 +1279,13 @@ static blk_status_t sd_setup_read_write_cmnd(struct scsi_cmnd *cmd)
+@@ -1280,9 +1280,13 @@ static blk_status_t sd_setup_read_write_cmnd(struct scsi_cmnd *cmd)
  	if (protect && sdkp->protection_type == T10_PI_TYPE2_PROTECTION) {
  		ret = sd_setup_rw32_cmnd(cmd, write, lba, nr_blocks,
  					 protect | fua);
@@ -84,7 +84,7 @@ index cdf924537ba3..b65b7f2136cf 100644
  
  #endif /* _SCSI_DISK_H */
 diff --git a/drivers/scsi/sd_cdl.c b/drivers/scsi/sd_cdl.c
-index 4f2d4679fada..a07c66e08bb9 100644
+index 4f2d4679fada..4f506d68852d 100644
 --- a/drivers/scsi/sd_cdl.c
 +++ b/drivers/scsi/sd_cdl.c
 @@ -93,6 +93,52 @@ static const char *sd_cdl_policy_name(u8 policy)
@@ -317,10 +317,10 @@ index 4f2d4679fada..a07c66e08bb9 100644
 +
 +	switch (scmd->cmnd[9]) {
 +	case READ_32:
-+		rw = SD_CDL_READ_32;
++		rw = SD_CDL_READ;
 +		break;
 +	case WRITE_32:
-+		rw = SD_CDL_WRITE_32;
++		rw = SD_CDL_WRITE;
 +		break;
 +	default:
 +		return;
@@ -333,5 +333,5 @@ index 4f2d4679fada..a07c66e08bb9 100644
 +	scmd->cmnd[11] |= dld & 0x07;
 +}
 -- 
-2.31.1
+2.35.1
 
