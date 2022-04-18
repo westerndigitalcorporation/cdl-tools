@@ -1,7 +1,7 @@
-From 99af42266a521b79e7b1200be6a25b9aabf8607a Mon Sep 17 00:00:00 2001
-From: Damien Le Moal <damien.lemoal@wdc.com>
+From d15d9339ef8097e42d6cd86b6cbd1a6261aa2a59 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Sat, 31 Jul 2021 11:06:09 +0900
-Subject: [PATCH 04/15] block: Introduce duration-limits priority class
+Subject: [PATCH 04/17] block: Introduce duration-limits priority class
 
 Introduce the IOPRIO_CLASS_DL priority class to indicate that IOs should
 be executed using duration-limits targets. The duration target to apply
@@ -13,15 +13,15 @@ command duration limits feature and this feature is enabled by the user.
 In BFQ and mq-deadline, all requests with this new priority class are
 handled using the highest prioty class RT and priority level 0.
 
-Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  block/bfq-iosched.c         | 10 ++++++++++
  block/blk-ioprio.c          |  3 +++
- block/ioprio.c              | 12 +++---------
+ block/ioprio.c              |  3 ++-
  block/mq-deadline.c         |  1 +
  include/linux/ioprio.h      |  2 +-
  include/uapi/linux/ioprio.h |  7 +++++++
- 6 files changed, 25 insertions(+), 10 deletions(-)
+ 6 files changed, 24 insertions(+), 2 deletions(-)
 
 diff --git a/block/bfq-iosched.c b/block/bfq-iosched.c
 index e66970bf27db..8414cdf2dee5 100644
@@ -80,23 +80,19 @@ index 332a07761bf8..73ee10ebfbdc 100644
  
  static struct blkcg_policy ioprio_policy;
 diff --git a/block/ioprio.c b/block/ioprio.c
-index 6f01d35a5145..03346a73b55b 100644
+index 6f01d35a5145..ff0b696988ba 100644
 --- a/block/ioprio.c
 +++ b/block/ioprio.c
-@@ -69,17 +69,11 @@ int ioprio_check_cap(int ioprio)
+@@ -69,6 +69,7 @@ int ioprio_check_cap(int ioprio)
  
  	switch (class) {
  		case IOPRIO_CLASS_RT:
--			/*
--			 * Originally this only checked for CAP_SYS_ADMIN,
--			 * which was implicitly allowed for pid 0 by security
--			 * modules such as SELinux. Make sure we check
--			 * CAP_SYS_ADMIN first to avoid a denial/avc for
--			 * possibly missing CAP_SYS_NICE permission.
--			 */
--			if (!capable(CAP_SYS_ADMIN) && !capable(CAP_SYS_NICE))
 +		case IOPRIO_CLASS_DL:
-+			if (!capable(CAP_SYS_NICE) && !capable(CAP_SYS_ADMIN))
+ 			/*
+ 			 * Originally this only checked for CAP_SYS_ADMIN,
+ 			 * which was implicitly allowed for pid 0 by security
+@@ -79,7 +80,7 @@ int ioprio_check_cap(int ioprio)
+ 			if (!capable(CAP_SYS_ADMIN) && !capable(CAP_SYS_NICE))
  				return -EPERM;
  			fallthrough;
 -			/* rt has prio field too */
@@ -130,7 +126,7 @@ index 3f53bc27a19b..d3537fc4f1b9 100644
  
  /*
 diff --git a/include/uapi/linux/ioprio.h b/include/uapi/linux/ioprio.h
-index f70f2596a6bf..d6b2784dc2fb 100644
+index f70f2596a6bf..15908b9e9d8c 100644
 --- a/include/uapi/linux/ioprio.h
 +++ b/include/uapi/linux/ioprio.h
 @@ -29,6 +29,7 @@ enum {
@@ -149,7 +145,7 @@ index f70f2596a6bf..d6b2784dc2fb 100644
 + * The Duration limits class allows 8 levels: level 0 for "no limit" and levels
 + * 1 to 7, each corresponding to a read or write limit descriptor.
 + */
-+#define IOPRIO_DL_NR_LEVELS	IOPRIO_NR_LEVELS
++#define IOPRIO_DL_NR_LEVELS	8
 +
  enum {
  	IOPRIO_WHO_PROCESS = 1,

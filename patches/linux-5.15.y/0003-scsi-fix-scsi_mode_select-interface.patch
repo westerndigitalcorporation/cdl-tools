@@ -1,7 +1,7 @@
 From a51c55ed05ff5d6fc07a1e45c64b2de1cedc627e Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 29 Sep 2021 18:01:21 +0900
-Subject: [PATCH 03/15] scsi: fix scsi_mode_select() interface
+Subject: [PATCH 03/17] scsi: fix scsi_mode_select() interface
 
 The modepage argument is unused. Remove it.
 

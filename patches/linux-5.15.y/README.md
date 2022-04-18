@@ -14,3 +14,7 @@ git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
 
 This patch series adds command duration limits support to both SAS and SATA
 hard disks.
+
+For SCSI/SAS disks, read and write commands failed due to a duration limit being
+exceeded with a fast-faile policy result in the application seeing ETIME errors
+for the failed read/write operations.

@@ -1,13 +1,13 @@
-From 035701d0d91f75a2a4b2764ea16218f62de3a163 Mon Sep 17 00:00:00 2001
-From: Damien Le Moal <damien.lemoal@wdc.com>
+From 7cc4b461937a8ce728c833faab5f7534378575cc Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Fri, 30 Jul 2021 16:51:22 +0900
-Subject: [PATCH 11/15] scsi: improve scsi_mode_sense()
+Subject: [PATCH 12/17] scsi: Support retreiving sub-pages of mode pages
 
 Allow scsi_mode_sense() to retreive sub-pages of mode pages by adding
 the subpage argument. Change all the current caller sites to specify
 the subpage 0.
 
-Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  drivers/scsi/scsi_lib.c           | 4 +++-
  drivers/scsi/scsi_transport_sas.c | 2 +-

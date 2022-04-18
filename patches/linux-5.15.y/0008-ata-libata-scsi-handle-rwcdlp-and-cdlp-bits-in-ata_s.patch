@@ -1,7 +1,7 @@
-From 09653c542003cf709737f38f2e577a0548948223 Mon Sep 17 00:00:00 2001
-From: Damien Le Moal <damien.lemoal@wdc.com>
+From 6c12eb02707d66b76ac58faee8642fd10893a7e8 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Tue, 28 Sep 2021 17:39:30 +0900
-Subject: [PATCH 07/15] libata: handle rwcdlp and cdlp bits in
+Subject: [PATCH 08/17] ata: libata-scsi: handle rwcdlp and cdlp bits in
  ata_scsiop_maint_in()
 
 For a scsi MAINTENANCE_IN/MI_REPORT_SUPPORTED_OPERATION_CODES operation,
@@ -14,7 +14,7 @@ correspond to the T2A mode page containing the read descriptors and
 to the T2B mode page containing the write descriptors, as defined in
 SAT-5.
 
-Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  drivers/ata/libata-scsi.c | 30 ++++++++++++++++++++++++++----
  1 file changed, 26 insertions(+), 4 deletions(-)

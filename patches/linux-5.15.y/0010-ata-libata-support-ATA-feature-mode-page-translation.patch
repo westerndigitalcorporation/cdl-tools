@@ -1,7 +1,7 @@
-From 06bd67cc2b31ef2143c185715788016aa402da57 Mon Sep 17 00:00:00 2001
-From: Damien Le Moal <damien.lemoal@wdc.com>
+From 7a6aa2f3152d45622dd1999c5073d581fe608e86 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Wed, 29 Sep 2021 15:01:38 +0900
-Subject: [PATCH 09/15] libata: support ATA feature mode page translation
+Subject: [PATCH 10/17] ata: libata: support ATA feature mode page translation
 
 Add support for the ATA feature sub-page of the control mode page to
 enable/disable the command duration limits feature using the cdl_ctrl
@@ -9,13 +9,13 @@ field of this page. Both mode sense and mode select translation are
 supported. For mode sense, the ata device flag ATA_DFLAG_CDL_ENABLE is
 used to cache the status of the command duration limits feature.
 
-Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  drivers/ata/libata-core.c |   2 +-
- drivers/ata/libata-scsi.c | 145 +++++++++++++++++++++++++++++++-------
+ drivers/ata/libata-scsi.c | 142 +++++++++++++++++++++++++++++++-------
  include/linux/ata.h       |   2 +
  include/linux/libata.h    |   1 +
- 4 files changed, 123 insertions(+), 27 deletions(-)
+ 4 files changed, 122 insertions(+), 25 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
 index b5b1d5b55218..9781a91eaf11 100644
@@ -31,7 +31,7 @@ index b5b1d5b55218..9781a91eaf11 100644
  
  static int ata_dev_config_lba(struct ata_device *dev)
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index af1657e1bf24..af4b7883b19c 100644
+index af1657e1bf24..f71d7ddeb35f 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -58,6 +58,8 @@ static struct ata_device *__ata_scsi_find_dev(struct ata_port *ap,
@@ -185,15 +185,6 @@ index af1657e1bf24..af4b7883b19c 100644
  	u16 fp = (u16)-1;
  	u8 bp = 0xff;
  	u8 buffer[64];
-@@ -3806,7 +3882,7 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
- 			goto invalid_fld;
- 		}
- 
--		len = (cdb[7] << 8) + cdb[8];
-+		len = get_unaligned_be16(&cdb[7]);
- 		hdr_len = 8;
- 	}
- 
 @@ -3870,13 +3946,29 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
  	}
  
@@ -251,16 +242,8 @@ index af1657e1bf24..af4b7883b19c 100644
  		fp = bd_len + hdr_len;
  		goto invalid_param;
  	}
-@@ -4067,7 +4161,6 @@ static inline ata_xlat_func_t ata_get_xlat_func(struct ata_device *dev, u8 cmd)
- 	case MODE_SELECT:
- 	case MODE_SELECT_10:
- 		return ata_scsi_mode_select_xlat;
--		break;
- 
- 	case ZBC_IN:
- 		return ata_scsi_zbc_in_xlat;
 diff --git a/include/linux/ata.h b/include/linux/ata.h
-index 2ae42e9c49d6..c293383abe5c 100644
+index 55390adf89ee..4c4671c53271 100644
 --- a/include/linux/ata.h
 +++ b/include/linux/ata.h
 @@ -422,6 +422,8 @@ enum {

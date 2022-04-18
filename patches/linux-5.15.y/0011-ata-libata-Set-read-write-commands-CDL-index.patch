@@ -1,10 +1,10 @@
-From e75fdc1f664e4bdb589358edcc23046ccd821892 Mon Sep 17 00:00:00 2001
-From: Damien Le Moal <damien.lemoal@wdc.com>
+From 23e4eb7cc366d949105e0f67f4faa48fac865998 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Wed, 29 Sep 2021 17:02:58 +0900
-Subject: [PATCH 10/15] libata: Set read/write command duration limit index
+Subject: [PATCH 11/17] ata: libata: Set read/write commands CDL index
 
 For devices supporting the command duration limits feature, when a read
-or write operation has the IOPRIOr_CLASS_DL priority class and the
+or write operation has the IOPRIO_CLASS_DL priority class and the
 command duration limits feature is enabled, set the command duration
 limit index field of the command to the priority level.
 
@@ -13,7 +13,7 @@ is set as the lower 2 bits of the feature field. For queued NCQ
 read/write commands, the index is set as the lower 2 bits of the
 auxiliary field.
 
-Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  drivers/ata/libata-core.c | 11 ++++++++++-
  drivers/ata/libata-scsi.c |  3 ++-
@@ -57,7 +57,7 @@ index 9781a91eaf11..581396565411 100644
  	} else {
  		/* CHS */
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index af4b7883b19c..5240fa16aa6f 100644
+index f71d7ddeb35f..b5c729ae3a39 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -1537,6 +1537,7 @@ static unsigned int ata_scsi_rw_xlat(struct ata_queued_cmd *qc)
