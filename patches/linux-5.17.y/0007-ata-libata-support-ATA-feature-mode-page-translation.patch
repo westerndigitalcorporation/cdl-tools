@@ -1,0 +1,272 @@
+From 8ddcde3a56e78f962da4b9667437a662fb3c3d38 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Date: Wed, 29 Sep 2021 15:01:38 +0900
+Subject: [PATCH 07/14] ata: libata: support ATA feature mode page translation
+
+Add support for the ATA feature sub-page of the control mode page to
+enable/disable the command duration limits feature using the cdl_ctrl
+field of this page. Both mode sense and mode select translation are
+supported. For mode sense, the ata device flag ATA_DFLAG_CDL_ENABLE is
+used to cache the status of the command duration limits feature.
+
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+---
+ drivers/ata/libata-core.c |   2 +-
+ drivers/ata/libata-scsi.c | 142 +++++++++++++++++++++++++++++++-------
+ include/linux/ata.h       |   2 +
+ include/linux/libata.h    |   1 +
+ 4 files changed, 122 insertions(+), 25 deletions(-)
+
+diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
+index a69bca031153..f3add8900ed7 100644
+--- a/drivers/ata/libata-core.c
++++ b/drivers/ata/libata-core.c
+@@ -2392,7 +2392,7 @@ static void ata_dev_config_cdl(struct ata_device *dev)
+ 	return;
+ 
+ not_supported:
+-	dev->flags &= ~ATA_DFLAG_CDL;
++	dev->flags &= ~(ATA_DFLAG_CDL | ATA_DFLAG_CDL_ENABLE);
+ }
+ 
+ static int ata_dev_config_lba(struct ata_device *dev)
+diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
+index a53d9cf4ac4c..db3c495b7916 100644
+--- a/drivers/ata/libata-scsi.c
++++ b/drivers/ata/libata-scsi.c
+@@ -58,6 +58,8 @@ static struct ata_device *__ata_scsi_find_dev(struct ata_port *ap,
+ #define CDL_T2A_SUB_MPAGE		0x07
+ #define CDL_T2B_SUB_MPAGE		0x08
+ #define CDL_T2_SUB_MPAGE_LEN		0xe4
++#define ATA_FEATURE_SUB_MPAGE		0xf2
++#define ATA_FEATURE_SUB_MPAGE_LEN	0x0c
+ 
+ static const u8 def_rw_recovery_mpage[RW_RECOVERY_MPAGE_LEN] = {
+ 	RW_RECOVERY_MPAGE,
+@@ -2264,6 +2266,23 @@ static unsigned int ata_msense_control_spgt2(struct ata_device *dev, u8 *buf,
+ 	return CDL_T2_SUB_MPAGE_LEN;
+ }
+ 
++/*
++ * Simulate MODE SENSE control mode page, sub-pages f2h (ATA feature mode page).
++ */
++static unsigned int ata_msense_control_feature(struct ata_device *dev, u8 *buf)
++{
++
++	/* PS=0, SPF=1 */
++	buf[0] = CONTROL_MPAGE | (1 << 6);
++	buf[1] = ATA_FEATURE_SUB_MPAGE;
++	put_unaligned_be16(ATA_FEATURE_SUB_MPAGE_LEN, &buf[2]);
++
++	if (dev->flags & ATA_DFLAG_CDL_ENABLE)
++		buf[4] = 0x02; /* Support T2A and T2B pages */
++
++	return ATA_FEATURE_SUB_MPAGE_LEN;
++}
++
+ /**
+  *	ata_msense_control - Simulate MODE SENSE control mode page
+  *	@dev: ATA device of interest
+@@ -2287,10 +2306,13 @@ static unsigned int ata_msense_control(struct ata_device *dev, u8 *buf,
+ 	case CDL_T2A_SUB_MPAGE:
+ 	case CDL_T2B_SUB_MPAGE:
+ 		return ata_msense_control_spgt2(dev, buf, spg);
++	case ATA_FEATURE_SUB_MPAGE:
++		return ata_msense_control_feature(dev, buf);
+ 	case ALL_SUB_MPAGES:
+ 		n = ata_msense_control_spg0(dev, buf, changeable);
+ 		n += ata_msense_control_spgt2(dev, buf + n, CDL_T2A_SUB_MPAGE);
+ 		n += ata_msense_control_spgt2(dev, buf + n, CDL_T2A_SUB_MPAGE);
++		n += ata_msense_control_feature(dev, buf + n);
+ 		return n;
+ 	default:
+ 		return 0;
+@@ -3707,20 +3729,11 @@ static int ata_mselect_caching(struct ata_queued_cmd *qc,
+ 	return 0;
+ }
+ 
+-/**
+- *	ata_mselect_control - Simulate MODE SELECT for control page
+- *	@qc: Storage for translated ATA taskfile
+- *	@buf: input buffer
+- *	@len: number of valid bytes in the input buffer
+- *	@fp: out parameter for the failed field on error
+- *
+- *	Prepare a taskfile to modify caching information for the device.
+- *
+- *	LOCKING:
+- *	None.
++/*
++ * Simulate MODE SELECT control mode page, sub-page 0.
+  */
+-static int ata_mselect_control(struct ata_queued_cmd *qc,
+-			       const u8 *buf, int len, u16 *fp)
++static int ata_mselect_control_spg0(struct ata_queued_cmd *qc,
++				    const u8 *buf, int len, u16 *fp)
+ {
+ 	struct ata_device *dev = qc->dev;
+ 	u8 mpage[CONTROL_MPAGE_LEN];
+@@ -3758,6 +3771,69 @@ static int ata_mselect_control(struct ata_queued_cmd *qc,
+ 	return 0;
+ }
+ 
++/*
++ * Simulate MODE SELECT control mode page, sub-pages f2h
++ * (ATA feature mode page).
++ */
++static unsigned int ata_mselect_control_feature(struct ata_queued_cmd *qc,
++						const u8 *buf, int len, u16 *fp)
++{
++	struct ata_device *dev = qc->dev;
++	struct ata_taskfile *tf = &qc->tf;
++	u8 cdl_action;
++
++	/* Check cdl_ctrl */
++	switch (buf[2] & 0x03) {
++	case 0:
++		/* Disable CDL */
++		cdl_action = 0;
++		dev->flags &= ~ATA_DFLAG_CDL_ENABLE;
++		break;
++	case 0x02:
++		/* Enable CDL T2A/T2B: NCQ priority must be disabled */
++		cdl_action = 1;
++		dev->flags |= ATA_DFLAG_CDL_ENABLE;
++		dev->flags &= ~ATA_DFLAG_NCQ_PRIO_ENABLE;
++		break;
++	default:
++		*fp = 2;
++		return -EINVAL;
++	}
++
++	tf->flags |= ATA_TFLAG_DEVICE | ATA_TFLAG_ISADDR;
++	tf->protocol = ATA_PROT_NODATA;
++	tf->command = ATA_CMD_SET_FEATURES;
++	tf->feature = SETFEATURES_CDL;
++	tf->nsect = cdl_action;
++
++	return 1;
++}
++
++/**
++ *	ata_mselect_control - Simulate MODE SELECT for control page
++ *	@qc: Storage for translated ATA taskfile
++ *	@buf: input buffer
++ *	@len: number of valid bytes in the input buffer
++ *	@fp: out parameter for the failed field on error
++ *
++ *	Prepare a taskfile to modify caching information for the device.
++ *
++ *	LOCKING:
++ *	None.
++ */
++static int ata_mselect_control(struct ata_queued_cmd *qc, u8 spg,
++			       const u8 *buf, int len, u16 *fp)
++{
++	switch (spg) {
++	case 0:
++		return ata_mselect_control_spg0(qc, buf, len, fp);
++	case ATA_FEATURE_SUB_MPAGE:
++		return ata_mselect_control_feature(qc, buf, len, fp);
++	default:
++		return -EINVAL;
++	}
++}
++
+ /**
+  *	ata_scsi_mode_select_xlat - Simulate MODE SELECT 6, 10 commands
+  *	@qc: Storage for translated ATA taskfile
+@@ -3775,7 +3851,7 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
+ 	const u8 *cdb = scmd->cmnd;
+ 	u8 pg, spg;
+ 	unsigned six_byte, pg_len, hdr_len, bd_len;
+-	int len;
++	int len, ret;
+ 	u16 fp = (u16)-1;
+ 	u8 bp = 0xff;
+ 	u8 buffer[64];
+@@ -3860,13 +3936,29 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
+ 	}
+ 
+ 	/*
+-	 * No mode subpages supported (yet) but asking for _all_
+-	 * subpages may be valid
++	 * Supported subpages: all subpages and ATA feature sub-page f2h of
++	 * the control page.
+ 	 */
+-	if (spg && (spg != ALL_SUB_MPAGES)) {
+-		fp = (p[0] & 0x40) ? 1 : 0;
+-		fp += hdr_len + bd_len;
+-		goto invalid_param;
++	if (spg) {
++		switch (spg) {
++		case ALL_SUB_MPAGES:
++			/* All subpages is not supported for the control page */
++			if (pg == CONTROL_MPAGE) {
++				fp = (p[0] & 0x40) ? 1 : 0;
++				fp += hdr_len + bd_len;
++				goto invalid_param;
++			}
++			break;
++		case ATA_FEATURE_SUB_MPAGE:
++			if (qc->dev->flags & ATA_DFLAG_CDL &&
++			    pg == CONTROL_MPAGE)
++				break;
++			fallthrough;
++		default:
++			fp = (p[0] & 0x40) ? 1 : 0;
++			fp += hdr_len + bd_len;
++			goto invalid_param;
++		}
+ 	}
+ 	if (pg_len > len)
+ 		goto invalid_param_len;
+@@ -3879,14 +3971,16 @@ static unsigned int ata_scsi_mode_select_xlat(struct ata_queued_cmd *qc)
+ 		}
+ 		break;
+ 	case CONTROL_MPAGE:
+-		if (ata_mselect_control(qc, p, pg_len, &fp) < 0) {
++		ret = ata_mselect_control(qc, spg, p, pg_len, &fp);
++		if (ret < 0) {
+ 			fp += hdr_len + bd_len;
+ 			goto invalid_param;
+-		} else {
+-			goto skip; /* No ATA command to send */
+ 		}
++		if (!ret)
++			goto skip; /* No ATA command to send */
+ 		break;
+-	default:		/* invalid page code */
++	default:
++		/* Invalid page code */
+ 		fp = bd_len + hdr_len;
+ 		goto invalid_param;
+ 	}
+diff --git a/include/linux/ata.h b/include/linux/ata.h
+index b5a1c595e3af..5c65877dacb6 100644
+--- a/include/linux/ata.h
++++ b/include/linux/ata.h
+@@ -423,6 +423,8 @@ enum {
+ 	SETFEATURES_SATA_ENABLE = 0x10, /* Enable use of SATA feature */
+ 	SETFEATURES_SATA_DISABLE = 0x90, /* Disable use of SATA feature */
+ 
++	SETFEATURES_CDL		= 0x0d, /* Enable/disable cmd duration limits */
++
+ 	/* SETFEATURE Sector counts for SATA features */
+ 	SATA_FPDMA_OFFSET	= 0x01,	/* FPDMA non-zero buffer offsets */
+ 	SATA_FPDMA_AA		= 0x02, /* FPDMA Setup FIS Auto-Activate */
+diff --git a/include/linux/libata.h b/include/linux/libata.h
+index 818bf22af6b2..aaf54ca5493a 100644
+--- a/include/linux/libata.h
++++ b/include/linux/libata.h
+@@ -103,6 +103,7 @@ enum {
+ 	ATA_DFLAG_NCQ_PRIO	= (1 << 20), /* device supports NCQ priority */
+ 	ATA_DFLAG_NCQ_PRIO_ENABLE = (1 << 21), /* Priority cmds sent to dev */
+ 	ATA_DFLAG_CDL		= (1 << 22), /* supports cmd duration limits*/
++	ATA_DFLAG_CDL_ENABLE	= (1 << 23), /* cmd duration limits is enabled */
+ 	ATA_DFLAG_INIT_MASK	= (1 << 24) - 1,
+ 
+ 	ATA_DFLAG_DETACH	= (1 << 24),
+-- 
+2.35.1
+
