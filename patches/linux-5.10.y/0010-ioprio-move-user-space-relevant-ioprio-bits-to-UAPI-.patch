@@ -1,7 +1,7 @@
-From 020f01d9337b5c51a58df7e83ed4cf01b32a8cbb Mon Sep 17 00:00:00 2001
+From c460e583d4e95d9087ad1158d546c34fd2238ebb Mon Sep 17 00:00:00 2001
 From: Oliver Hartkopp <socketcan@hartkopp.net>
 Date: Wed, 14 Jul 2021 21:56:55 +0200
-Subject: [PATCH 10/32] ioprio: move user space relevant ioprio bits to UAPI
+Subject: [PATCH 10/34] ioprio: move user space relevant ioprio bits to UAPI
  includes
 
 Upstream commit 06447ae5e33bfbc5a777cc06d9854a31f3912833

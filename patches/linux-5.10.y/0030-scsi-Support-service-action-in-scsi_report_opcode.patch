@@ -1,21 +1,21 @@
-From 15ff478c6d70e3a0b559dde7da310a3d36ab4c5e Mon Sep 17 00:00:00 2001
-From: Damien Le Moal <damien.lemoal@wdc.com>
+From 21813791e528485c1a84182c35eacb66995134c3 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Mon, 16 Aug 2021 16:48:08 +0900
-Subject: [PATCH 29/32] scsi: improve scsi_report_opcode()
+Subject: [PATCH 30/34] scsi: Support service action in scsi_report_opcode()
 
-The REPORT_SUPPORTED_OPERATION_CODES command allows testing for support
+The REPORT_SUPPORTED_OPERATION_CODES command allows checking for support
 of commands that have the same opcode but different service actions,
 such as READ 32 and WRITE 32. However, the current implementation of
-scsi_report_opcode() only allows testing an opcode without a service
-action differentiation.
+scsi_report_opcode() only allows checking an operation code without a
+service action differentiation.
 
 Add the "sa" argument to scsi_report_opcode() to allow passing a service
-action. If a none-zero service action is specified, the reporting
+action. If a non-zero service action is specified, the reporting
 options field value is set to 3 to have the service action field taken
 into account by the device. If no service action field is specified
 (zero), the reporting options field is set to 1 as before.
 
-Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  drivers/scsi/scsi.c        | 28 +++++++++++++++++++---------
  drivers/scsi/sd.c          | 10 +++++-----

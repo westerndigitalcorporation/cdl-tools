@@ -1,7 +1,7 @@
-From 4f3a7cef57e406568a9b44bbe84a0756ba14ff62 Mon Sep 17 00:00:00 2001
+From ec38f9f99d78677844e2151ab6b4e58a0889a6f2 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 11 Aug 2021 12:36:58 +0900
-Subject: [PATCH 11/32] block: improve ioprio class description comment
+Subject: [PATCH 11/34] block: improve ioprio class description comment
 
 Upstream commit 25bca50e523cbe96c0207fbb92f22ff2bc28e9aa
 

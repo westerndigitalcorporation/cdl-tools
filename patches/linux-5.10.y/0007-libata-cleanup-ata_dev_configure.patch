@@ -1,7 +1,7 @@
-From 313897bccc9defe73e52beb8d062f0a1af8527b4 Mon Sep 17 00:00:00 2001
+From 479f0e4255b7e829e3969e0097871c6ea23f04f6 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:50 +0900
-Subject: [PATCH 07/32] libata: cleanup ata_dev_configure()
+Subject: [PATCH 07/34] libata: cleanup ata_dev_configure()
 
 Upstream commit 891fd7c61952ed3fddb82a3b00ae4b3edfce8733
 

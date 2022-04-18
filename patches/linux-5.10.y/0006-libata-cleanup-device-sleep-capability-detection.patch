@@ -1,7 +1,7 @@
-From a2a7004e4d254683f59aab09ba9ce2b4ac3ee432 Mon Sep 17 00:00:00 2001
+From e0fe633c861ce978a42e3296784f83a27362fffa Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:49 +0900
-Subject: [PATCH 06/32] libata: cleanup device sleep capability detection
+Subject: [PATCH 06/34] libata: cleanup device sleep capability detection
 
 Upstream commit d8d8778c24cc4689250b59c426489a360032d912
 

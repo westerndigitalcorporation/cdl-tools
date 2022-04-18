@@ -1,10 +1,10 @@
-From c64ba75c7f99226d9436182b133b5e8f0d61a639 Mon Sep 17 00:00:00 2001
+From bec04194c2794ad4bc361fefbace9eba9de58961 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
-Date: Thu, 21 Oct 2021 17:38:22 +0900
-Subject: [PATCH 27/32] libata: Set read/write command duration limit index
+Date: Mon, 18 Apr 2022 12:39:29 +0900
+Subject: [PATCH 28/34] ata: libata: Set read/write commands CDL index
 
 For devices supporting the command duration limits feature, when a read
-or write operation has the IOPRIOr_CLASS_DL priority class and the
+or write operation has the IOPRIO_CLASS_DL priority class and the
 command duration limits feature is enabled, set the command duration
 limit index field of the command to the priority level.
 
@@ -57,7 +57,7 @@ index 8f4eb8cd6aea..b9621d8ee4e4 100644
  	} else {
  		/* CHS */
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index eea6584ba491..596458732ca4 100644
+index e9752c31a335..2ee3b7acf736 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -1539,6 +1539,7 @@ static unsigned int ata_scsi_rw_xlat(struct ata_queued_cmd *qc)

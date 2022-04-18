@@ -1,7 +1,7 @@
-From 146c22aa30b143a5b61aedeacf3a574d449d0c61 Mon Sep 17 00:00:00 2001
+From ab1c65ac745439537b8fa5666dc55b5e088e472a Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 20 Aug 2021 16:02:53 +0900
-Subject: [PATCH 16/32] scsi: core: Fix scsi_mode_sense() buffer length
+Subject: [PATCH 16/34] scsi: core: Fix scsi_mode_sense() buffer length
  handling
 
 Several problems exist with scsi_mode_sense() buffer length handling:

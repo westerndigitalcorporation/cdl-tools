@@ -1,7 +1,8 @@
-From ab2b551a20aeb81e2bcb38139d87d2645896daaa Mon Sep 17 00:00:00 2001
-From: Damien Le Moal <damien.lemoal@wdc.com>
+From ccb27f4bc2742c25ab9f4d655356cb7993bb5f76 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Tue, 28 Sep 2021 21:00:02 +0900
-Subject: [PATCH 25/32] libata: Add support for T2A and T2B pages mode sense
+Subject: [PATCH 26/34] ata: libata-scsi: Add support for T2A and T2B pages
+ mode sense
 
 Modify ata_scsiop_mode_sense() and ata_msense_control() to support mode
 sense access to the T2A and T2B sub-pages of the control mode page.
@@ -10,10 +11,10 @@ is generated using the read descriptors of the command duration limits
 log page 18h. The T2B sub-page is generated using the write descriptors
 of the same log page. With the addition of these sub-pages, getting all
 sub-pages of the control mode page is also supported by increasing the
-value of ATA_SCSI_RBUF_SIZE from 576 up to 2048 to ensure that all
+value of ATA_SCSI_RBUF_SIZE from 576B up to 2048B to ensure that all
 sub-pages fit in the fill buffer.
 
-Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  drivers/ata/libata-scsi.c | 146 ++++++++++++++++++++++++++++++++------
  1 file changed, 124 insertions(+), 22 deletions(-)

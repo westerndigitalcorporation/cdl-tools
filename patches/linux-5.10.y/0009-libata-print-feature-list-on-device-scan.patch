@@ -1,7 +1,7 @@
-From 45ee8887e6826b2adb98258090b85718ecc203a5 Mon Sep 17 00:00:00 2001
+From 7ba8e6d8e59ca461bd105b6442990463f3bded22 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:53 +0900
-Subject: [PATCH 09/32] libata: print feature list on device scan
+Subject: [PATCH 09/34] libata: print feature list on device scan
 
 Upstream commit d633b8a702ab2eb4ef9263f1ab1610bb8cdf71a5
 

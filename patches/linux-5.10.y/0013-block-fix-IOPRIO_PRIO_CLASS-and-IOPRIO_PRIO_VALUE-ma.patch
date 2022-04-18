@@ -1,7 +1,7 @@
-From 68d7265c0c70de95bb1287c9d77ce9e92bc7cfd6 Mon Sep 17 00:00:00 2001
+From 42051aefe24adf5e6c66ec464a80224b220c0c31 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 11 Aug 2021 12:37:00 +0900
-Subject: [PATCH 13/32] block: fix IOPRIO_PRIO_CLASS() and IOPRIO_PRIO_VALUE()
+Subject: [PATCH 13/34] block: fix IOPRIO_PRIO_CLASS() and IOPRIO_PRIO_VALUE()
  macros
 
 Upstream commit ba05200fcce0a73fa8db16c514fbaa476d1d9399

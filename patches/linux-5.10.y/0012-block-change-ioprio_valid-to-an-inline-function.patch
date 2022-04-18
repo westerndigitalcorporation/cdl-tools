@@ -1,7 +1,7 @@
-From ff63b53f4ed7bf6b16cdf65e9042d00f99d3d654 Mon Sep 17 00:00:00 2001
+From 09e97afa44f211eff653736ec372689c1f799bb3 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 11 Aug 2021 12:36:59 +0900
-Subject: [PATCH 12/32] block: change ioprio_valid() to an inline function
+Subject: [PATCH 12/34] block: change ioprio_valid() to an inline function
 
 Upstream commit a553a835ca57668b0d9907d8ec2507ec51292d9a
 

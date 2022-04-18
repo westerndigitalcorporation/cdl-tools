@@ -1,7 +1,7 @@
-From f3da5342818f6051acdee7c0cc97681209f771ac Mon Sep 17 00:00:00 2001
+From 2e18f30f5073de389fcbfd51373dea673316eaab Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 20 Aug 2021 16:02:54 +0900
-Subject: [PATCH 17/32] scsi: core: Fix scsi_mode_select() buffer length
+Subject: [PATCH 17/34] scsi: core: Fix scsi_mode_select() buffer length
  handling
 
 The MODE SELECT(6) command allows handling mode page buffers that are up to

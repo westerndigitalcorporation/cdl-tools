@@ -1,7 +1,7 @@
-From 7ca0a1a41390d4b573c219b76dd71af223858cd3 Mon Sep 17 00:00:00 2001
+From ca08b7be5436b521b99a035ff92311ed0ee2aa83 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:48 +0900
-Subject: [PATCH 05/32] libata: simplify ata_scsi_rbuf_fill()
+Subject: [PATCH 05/34] libata: simplify ata_scsi_rbuf_fill()
 
 Upstream commit 56b4f06c55add95fe508a1746d9173bade6388bf
 

@@ -1,7 +1,7 @@
-From a55578fb42ead34f4a6ae6d5ff998ac6235c472c Mon Sep 17 00:00:00 2001
+From 502200129014d0c1c02cc3462bc4307eba807b3e Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 11 Aug 2021 12:37:02 +0900
-Subject: [PATCH 15/32] block: fix default IO priority handling
+Subject: [PATCH 15/34] block: fix default IO priority handling
 
 Upstream commit e70344c05995a190a56bbd1a23dc2218bcc8c924
 
@@ -31,10 +31,10 @@ Signed-off-by: Jens Axboe <axboe@kernel.dk>
  4 files changed, 13 insertions(+), 7 deletions(-)
 
 diff --git a/block/bfq-iosched.c b/block/bfq-iosched.c
-index bdc730ce9c0d..170c3163d768 100644
+index 967f0d8567ef..f6755cd32aaa 100644
 --- a/block/bfq-iosched.c
 +++ b/block/bfq-iosched.c
-@@ -5117,7 +5117,7 @@ static struct bfq_queue **bfq_async_queue_prio(struct bfq_data *bfqd,
+@@ -5128,7 +5128,7 @@ static struct bfq_queue **bfq_async_queue_prio(struct bfq_data *bfqd,
  	case IOPRIO_CLASS_RT:
  		return &bfqg->async_bfqq[0][ioprio];
  	case IOPRIO_CLASS_NONE:

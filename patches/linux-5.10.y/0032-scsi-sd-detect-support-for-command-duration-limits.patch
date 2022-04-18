@@ -1,7 +1,7 @@
-From 3ca8929b0c68c3f0a6e3c81eb5a6d191ce038e86 Mon Sep 17 00:00:00 2001
-From: Damien Le Moal <damien.lemoal@wdc.com>
-Date: Fri, 30 Jul 2021 18:01:24 +0900
-Subject: [PATCH 30/32] scsi: sd: detect support for command duration limits
+From f9e7ff797079c9f4bf42454bc0d3c276188bc2c0 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Date: Mon, 18 Apr 2022 12:46:30 +0900
+Subject: [PATCH 32/34] scsi: sd: detect support for command duration limits
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -49,13 +49,13 @@ descriptors. The possible values for the page attribute are "A", "B",
 The new "duration_limits" attributes directory is added only for disks
 that supports command duration limits.
 
-Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  drivers/scsi/Makefile |   2 +-
- drivers/scsi/sd.c     |   3 +
+ drivers/scsi/sd.c     |   4 +
  drivers/scsi/sd.h     |  61 ++++
- drivers/scsi/sd_cdl.c | 751 ++++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 816 insertions(+), 1 deletion(-)
+ drivers/scsi/sd_cdl.c | 764 ++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 830 insertions(+), 1 deletion(-)
  create mode 100644 drivers/scsi/sd_cdl.c
 
 diff --git a/drivers/scsi/Makefile b/drivers/scsi/Makefile
@@ -72,7 +72,7 @@ index c00e3dd57990..f10dbc024562 100644
  sd_mod-$(CONFIG_BLK_DEV_ZONED) += sd_zbc.o
  
 diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
-index 2d5f1fd0f6cf..4cf9a9063419 100644
+index 2d5f1fd0f6cf..f286a7bbb324 100644
 --- a/drivers/scsi/sd.c
 +++ b/drivers/scsi/sd.c
 @@ -3249,6 +3249,7 @@ static int sd_revalidate_disk(struct gendisk *disk)
@@ -91,14 +91,15 @@ index 2d5f1fd0f6cf..4cf9a9063419 100644
  	kfree(sdkp);
   out:
  	scsi_autopm_put_device(sdp);
-@@ -3595,6 +3597,7 @@ static void scsi_disk_release(struct device *dev)
- 	put_device(&sdkp->device->sdev_gendev);
+@@ -3590,6 +3592,8 @@ static void scsi_disk_release(struct device *dev)
+ 	blk_mq_freeze_queue(q);
+ 	blk_mq_unfreeze_queue(q);
  
- 	sd_zbc_release_disk(sdkp);
 +	sd_cdl_release(sdkp);
- 
- 	kfree(sdkp);
- }
++
+ 	disk->private_data = NULL;
+ 	put_disk(disk);
+ 	put_device(&sdkp->device->sdev_gendev);
 diff --git a/drivers/scsi/sd.h b/drivers/scsi/sd.h
 index b59136c4125b..cdf924537ba3 100644
 --- a/drivers/scsi/sd.h
@@ -185,10 +186,10 @@ index b59136c4125b..cdf924537ba3 100644
  #endif /* _SCSI_DISK_H */
 diff --git a/drivers/scsi/sd_cdl.c b/drivers/scsi/sd_cdl.c
 new file mode 100644
-index 000000000000..4f2d4679fada
+index 000000000000..513cd989f19a
 --- /dev/null
 +++ b/drivers/scsi/sd_cdl.c
-@@ -0,0 +1,751 @@
+@@ -0,0 +1,764 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * SCSI Command Duration Limits (CDL)
@@ -453,15 +454,17 @@ index 000000000000..4f2d4679fada
 +{
 +	int i;
 +
-+	if (!page->sysfs_registered)
-+		return;
++	for (i = 0; i < SD_CDL_MAX_DESC; i++) {
++		if (page->sysfs_registered)
++			kobject_del(&page->descs[i].kobj);
++		kobject_put(&page->descs[i].kobj);
++	}
++	if (page->sysfs_registered)
++		kobject_del(&page->kobj);
++	kobject_put(&page->kobj);
 +
-+	for (i = 0; i < SD_CDL_MAX_DESC; i++)
-+		kobject_del(&page->descs[i].kobj);
-+	kobject_del(&page->kobj);
-+
-+	page->sysfs_registered = false;
 +	page->cdlp = SD_CDLP_NONE;
++	page->sysfs_registered = false;
 +}
 +
 +static int sd_cdl_sysfs_register_page(struct scsi_disk *sdkp,
@@ -478,16 +481,25 @@ index 000000000000..4f2d4679fada
 +
 +	ret = kobject_add(&page->kobj, &sdkp->cdl->kobj,
 +			  "%s", page->rw ? "write" : "read");
-+	if (ret)
++	if (ret) {
++		kobject_put(&page->kobj);
 +		return ret;
++	}
 +
 +	for (i = 0; i < SD_CDL_MAX_DESC; i++) {
 +		ret = kobject_add(&page->descs[i].kobj, &page->kobj,
 +				  "%d", i + 1);
 +		if (ret) {
-+			while (--i >= 0)
-+				kobject_del(&page->descs[i].kobj);
++			int j;
++
++			kobject_put(&page->descs[i].kobj);
++			for (j = 0; j < SD_CDL_MAX_DESC; j++) {
++				if (j < i)
++					kobject_del(&page->descs[j].kobj);
++				kobject_put(&page->descs[j].kobj);
++			}
 +			kobject_del(&page->kobj);
++			kobject_put(&page->kobj);
 +			return ret;
 +		}
 +	}
@@ -605,8 +617,10 @@ index 000000000000..4f2d4679fada
 +	if (!cdl->sysfs_registered) {
 +		ret = kobject_add(&cdl->kobj, &sdev->sdev_gendev.kobj,
 +				  "duration_limits");
-+		if (ret)
++		if (ret) {
++			kobject_put(&cdl->kobj);
 +			goto unregister;
++		}
 +
 +		cdl->sysfs_registered = true;
 +	}
@@ -798,7 +812,7 @@ index 000000000000..4f2d4679fada
 +	if (scsi_report_opcode(sdkp->device, buf, SD_BUF_SIZE, opcode, sa) < 0)
 +		return SD_CDLP_NONE;
 +
-+	if (!(buf[1] & 0x03))
++	if ((buf[1] & 0x03) != 0x03)
 +		return SD_CDLP_NONE;
 +
 +	/* See SPC-6, one command format of REPORT SUPPORTED OPERATION CODES */

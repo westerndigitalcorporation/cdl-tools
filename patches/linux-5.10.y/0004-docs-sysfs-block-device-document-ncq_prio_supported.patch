@@ -1,7 +1,7 @@
-From f55088798084f108f2fb4c17af177106a2d50f6c Mon Sep 17 00:00:00 2001
+From 0d276e8544a4b12c4b29e3d55aab5339071b1ba1 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:56 +0900
-Subject: [PATCH 04/32] docs: sysfs-block-device: document ncq_prio_supported
+Subject: [PATCH 04/34] docs: sysfs-block-device: document ncq_prio_supported
 
 Upstream commit f5975d18d46ae8485bb08161086e59360844840b
 

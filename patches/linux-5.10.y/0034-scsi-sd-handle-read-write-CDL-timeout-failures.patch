@@ -1,0 +1,281 @@
+From 23499ae026182e03bf334d87b24fed8f23af261c Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Date: Mon, 18 Apr 2022 12:59:00 +0900
+Subject: [PATCH 34/34] scsi: sd: handle read/write CDL timeout failures
+
+Commands using a duration limit descriptor that has limit policies set
+to a value other than 0x0 may be failed by the device if one of the
+limit is exceeded. For such commands, since the failure is the result
+of the user duration limit configuration and workload, the commands
+should not be retried and terminated immediately. Furthermore, to allow
+the user to differentiate these "soft" failures from hard errors due to
+hardware problem, a different error code than EIO should be returned.
+
+There are 2 cases to consider:
+(1) The failure is due to a limit policy failing the command with a
+    check condition sense key, that is, any limit policy other than 0xD.
+    For this case, scsi_check_sense() is modified to detect failures
+    with the ABORTED COMMAND sense key and the COMMAND TIMEOUT BEFORE
+    PROCESSING or COMMAND TIMEOUT DURING PROCESSING or COMMAND TIMEOUT
+    DURING PROCESSING DUE TO ERROR RECOVERY additional sense code. For
+    these failures, a SUCCESS disposition is returned so that
+    scsi_finish_command() is called to terminate the command.
+(2) The failure is due to a limit policy set to 0xD, which result in the
+    command being terminated with a GOOD status, COMPLETED sense key,
+    and DATA CURRENTLY UNAVAILABLE additional sense code. To handle this
+    case, the sd_cdl_complete() function is called from sd_cdl_done().
+
+The function d_cdl_complete() handles both cases above by checking the
+sense data of any command that has a duration limit set. If a failure
+is detected, the command is marked as failed using the SCMD_DL_TIMEOUT.
+The helper function scsi_duration_limit_timeout() is introduced to check
+commands marked as failed due to a duration limit failure. This helper
+is used in scsi_io_completion() and scsi_result_to_blk_status() to
+complete the command request with the BLK_STS_DURATION_LIMIT status,
+which result in the user seeing ETIME errors for the failed commands.
+
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+---
+ drivers/scsi/scsi_error.c |  16 ++++++
+ drivers/scsi/scsi_lib.c   |  12 ++++-
+ drivers/scsi/sd.c         |   3 ++
+ drivers/scsi/sd.h         |   4 ++
+ drivers/scsi/sd_cdl.c     | 100 ++++++++++++++++++++++++++++++++++++++
+ include/scsi/scsi_cmnd.h  |   7 +++
+ 6 files changed, 141 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/scsi_error.c b/drivers/scsi/scsi_error.c
+index f11f51e2465f..56503a48f9e1 100644
+--- a/drivers/scsi/scsi_error.c
++++ b/drivers/scsi/scsi_error.c
+@@ -546,6 +546,18 @@ int scsi_check_sense(struct scsi_cmnd *scmd)
+ 		if (sshdr.asc == 0x10) /* DIF */
+ 			return SUCCESS;
+ 
++		/*
++		 * Check aborts due to command duration limit policy:
++		 * ABORTED COMMAND additional sense code with the
++		 * COMMAND TIMEOUT BEFORE PROCESSING or
++		 * COMMAND TIMEOUT DURING PROCESSING or
++		 * COMMAND TIMEOUT DURING PROCESSING DUE TO ERROR RECOVERY
++		 * additional sense code qualifiers.
++		 */
++		if (sshdr.asc == 0x2e &&
++		    sshdr.ascq >= 0x01 && sshdr.ascq <= 0x03)
++			return SUCCESS;
++
+ 		if (sshdr.asc == 0x44 && sdev->sdev_bflags & BLIST_RETRY_ITF)
+ 			return ADD_TO_MLQUEUE;
+ 		if (sshdr.asc == 0xc1 && sshdr.ascq == 0x01 &&
+@@ -1759,6 +1771,10 @@ int scsi_noretry_cmd(struct scsi_cmnd *scmd)
+ 		return (scmd->request->cmd_flags & REQ_FAILFAST_DRIVER);
+ 	}
+ 
++	/* Never retry commands aborted due to a duration limit timeout */
++	if (scsi_duration_limit_timeout(scmd))
++		return 1;
++
+ 	if (status_byte(scmd->result) != CHECK_CONDITION)
+ 		return 0;
+ 
+diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
+index d48a53ee5184..9ace765baea7 100644
+--- a/drivers/scsi/scsi_lib.c
++++ b/drivers/scsi/scsi_lib.c
+@@ -621,6 +621,8 @@ static blk_status_t scsi_result_to_blk_status(struct scsi_cmnd *cmd, int result)
+ {
+ 	switch (host_byte(result)) {
+ 	case DID_OK:
++		if (scsi_duration_limit_timeout(cmd))
++			return BLK_STS_DURATION_LIMIT;
+ 		/*
+ 		 * Also check the other bytes than the status byte in result
+ 		 * to handle the case when a SCSI LLD sets result to
+@@ -941,8 +943,16 @@ void scsi_io_completion(struct scsi_cmnd *cmd, unsigned int good_bytes)
+ 	struct request *req = cmd->request;
+ 	blk_status_t blk_stat = BLK_STS_OK;
+ 
+-	if (unlikely(result))	/* a nz result may or may not be an error */
++	if (unlikely(result)) {
++		/* a nz result may or may not be an error */
+ 		result = scsi_io_completion_nz_result(cmd, result, &blk_stat);
++	} else if (scsi_duration_limit_timeout(cmd)) {
++		/*
++		 * Special case for commands with a good result but aborted due
++		 * to a duration limit with policy 0xD.
++		 */
++		blk_stat = BLK_STS_DURATION_LIMIT;
++	}
+ 
+ 	if (unlikely(blk_rq_is_passthrough(req))) {
+ 		/*
+diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
+index 2e84ca411744..33ab804466ee 100644
+--- a/drivers/scsi/sd.c
++++ b/drivers/scsi/sd.c
+@@ -2146,6 +2146,9 @@ static int sd_done(struct scsi_cmnd *SCpnt)
+ 	if (sd_is_zoned(sdkp))
+ 		good_bytes = sd_zbc_complete(SCpnt, good_bytes, &sshdr);
+ 
++	if (sd_cdl_enabled(sdkp))
++		good_bytes = sd_cdl_complete(sdkp, SCpnt, good_bytes, &sshdr);
++
+ 	SCSI_LOG_HLCOMPLETE(1, scmd_printk(KERN_INFO, SCpnt,
+ 					   "sd_done: completed %d of %d bytes\n",
+ 					   good_bytes, scsi_bufflen(SCpnt)));
+diff --git a/drivers/scsi/sd.h b/drivers/scsi/sd.h
+index b324e63767ac..19f5083e35e7 100644
+--- a/drivers/scsi/sd.h
++++ b/drivers/scsi/sd.h
+@@ -342,4 +342,8 @@ static inline bool sd_cdl_enabled(struct scsi_disk *sdkp)
+ 	return sdkp->cdl && sdkp->cdl_enabled;
+ }
+ 
++unsigned int sd_cdl_complete(struct scsi_disk *sdkp, struct scsi_cmnd *cmd,
++			     unsigned int good_bytes,
++			     struct scsi_sense_hdr *sshdr);
++
+ #endif /* _SCSI_DISK_H */
+diff --git a/drivers/scsi/sd_cdl.c b/drivers/scsi/sd_cdl.c
+index eb5d950f07b2..10668d2ecf89 100644
+--- a/drivers/scsi/sd_cdl.c
++++ b/drivers/scsi/sd_cdl.c
+@@ -11,6 +11,7 @@
+ 
+ #include <scsi/scsi.h>
+ #include <scsi/scsi_cmnd.h>
++#include <scsi/scsi_eh.h>
+ 
+ #include "sd.h"
+ 
+@@ -881,3 +882,102 @@ int sd_cdl_dld(struct scsi_disk *sdkp, struct scsi_cmnd *scmd)
+ 
+ 	return dld;
+ }
++
++/**
++ * sd_cdl_complete - Post processing of commands with DLD set.
++ * @sdkp: Target disk
++ * @scmd: Completed command
++ * @good_bytes: Command reply bytes
++ * @sshdr: command sense header
++ *
++ * Called from sd_done() to handle failed commands with a duration limit
++ * index set (DLD bits).
++ */
++unsigned int sd_cdl_complete(struct scsi_disk *sdkp, struct scsi_cmnd *scmd,
++			     unsigned int good_bytes,
++			     struct scsi_sense_hdr *sshdr)
++{
++	struct request *rq = scmd->request;
++	int result = scmd->result;
++	bool sense_deferred = false;
++	bool sense_valid;
++
++	/* Duration limits are set only for read & write commands */
++	switch (scmd->cmnd[0]) {
++	case READ_16:
++	case WRITE_16:
++	case READ_32:
++	case WRITE_32:
++		if (sd_cdl_dld(sdkp, scmd))
++			break;
++		fallthrough;
++	default:
++		return good_bytes;
++	}
++
++	if (status_byte(result) == CHECK_CONDITION) {
++		/*
++		 * All timeout failures signaled with a CHECK CONDITION have
++		 * an aborted command sense key. So ignore all other errors
++		 * (sd_done took care of these already).
++		 */
++		if (sshdr->sense_key != ABORTED_COMMAND)
++			return good_bytes;
++
++		/*
++		 * Several cases are possible here:
++		 * - max active time policy 0xE may trigger COMMAND TIMEOUT
++		 *   DURING PROCESSING or COMMAND TIMEOUT DURING PROCESSING
++		 *   DUE TO ERROR RECOVERY.
++		 * - max active time policy 0xF may trigger COMMAND TIMEOUT
++		 *   DURING PROCESSING
++		 * - max inactive time and command duration guideline
++		 *   policy 0xF may trigger COMMAND TIMEOUT BEFORE PROCESSING.
++		 */
++		if (sshdr->asc == 0x2e &&
++		    sshdr->ascq >= 0x01 && sshdr->ascq <= 0x03)
++			goto timeout;
++
++		return good_bytes;
++	}
++
++	/* At this point, we are interested only in GOOD status */
++	if (status_byte(result) != GOOD)
++		return good_bytes;
++
++	/*
++	 * sd_done() does not normalize the sense header if result is 0.
++	 * So normalize sense here to check for aborted commands with
++	 * good status (policy 0xD).
++	 */
++	sense_valid = scsi_command_normalize_sense(scmd, sshdr);
++	if (sense_valid)
++		sense_deferred = scsi_sense_is_deferred(sshdr);
++	if (!sense_valid || sense_deferred)
++		return good_bytes;
++
++	/*
++	 * For all limits, a command that timeout with the policy 0xD
++	 * is completed with a good status and sense data indicating
++	 * COMPLETED/DATA CURRENTLY UNAVAILABLE.
++	 */
++	if (sshdr->sense_key == COMPLETED &&
++	    sshdr->asc == 0x55 && sshdr->ascq == 0x0a)
++		goto timeout;
++
++	return good_bytes;
++
++timeout:
++	/*
++	 * Report the command failed with a duration limit timeout error so
++	 * that the user sees a ETIMEDOUT error instead of EIO. Ignore partial
++	 * completions,  do not retry the command and be quiet about these
++	 * timeout errors.
++	 */
++	scmd->flags |= SCMD_DL_TIMEOUT;
++	scsi_set_resid(scmd, blk_rq_bytes(rq));
++	rq->cmd_flags |= REQ_FAILFAST_DEV;
++	rq->rq_flags |= RQF_QUIET;
++
++	return 0;
++}
+diff --git a/include/scsi/scsi_cmnd.h b/include/scsi/scsi_cmnd.h
+index 69ade4fb71aa..206bb03eea3d 100644
+--- a/include/scsi/scsi_cmnd.h
++++ b/include/scsi/scsi_cmnd.h
+@@ -58,6 +58,8 @@ struct scsi_pointer {
+ #define SCMD_UNCHECKED_ISA_DMA	(1 << 1)
+ #define SCMD_INITIALIZED	(1 << 2)
+ #define SCMD_LAST		(1 << 3)
++#define SCMD_DL_TIMEOUT		(1 << 4)
++
+ /* flags preserved across unprep / reprep */
+ #define SCMD_PRESERVED_FLAGS	(SCMD_UNCHECKED_ISA_DMA | SCMD_INITIALIZED)
+ 
+@@ -218,6 +220,11 @@ static inline int scsi_sg_copy_to_buffer(struct scsi_cmnd *cmd,
+ 				 buf, buflen);
+ }
+ 
++static inline bool scsi_duration_limit_timeout(struct scsi_cmnd *scmd)
++{
++	return scmd->flags & SCMD_DL_TIMEOUT;
++}
++
+ /*
+  * The operations below are hints that tell the controller driver how
+  * to handle I/Os with DIF or similar types of protection information.
+-- 
+2.35.1
+

@@ -1,21 +1,22 @@
-From bf3f6da9e92ce88e9a609403f28ec4b78badf8c4 Mon Sep 17 00:00:00 2001
-From: Damien Le Moal <damien.lemoal@wdc.com>
-Date: Thu, 29 Jul 2021 16:29:08 +0900
-Subject: [PATCH 23/32] libata: detect command duration limits support
+From 40cd7c101f123ec6665ee538373b58570979d981 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Date: Mon, 18 Apr 2022 12:36:11 +0900
+Subject: [PATCH 24/34] ata: libata: detect command duration limits support
 
 Use the supported capabilities log page to detect if a device supports
 the command duration limits feature. For devices supporting this
 feature, set the device flag ATA_DFLAG_CDL. To support scsi-ata
 translation, retreive the command duration limits log page 18h and
-cache this page content using the cdl array in the ata_device structure.
+cache this page content using the cdl array added to the ata_device
+data structure.
 
-Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  drivers/ata/libata-core.c | 46 +++++++++++++++++++++++++++++++++++++--
  drivers/ata/libata-scsi.c | 17 +++++++--------
- include/linux/ata.h       |  9 +++++++-
+ include/linux/ata.h       |  7 ++++++
  include/linux/libata.h    |  6 ++++-
- 4 files changed, 65 insertions(+), 13 deletions(-)
+ 4 files changed, 64 insertions(+), 12 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
 index dc2739311f0e..62ed6651712f 100644
@@ -121,10 +122,10 @@ index ad18e0e390c0..ab19461c2002 100644
  static const u8 def_rw_recovery_mpage[RW_RECOVERY_MPAGE_LEN] = {
  	RW_RECOVERY_MPAGE,
 diff --git a/include/linux/ata.h b/include/linux/ata.h
-index 6e67aded28f8..47a341a19e6e 100644
+index 6e67aded28f8..126cee8ff008 100644
 --- a/include/linux/ata.h
 +++ b/include/linux/ata.h
-@@ -323,14 +323,21 @@ enum {
+@@ -323,13 +323,20 @@ enum {
  	ATA_LOG_SATA_NCQ	= 0x10,
  	ATA_LOG_NCQ_NON_DATA	= 0x12,
  	ATA_LOG_NCQ_SEND_RECV	= 0x13,
@@ -133,22 +134,20 @@ index 6e67aded28f8..47a341a19e6e 100644
  	ATA_LOG_IDENTIFY_DEVICE	= 0x30,
  
  	/* Identify device log pages: */
-+	ATA_LOG_SUPPORTED_CAPABILITIES	= 0x03,
++	ATA_LOG_SUPPORTED_CAPABILITIES  = 0x03,
  	ATA_LOG_SECURITY	  = 0x06,
  	ATA_LOG_SATA_SETTINGS	  = 0x08,
  	ATA_LOG_ZONED_INFORMATION = 0x09,
  
--	/* Identify device SATA settings log:*/
 +	/* Identify device Supported Capabilities log: */
 +	ATA_LOG_CDL_VALID_OFFSET	= 175,
 +	ATA_LOG_CDL_FEATURE_OFFSET	= 168,
 +
-+	/* Identify device SATA settings log: */
+ 	/* Identify device SATA settings log:*/
  	ATA_LOG_DEVSLP_OFFSET	  = 0x30,
  	ATA_LOG_DEVSLP_SIZE	  = 0x08,
- 	ATA_LOG_DEVSLP_MDAT	  = 0x00,
 diff --git a/include/linux/libata.h b/include/linux/libata.h
-index bb657b79fb0f..4b1f0b38c917 100644
+index bb657b79fb0f..520174dfa307 100644
 --- a/include/linux/libata.h
 +++ b/include/linux/libata.h
 @@ -150,6 +150,7 @@ enum {
@@ -173,7 +172,7 @@ index bb657b79fb0f..4b1f0b38c917 100644
  	u32			zac_zones_max_open;
  
 +	/* Command Duration Limits log support */
-+	u8			cdl[ATA_LOG_CDL_SIZE];
++	u8                      cdl[ATA_LOG_CDL_SIZE];
 +
  	/* error history */
  	int			spdn_cnt;

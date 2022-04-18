@@ -1,7 +1,7 @@
-From 84895654f7b82d3ce731e41822aedf2c609b96ff Mon Sep 17 00:00:00 2001
+From 72c608bd2deb57d37f69aafac53fc6094ae0b7f4 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Fri, 30 Jul 2021 11:47:43 +0900
-Subject: [PATCH 19/32] scsi: simplify scsi_get_vpd_page()
+Subject: [PATCH 19/34] scsi: simplify scsi_get_vpd_page()
 
 Remove unnecessary gotos in scsi_get_vpd_page() to improve the code
 readability and use memchr() instead of an open coded search loop.

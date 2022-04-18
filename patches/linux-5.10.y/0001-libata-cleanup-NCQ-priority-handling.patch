@@ -1,7 +1,7 @@
-From 5b6581873be2b0b89cff03e80266a12c7d7666fc Mon Sep 17 00:00:00 2001
+From 49aff8d462bf59eb5f2801845bf4f4784cb9e08c Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:51 +0900
-Subject: [PATCH 01/32] libata: cleanup NCQ priority handling
+Subject: [PATCH 01/34] libata: cleanup NCQ priority handling
 
 Upstream commit 2360fa1812cd77e1de13d3cca789fbd23462b651
 
