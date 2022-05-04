@@ -246,7 +246,7 @@ static void cdladm_check_kernel_support(struct cdl_dev *dev)
 	printf("    Command duration limits: %ssupported, %s\n",
 	       supported ? "" : "not ",
 	       enabled ? "enabled" : "disabled");
-	printf("    Device %s command timout: %llu s\n",
+	printf("    Device %s command timeout: %llu s\n",
 	       dev->name, dev->cmd_timeout / 1000000000ULL);
 }
 
