@@ -40,6 +40,29 @@
 #define CDL_SG_DID_PASSTHROUGH	0x0a /* Forced command past mid-layer. */
 #define CDL_SG_DID_SOFT_ERROR	0x0b /* The low level driver wants a retry. */
 
+static const char *cdl_host_status[] =
+{
+	"DID_OK",
+	"DID_NO_CONNECT",
+	"DID_BUS_BUSY",
+	"DID_TIME_OUT",
+	"DID_BAD_TARGET",
+	"DID_ABORT",
+	"DID_PARITY",
+	"DID_ERROR",
+	"DID_RESET",
+	"DID_BAD_INTR",
+	"DID_PASSTHROUGH",
+	"DID_SOFT_ERROR"
+};
+
+static const char *cdl_host_status_str(uint8_t status)
+{
+	if (status <= CDL_SG_DID_SOFT_ERROR)
+		return cdl_host_status[status];
+	return "???";
+}
+
 /*
  * Driver status codes.
  */
@@ -68,6 +91,28 @@
 					 CDL_SG_DRIVER_STATUS_MASK)
 #define cdl_cmd_driver_flags(cmd)	((cmd)->io_hdr.driver_status &	\
 					 CDL_SG_DRIVER_FLAGS_MASK)
+
+static const char *cdl_driver_status[] =
+{
+	"DRIVER_OK",
+	"DRIVER_BUSY",
+	"DRIVER_SOFT",
+	"DRIVER_MEDIA",
+	"DRIVER_ERROR",
+	"DRIVER_INVALID",
+	"DRIVER_TIMEOUT",
+	"DRIVER_INVALID",
+	"DRIVER_TIMEOUT",
+	"DRIVER_HARD",
+	"DRIVER_SENSE",
+};
+
+static const char *cdl_driver_status_str(uint8_t status)
+{
+	if (status <= CDL_SG_DID_SOFT_ERROR)
+		return cdl_driver_status[status];
+	return "???";
+}
 
 /*
  * Set bytes in a SCSI command cdb or buffer.
@@ -296,11 +341,9 @@ void cdl_init_cmd(struct cdl_sg_cmd *cmd, int cdb_len,
  */
 static void cdl_sg_get_sense(struct cdl_sg_cmd *cmd)
 {
-	unsigned int sense_buf_len = 0;
-	uint8_t *sense_buf = NULL;
+	unsigned int sense_buf_len = cmd->io_hdr.sb_len_wr;
+	uint8_t *sense_buf = cmd->sense_buf;
 
-	sense_buf = cmd->sense_buf;
-	sense_buf_len = cmd->io_hdr.sb_len_wr;
 	if (sense_buf_len < 4) {
 		cmd->sense_key = 0;
 		cmd->asc_ascq = 0;
@@ -346,18 +389,25 @@ int cdl_exec_cmd(struct cdl_dev *dev, struct cdl_sg_cmd *cmd)
 		return ret;
 	}
 
-	cdl_sg_get_sense(cmd);
-
 	if (cmd->io_hdr.status ||
-	    (cmd->io_hdr.host_status != CDL_SG_DID_OK) ||
+	    cmd->io_hdr.host_status != CDL_SG_DID_OK ||
 	    (cdl_cmd_driver_status(cmd) &&
 	     (cdl_cmd_driver_status(cmd) != CDL_SG_DRIVER_SENSE))) {
 		if (cmd->io_hdr.host_status == CDL_SG_DID_TIME_OUT) {
 			cdl_dev_err(dev, "SCSI command failed (timeout)\n");
 			return -ETIMEDOUT;
 		}
-		cdl_dev_err(dev, "SCSI command failed %02x / %04x\n",
+
+		cdl_dev_err(dev,
+			    "SCSI command failed host %s, driver %s\n",
+			    cdl_host_status_str(cmd->io_hdr.status),
+			    cdl_driver_status_str(cdl_cmd_driver_status(cmd)));
+
+		cdl_sg_get_sense(cmd);
+		cdl_dev_err(dev,
+			    "SCSI command sense key 0x%02x, asc/ascq 0x%04x\n",
 			    cmd->sense_key, cmd->asc_ascq);
+
 		return -EIO;
 	}
 
