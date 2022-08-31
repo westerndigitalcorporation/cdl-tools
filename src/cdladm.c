@@ -471,7 +471,7 @@ int main(int argc, char **argv)
 	if (cdl_open_dev(&dev) < 0)
 		return 1;
 
-	printf("%s:\n", dev.name);
+	printf("Device: /dev/%s\n", dev.name);
 	printf("    Vendor: %s\n", dev.vendor);
 	printf("    Product: %s\n", dev.id);
 	printf("    Revision: %s\n", dev.rev);
@@ -495,8 +495,11 @@ int main(int argc, char **argv)
 	       dev.flags & CDL_HIGHPRI_DEV_SUPPORTED ? "" : "not ",
 	       dev.flags & CDL_HIGHPRI_DEV_ENABLED ? "enabled" : "disabled");
 
-	printf("    Minimum limit: %llu ns\n", dev.min_limit);
-	printf("    Maximum limit: %llu ns\n", dev.max_limit);
+	printf("    Duration minimum limit: %llu ns\n", dev.min_limit);
+	if (!dev.max_limit)
+		printf("    Duration maximum limit: none\n");
+	else
+		printf("    Duration maximum limit: %llu ns\n", dev.max_limit);
 
 	cdladm_check_kernel_support(&dev);
 
