@@ -603,7 +603,7 @@ static unsigned long cdl_parse_policy(FILE *f, char *line, char *field,
 		default:
 			fprintf(stderr,
 				"Descriptor %d: invalid max inactive time "
-				"policy\n", d);
+				"policy\n", d + 1);
 			return 0xff;
 		}
 		break;
@@ -618,7 +618,7 @@ static unsigned long cdl_parse_policy(FILE *f, char *line, char *field,
 		default:
 			fprintf(stderr,
 				"Descriptor %d: invalid max active time "
-				"policy\n", d);
+				"policy\n", d + 1);
 			return 0xff;
 		}
 		break;
@@ -634,7 +634,7 @@ static unsigned long cdl_parse_policy(FILE *f, char *line, char *field,
 		default:
 			fprintf(stderr,
 				"Descriptor %d: invalid command duration "
-				"guideline policy\n", d);
+				"guideline policy\n", d + 1);
 			return 0xff;
 		}
 		break;
@@ -702,7 +702,7 @@ static int cdl_check_simple_desc(struct cdl_dev *dev,
 {
 	if (cdl_t2time(desc->duration, desc->cdltunit) > dev->cmd_timeout)
 		printf("[WARNING] descriptor %d: duration guideline "
-		       "greater than the device command timeout\n", i);
+		       "greater than the device command timeout\n", i + 1);
 
 	return 0;
 }
@@ -717,30 +717,30 @@ static int cdl_check_t2desc(struct cdl_dev *dev, struct cdl_desc *desc, int i)
 	if (desc->max_active_policy && t > dev->max_limit) {
 		fprintf(stderr,
 			"[ERROR] descriptor %d: max active time is greater "
-			"than the device maximum time limit\n", i);
+			"than the device maximum time limit\n", i + 1);
 		ret = -1;
 	}
 	if (t > dev->cmd_timeout)
 		printf("[WARNING] descriptor %d: max active time is "
-		       "greater than the device command timeout\n", i);
+		       "greater than the device command timeout\n", i + 1);
 
 	/* Check max inactive time */
 	t = cdl_t2time(desc->max_inactive_time, desc->cdltunit);
 	if (desc->max_inactive_policy && t > dev->max_limit) {
 		fprintf(stderr,
 			"[ERROR] descriptor %d: max inactive time is greater "
-			"than the device maximum time limit\n", i);
+			"than the device maximum time limit\n", i + 1);
 		ret = -1;
 	}
 	if (t > dev->cmd_timeout)
 		printf("[WARNING] descriptor %d: max inactive time is "
-		       "greater than the device command timeout\n", i);
+		       "greater than the device command timeout\n", i + 1);
 
 	/* Check command duration guideline */
 	t = cdl_t2time(desc->duration, desc->cdltunit);
 	if (t > dev->cmd_timeout)
 		printf("[WARNING] descriptor %d: duration guideline "
-		       "greater than the device command timeout\n", i);
+		       "greater than the device command timeout\n", i + 1);
 
 	return ret;
 }
