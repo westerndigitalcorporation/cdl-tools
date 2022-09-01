@@ -130,7 +130,7 @@ uint64_t cdl_t2time(uint64_t val, uint8_t t2cdlunit)
 		return val * 500;
 	case 0x08:
 		/* 1 microsecond */
-		return val;
+		return val * 1000ULL;
 	case 0x0A:
 		/* 10 milliseconds */
 		return val * 10000000ULL;
