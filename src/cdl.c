@@ -148,7 +148,7 @@ static char *cdl_t2time_str(char *str, uint64_t time, uint8_t t2cdlunit)
 
 	if (t >= 1000000)
 		sprintf(str, "%" PRIu64 " ms", t / 1000000);
-	else if (t > 1000 && t % 1000 == 0)
+	else if (t >= 1000 && t % 1000 == 0)
 		sprintf(str, "%" PRIu64 " us", t / 1000);
 	else
 		sprintf(str, "%" PRIu64 " ns", t);
