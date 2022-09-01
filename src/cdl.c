@@ -314,7 +314,7 @@ static void cdl_page_show_t2(struct cdl_page *page)
 	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
 		printf("  Descriptor %d:\n", i + 1);
 
-		if (desc->max_inactive_time) {
+		if (desc->max_inactive_time && desc->cdltunit) {
 			printf("    max inactive time        : %s\n",
 			       cdl_t2time_str(str, desc->max_inactive_time,
 					      desc->cdltunit));
@@ -324,7 +324,7 @@ static void cdl_page_show_t2(struct cdl_page *page)
 			printf("    max inactive time        : no limit\n");
 		}
 
-		if (desc->max_active_time) {
+		if (desc->max_active_time && desc->cdltunit) {
 			printf("    max active time          : %s\n",
 			       cdl_t2time_str(str, desc->max_active_time,
 					      desc->cdltunit));
@@ -334,7 +334,7 @@ static void cdl_page_show_t2(struct cdl_page *page)
 			printf("    max active time          : no limit\n");
 		}
 
-		if (desc->duration) {
+		if (desc->duration && desc->cdltunit) {
 			printf("    duration guideline       : %s\n",
 			       cdl_t2time_str(str, desc->duration,
 					      desc->cdltunit));
