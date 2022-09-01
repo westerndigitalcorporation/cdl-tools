@@ -231,7 +231,7 @@ static void cdl_page_show_simple(struct cdl_page *page)
 	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
 		printf("  Descriptor %d:\n", i + 1);
 
-		if (desc->duration)
+		if (desc->duration && desc->cdltunit)
 			printf("    duration guideline: %s\n",
 			       cdl_simple_time_str(str, desc->duration,
 						   desc->cdltunit));
