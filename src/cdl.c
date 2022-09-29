@@ -210,6 +210,19 @@ static const char *cdl_policy_str(uint8_t policy)
 	}
 }
 
+static int cdl_page_show_simple_count(struct cdl_page *page)
+{
+	struct cdl_desc *desc;
+	int i, n = 0;
+
+	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
+		if (desc->duration)
+			n++;
+	}
+
+	return n;
+}
+
 static void cdl_page_show_simple_raw(struct cdl_page *page)
 {
 	struct cdl_desc *desc;
@@ -267,6 +280,22 @@ static int cdl_page_save_simple(struct cdl_page *page, FILE *f)
 	}
 
 	return 0;
+}
+
+static int cdl_page_show_t2_count(struct cdl_page *page)
+{
+	struct cdl_desc *desc;
+	int i, n = 0;
+
+	for (i = 0, desc = &page->descs[0]; i < CDL_MAX_DESC; i++, desc++) {
+		if (!desc->cdltunit)
+			continue;
+		if (desc->max_inactive_time || desc->max_active_time ||
+		    desc->duration)
+			n++;
+	}
+
+	return n;
 }
 
 static void cdl_page_show_t2_raw(struct cdl_page *page)
@@ -428,23 +457,29 @@ static int cdl_page_save_t2(struct cdl_page *page, FILE *f)
 	return 0;
 }
 
-void cdl_page_show(struct cdl_page *page, bool raw)
+int cdl_page_show(struct cdl_page *page, unsigned int flags)
 {
+	bool raw = flags & CDL_SHOW_RAW_VAL;
+	bool count = flags & CDL_SHOW_COUNT;
+
 	if (page->cdlp == CDLP_A || page->cdlp == CDLP_B) {
-		if (raw) {
+		if (count)
+			return cdl_page_show_simple_count(page);
+		if (raw)
 			cdl_page_show_simple_raw(page);
-			return;
-		}
-		cdl_page_show_simple(page);
-		return;
+		else
+			cdl_page_show_simple(page);
+		return 0;
 	}
 
-	if (raw) {
+	if (count)
+		return cdl_page_show_t2_count(page);
+	if (raw)
 		cdl_page_show_t2_raw(page);
-		return;
-	}
+	else
+		cdl_page_show_t2(page);
 
-	cdl_page_show_t2(page);
+	return 0;
 }
 
 void cdl_page_save(struct cdl_page *page, FILE *f)

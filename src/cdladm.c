@@ -32,6 +32,10 @@ static void cdladm_usage(void)
 	       "  enable  : Enable command duration limits\n"
 	       "  disable : Disable command duration limits\n");
 	printf("Command options:\n");
+	printf("  --count\n"
+	       "\tApply to the show command.\n"
+	       "\tOmit the descriptor details and only print the number of\n"
+	       "\tdescriptors valid in a page\n");
 	printf("  --page <name>\n"
 	       "\tApply to the show and save commands.\n"
 	       "\tSpecify the target page name. The page name can be:\n"
@@ -79,32 +83,40 @@ static int cdladm_list(struct cdl_dev *dev)
 
 static int cdladm_show(struct cdl_dev *dev, char *page)
 {
-	int cdlp, i;
+	int cdlp = -1, i, n;
 
 	if (page) {
 		/* Show only the specified page */
 		cdlp = cdl_page_name2cdlp(page);
 		if (cdlp < 0)
 			return 1;
-		if (!cdl_page_supported(dev, cdlp)) {
-			printf("Page %s is not supported\n", page);
-			return 1;
-		}
-
-		printf("Page %s:\n", page);
-		cdl_page_show(&dev->cdl_pages[cdlp],
-			      dev->flags & CDL_SHOW_RAW_VAL);
-
-		return 0;
 	}
 
-	/* Show all supported pages */
+	/* Show all supported pages or only the requested page */
 	for (i = 0; i < CDL_MAX_PAGES; i++) {
-		if (!cdl_page_supported(dev, i))
+		if (!cdl_page_supported(dev, i)) {
+			if (page && i == cdlp) {
+				printf("Page %s is not supported\n", page);
+				return 1;
+			}
 			continue;
+		}
+
+		if (page && i != cdlp)
+			continue;
+
 		printf("Page %s:\n", cdl_page_name(i));
-		cdl_page_show(&dev->cdl_pages[i],
-			      dev->flags & CDL_SHOW_RAW_VAL);
+		n = cdl_page_show(&dev->cdl_pages[i], dev->flags);
+		if (dev->flags & CDL_SHOW_COUNT) {
+			if (!n)
+				printf("  No valid descriptors\n");
+			else
+				printf("  %d valid descriptors\n", n);
+		}
+
+		if (page && i == cdlp)
+			break;
+
 	}
 
 	return 0;
@@ -408,6 +420,13 @@ int main(int argc, char **argv)
 		if (strcmp(argv[i], "--verbose") == 0 ||
 		    strcmp(argv[i], "-v") == 0) {
 			dev.flags |= CDL_VERBOSE;
+			continue;
+		}
+
+		if (strcmp(argv[i], "--count") == 0) {
+			if (command != CDLADM_SHOW)
+				goto err_cmd_line;
+			dev.flags |= CDL_SHOW_COUNT;
 			continue;
 		}
 

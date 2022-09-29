@@ -91,6 +91,7 @@ struct cdl_page {
 #define CDL_HIGHPRI_DEV_ENABLED		(1 << 8)
 #define CDL_USE_MS_SP			(1 << 9)
 #define CDL_SHOW_RAW_VAL		(1 << 10)
+#define CDL_SHOW_COUNT			(1 << 11)
 
 #define CDL_VENDOR_LEN	9
 #define CDL_ID_LEN	17
@@ -175,7 +176,7 @@ const char *cdl_cmd_str(enum cdl_cmd cmd);
 uint8_t cdl_cmd_opcode(enum cdl_cmd cmd);
 uint16_t cdl_cmd_sa(enum cdl_cmd cmd);
 
-void cdl_page_show(struct cdl_page *page, bool raw);
+int cdl_page_show(struct cdl_page *page, unsigned int flags);
 void cdl_page_save(struct cdl_page *page, FILE *f);
 int cdl_page_parse_file(FILE *f, struct cdl_dev *dev, struct cdl_page *page);
 
