@@ -92,24 +92,32 @@ struct cdl_page {
 #define CDL_USE_MS_SP			(1 << 9)
 #define CDL_SHOW_RAW_VAL		(1 << 10)
 #define CDL_SHOW_COUNT			(1 << 11)
+#define CDL_USE_ATA			(1 << 12)
 
 #define CDL_VENDOR_LEN	9
 #define CDL_ID_LEN	17
 #define CDL_REV_LEN	5
 
+#define CDL_SAT_VENDOR_LEN	9
+#define CDL_SAT_PRODUCT_LEN	17
+#define CDL_SAT_REV_LEN		5
+
 struct cdl_dev {
 	/* Device file path and basename */
-	char		*path;
-	char		*name;
+	char			*path;
+	char			*name;
 
 	/* Device file descriptor */
-	int		fd;
+	int			fd;
 
 	/* Device info */
 	unsigned int		flags;
 	char			vendor[CDL_VENDOR_LEN];
 	char			id[CDL_ID_LEN];
 	char			rev[CDL_REV_LEN];
+	char			sat_vendor[CDL_SAT_VENDOR_LEN];
+	char			sat_product[CDL_SAT_PRODUCT_LEN];
+	char			sat_rev[CDL_SAT_REV_LEN];
 	unsigned long long	capacity;
 	bool			cdl_supported;
 	enum cdl_p		cmd_cdlp[CDL_CMD_MAX];
@@ -201,6 +209,7 @@ int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page);
 int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled);
 
 /* In cdl_scsi.c */
+void cdl_scsi_get_ata_information(struct cdl_dev *dev);
 int cdl_scsi_init(struct cdl_dev *dev);
 int cdl_scsi_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		       struct cdl_page *page);
@@ -210,6 +219,11 @@ int cdl_scsi_check_enabled(struct cdl_dev *dev, bool enabled);
 static inline bool cdl_dev_is_ata(struct cdl_dev *dev)
 {
 	return dev->flags & CDL_ATA;
+}
+
+static inline bool cdl_dev_use_ata(struct cdl_dev *dev)
+{
+	return dev->flags & CDL_USE_ATA;
 }
 
 static inline bool cdl_verbose(struct cdl_dev *dev)

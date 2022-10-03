@@ -15,6 +15,102 @@
 #include <assert.h>
 #include <ctype.h>
 
+#define CDL_SCSI_VPD_PAGE_00_LEN	32
+#define CDL_SCSI_VPD_PAGE_89_LEN	0x238
+
+/*
+ * Fill the buffer with the result of a VPD page INQUIRY command.
+ */
+static int cdl_scsi_vpd_inquiry(struct cdl_dev *dev, uint8_t page,
+				void *buf, uint16_t buf_len)
+{
+	struct cdl_sg_cmd cmd;
+	int ret;
+
+	/* Get the requested page */
+	cdl_init_cmd(&cmd, 6, SG_DXFER_FROM_DEV, buf_len);
+	cmd.cdb[0] = 0x12;
+	cmd.cdb[1] = 0x01;
+	cmd.cdb[2] = page;
+	cdl_sg_set_be16(&cmd.cdb[3], buf_len);
+
+	/* Execute the SG_IO command */
+	ret = cdl_exec_cmd(dev, &cmd);
+	if (ret) {
+		cdl_dev_err(dev, "Get VPD page 0x%02x failed\n", page);
+		return -EIO;
+	}
+
+	memcpy(buf, cmd.buf, buf_len);
+
+	return 0;
+}
+
+/*
+ * Test if a VPD page is supported.
+ */
+static bool cdl_scsi_vpd_page_supported(struct cdl_dev *dev, uint8_t page)
+{
+	uint8_t buf[CDL_SCSI_VPD_PAGE_00_LEN];
+	int vpd_len, i, ret;
+
+	ret = cdl_scsi_vpd_inquiry(dev, 0x00, buf, CDL_SCSI_VPD_PAGE_00_LEN);
+	if (ret != 0) {
+		cdl_dev_err(dev, "Get VPD page 0x00 failed\n");
+		return false;
+	}
+
+	if (buf[1] != 0x00) {
+		cdl_dev_err(dev, "Invalid page code 0x%02x for VPD page 0x00\n",
+			    (int)buf[1]);
+		return false;
+	}
+
+	vpd_len = cdl_sg_get_be16(&buf[2]) + 4;
+	if (vpd_len > CDL_SCSI_VPD_PAGE_00_LEN)
+		vpd_len = CDL_SCSI_VPD_PAGE_00_LEN;
+	for (i = 4; i < vpd_len; i++) {
+		if (buf[i] == page)
+			return true;
+	}
+
+	return false;
+}
+
+/*
+ * If this the device is an ATA disk, get ATA information.
+ */
+void cdl_scsi_get_ata_information(struct cdl_dev *dev)
+{
+	uint8_t buf[CDL_SCSI_VPD_PAGE_89_LEN];
+	int ret;
+
+	/*
+	 * See if VPD page 0x89 (ATA Information) is supported to determine
+	 * if we are dealing with an ATA device.
+	 */
+	if (!cdl_scsi_vpd_page_supported(dev, 0x89))
+		return;
+
+	/* This is an ATA device: Get SAT information */
+	ret = cdl_scsi_vpd_inquiry(dev, 0x89, buf, CDL_SCSI_VPD_PAGE_89_LEN);
+	if (ret != 0) {
+		cdl_dev_err(dev, "Get VPD page 0x89 failed\n");
+		return;
+	}
+
+	if (buf[1] != 0x89) {
+		cdl_dev_err(dev, "Invalid page code 0x%02x for VPD page 0x00\n",
+			    (int)buf[1]);
+		return;
+	}
+
+	cdl_sg_get_str(dev->sat_vendor, &buf[8], CDL_SAT_VENDOR_LEN - 1);
+	cdl_sg_get_str(dev->sat_product, &buf[16], CDL_SAT_PRODUCT_LEN - 1);
+	cdl_sg_get_str(dev->sat_rev, &buf[32], CDL_SAT_REV_LEN - 1);
+	dev->flags |= CDL_ATA;
+}
+
 /*
  * Get the CDL page type used for a command.
  */

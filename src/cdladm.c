@@ -22,7 +22,8 @@ static void cdladm_usage(void)
 	       "  cdladm --version\n"
 	       "  cdladm <command> [options] <device>\n");
 	printf("Options common to all commands:\n"
-	       "  --verbose | -v       : Verbose output\n");
+	       "  --verbose | -v       : Verbose output\n"
+	       "  --force-ata | -a     : Force the use of ATA passthrough commands\n");
 	printf("Commands:\n"
 	       "  info    : Show device and system support information\n"
 	       "  list    : List supported pages\n"
@@ -423,6 +424,12 @@ int main(int argc, char **argv)
 			continue;
 		}
 
+		if (strcmp(argv[i], "--force-ata") == 0 ||
+		    strcmp(argv[i], "-a") == 0) {
+			dev.flags |= CDL_USE_ATA;
+			continue;
+		}
+
 		if (strcmp(argv[i], "--count") == 0) {
 			if (command != CDLADM_SHOW)
 				goto err_cmd_line;
@@ -500,6 +507,12 @@ int main(int argc, char **argv)
 	       ((dev.capacity << 9) % 1000000000000) / 1000000000);
 	printf("    Device interface: %s\n",
 	       cdl_dev_is_ata(&dev) ? "ATA" : "SAS");
+	if (cdl_dev_is_ata(&dev)) {
+		printf("      SAT Vendor: %s\n", dev.sat_vendor);
+		printf("      SAT Product: %s\n", dev.sat_product);
+		printf("      SAT revision: %s\n", dev.sat_rev);
+	}
+
 	printf("    Command duration limits: %ssupported, %s\n",
 	       dev.flags & CDL_DEV_SUPPORTED ? "" : "not ",
 	       dev.flags & CDL_DEV_ENABLED ? "enabled" : "disabled");

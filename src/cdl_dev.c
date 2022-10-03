@@ -475,15 +475,28 @@ static int cdl_get_dev_info(struct cdl_dev *dev)
  */
 static int cdl_dev_init(struct cdl_dev *dev)
 {
-	struct cdl_sg_cmd cmd;
-	int ret;
+	cdl_scsi_get_ata_information(dev);
+	if (cdl_dev_is_ata(dev)) {
+		/*
+		 * If we are dealing with a device whose SAT is provided by the
+		 * kernel libata, force the use of ATA PASSTHROUGH commands,
+		 * always, as writing CDL descriptor pages is not translated by
+		 * libata.
+		 */
+		if (strcmp(dev->sat_vendor, "linux") == 0 &&
+		    strcmp(dev->sat_product, "libata") == 0)
+			dev->flags |= CDL_USE_ATA;
+	} else {
+		dev->flags &= ~CDL_USE_ATA;
+	}
 
 	/*
-	 * ATA devices have the device data log page. If this fails we are
-	 * likely dealing with a SCSI drive.
+	 * If we detected an ATA device handled by the kernel libata, or if the
+	 * user explicitely requested ATA command use, use ATA passthrough
+	 * commands to bypass the SAT implementation (kernel or HBA) used for
+	 * the device.
 	 */
-	ret = cdl_ata_read_log(dev, 0x30, 0, &cmd, 512);
-	if (ret == 0)
+	if (dev->flags & CDL_USE_ATA)
 		return cdl_ata_init(dev);
 
 	return cdl_scsi_init(dev);

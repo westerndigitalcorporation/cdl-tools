@@ -862,8 +862,9 @@ bool cdl_page_supported(struct cdl_dev *dev, enum cdl_p cdlp)
 static int cdl_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 			 struct cdl_page *page)
 {
-	if (cdl_dev_is_ata(dev))
+	if (cdl_dev_use_ata(dev))
 		return cdl_ata_read_page(dev, cdlp, page);
+
 	return cdl_scsi_read_page(dev, cdlp, page);
 }
 
@@ -901,8 +902,9 @@ int cdl_read_pages(struct cdl_dev *dev)
  */
 int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page)
 {
-	if (cdl_dev_is_ata(dev))
+	if (cdl_dev_use_ata(dev))
 		return cdl_ata_write_page(dev, page);
+
 	return cdl_scsi_write_page(dev, page);
 }
 
@@ -911,8 +913,9 @@ int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page)
  */
 int cdl_check_enabled(struct cdl_dev *dev, bool enabled)
 {
-	if (cdl_dev_is_ata(dev))
+	if (cdl_dev_use_ata(dev))
 		return cdl_ata_check_enabled(dev, enabled);
+
 	return cdl_scsi_check_enabled(dev, enabled);
 }
 
