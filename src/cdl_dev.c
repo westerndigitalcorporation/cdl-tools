@@ -575,3 +575,15 @@ void cdl_close_dev(struct cdl_dev *dev)
 	dev->fd = -1;
 }
 
+/*
+ * Revalidate a device: scsi device rescan does not trigger a revalidate in
+ * libata. So for ATA devices managed with libata, always force a separate
+ * ATA revalidate.
+ */
+void cdl_revalidate_dev(struct cdl_dev *dev)
+{
+	if (cdl_dev_use_ata(dev))
+		cdl_ata_revalidate(dev);
+
+	cdl_scsi_revalidate(dev);
+}

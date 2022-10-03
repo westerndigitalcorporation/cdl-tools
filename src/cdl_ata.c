@@ -299,7 +299,7 @@ static uint32_t cdl_ata_s2a_limit(uint16_t limit, uint8_t t2cdlunit)
  * Force device revalidation so that sysfs exposes updated command
  * duration limits.
  */
-static void cdl_ata_revalidate(struct cdl_dev *dev)
+void cdl_ata_revalidate(struct cdl_dev *dev)
 {
 	const char *scan = "- - -";
 	char path[PATH_MAX];
@@ -393,8 +393,6 @@ int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page)
 			    "Write command duration limits log page failed\n");
 		return ret;
 	}
-
-	cdl_ata_revalidate(dev);
 
 	return 0;
 }

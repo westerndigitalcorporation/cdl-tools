@@ -377,3 +377,19 @@ int cdl_scsi_check_enabled(struct cdl_dev *dev, bool enabled)
 
 	return 0;
 }
+
+/*
+ * Force device revalidation so that sysfs exposes updated command
+ * duration limits.
+ */
+void cdl_scsi_revalidate(struct cdl_dev *dev)
+{
+	int ret;
+
+	/* Rescan the device */
+	ret = cdl_sysfs_set_attr(dev, "1",
+			"/sys/block/%s/device/rescan",
+			dev->name);
+	if (ret)
+		cdl_dev_err(dev, "Revalidate device failed\n");
+}

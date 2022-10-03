@@ -902,10 +902,16 @@ int cdl_read_pages(struct cdl_dev *dev)
  */
 int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page)
 {
-	if (cdl_dev_use_ata(dev))
-		return cdl_ata_write_page(dev, page);
+	int ret;
 
-	return cdl_scsi_write_page(dev, page);
+	if (cdl_dev_use_ata(dev))
+		ret = cdl_ata_write_page(dev, page);
+	else
+		ret = cdl_scsi_write_page(dev, page);
+
+	cdl_revalidate_dev(dev);
+
+	return ret;
 }
 
 /*

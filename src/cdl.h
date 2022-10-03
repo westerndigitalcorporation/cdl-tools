@@ -157,6 +157,7 @@ struct cdl_sg_cmd {
 /* In cdl_dev.c */
 int cdl_open_dev(struct cdl_dev *dev);
 void cdl_close_dev(struct cdl_dev *dev);
+void cdl_revalidate_dev(struct cdl_dev *dev);
 void cdl_init_cmd(struct cdl_sg_cmd *cmd, int cdb_len,
 		  int direction, size_t bufsz);
 int cdl_exec_cmd(struct cdl_dev *dev, struct cdl_sg_cmd *cmd);
@@ -207,6 +208,7 @@ int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		      struct cdl_page *page);
 int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page);
 int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled);
+void cdl_ata_revalidate(struct cdl_dev *dev);
 
 /* In cdl_scsi.c */
 void cdl_scsi_get_ata_information(struct cdl_dev *dev);
@@ -215,6 +217,7 @@ int cdl_scsi_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		       struct cdl_page *page);
 int cdl_scsi_write_page(struct cdl_dev *dev, struct cdl_page *page);
 int cdl_scsi_check_enabled(struct cdl_dev *dev, bool enabled);
+void cdl_scsi_revalidate(struct cdl_dev *dev);
 
 static inline bool cdl_dev_is_ata(struct cdl_dev *dev)
 {
