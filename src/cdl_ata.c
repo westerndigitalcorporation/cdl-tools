@@ -184,6 +184,13 @@ int cdl_ata_init(struct cdl_dev *dev)
 	qword = cdl_sg_get_le64(&cmd.buf[184]);
 	if (qword & (1ULL << 63))
 		dev->max_limit = (qword & 0xffffffff) * 1000;
+	if (!dev->max_limit) {
+		/*
+		 * The natural maximum limit is imposed by the time unit
+		 * (microseconds) and the time limit fields size (32-bits).
+		 */
+		dev->max_limit = (unsigned long long)UINT_MAX * 1000;
+	}
 
 	/* Set the CDL page type used for a command */
 	dev->cmd_cdlp[CDL_READ_16] = CDLP_T2A;

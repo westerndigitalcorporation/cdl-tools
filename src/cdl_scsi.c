@@ -193,7 +193,10 @@ int cdl_scsi_init(struct cdl_dev *dev)
 
 	/* Set the minimum and maximum limits */
 	dev->min_limit = 500;
-	dev->max_limit = 65535ULL * 500000000ULL;
+	if (cdl_dev_is_ata(dev))
+		dev->max_limit = (unsigned long long)UINT_MAX * 1000;
+	else
+		dev->max_limit = 65535ULL * 500000000ULL;
 
 	/*
 	 * There is no device level CDL feature enable/disable control.
