@@ -186,11 +186,12 @@ int cdl_scsi_init(struct cdl_dev *dev)
 		}
 	}
 
-	if (dev->flags & CDL_DEV_SUPPORTED) {
-		/* Set the minimum and maximum limits */
-		dev->min_limit = 500;
-		dev->max_limit = 65535ULL * 500000000ULL;
-	}
+	if (!(dev->flags & CDL_DEV_SUPPORTED))
+		return 0;
+
+	/* Set the minimum and maximum limits */
+	dev->min_limit = 500;
+	dev->max_limit = 65535ULL * 500000000ULL;
 
 	/*
 	 * There is no device level CDL feature enable/disable control.
