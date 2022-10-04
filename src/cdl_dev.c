@@ -398,15 +398,18 @@ int cdl_exec_cmd(struct cdl_dev *dev, struct cdl_sg_cmd *cmd)
 			return -ETIMEDOUT;
 		}
 
-		cdl_dev_err(dev,
-			    "SCSI command failed host %s, driver %s\n",
-			    cdl_host_status_str(cmd->io_hdr.status),
-			    cdl_driver_status_str(cdl_cmd_driver_status(cmd)));
+		if (cdl_verbose(dev))
+			cdl_dev_err(dev,
+				"SCSI command failed host %s, driver %s\n",
+				cdl_host_status_str(cmd->io_hdr.status),
+				cdl_driver_status_str(cdl_cmd_driver_status(cmd)));
 
 		cdl_sg_get_sense(cmd);
-		cdl_dev_err(dev,
-			    "SCSI command sense key 0x%02x, asc/ascq 0x%04x\n",
-			    cmd->sense_key, cmd->asc_ascq);
+
+		if (cdl_verbose(dev))
+			cdl_dev_err(dev,
+				"SCSI command sense key 0x%02x, asc/ascq 0x%04x\n",
+				cmd->sense_key, cmd->asc_ascq);
 
 		return -EIO;
 	}

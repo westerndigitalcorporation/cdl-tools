@@ -131,7 +131,9 @@ static int cdl_scsi_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
 
 	ret = cdl_exec_cmd(dev, &cmd);
 	if (ret) {
-		cdl_dev_err(dev, "REPORT_SUPPORTED_OPERATION_CODES failed\n");
+		if (cdl_verbose(dev))
+			cdl_dev_err(dev,
+				"REPORT_SUPPORTED_OPERATION_CODES failed\n");
 		return CDLP_NONE;
 	}
 
