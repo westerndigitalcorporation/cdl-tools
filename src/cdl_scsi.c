@@ -121,7 +121,7 @@ static int cdl_scsi_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
 	int ret;
 
 	/* Check command support */
-	cdl_init_cmd(&cmd, 16, SG_DXFER_FROM_DEV, 512);
+	cdl_init_cmd(&cmd, 12, SG_DXFER_FROM_DEV, 512);
 	cmd.cdb[0] = 0xa3; /* MAINTENANCE_IN */
 	cmd.cdb[1] = 0x0c; /* MI_REPORT_SUPPORTED_OPERATION_CODES */
 	cmd.cdb[2] = 0x03; /* one command format with SA */
