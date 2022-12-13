@@ -1,0 +1,247 @@
+#!/bin/bash
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) 2022 Western Digital Corporation or its affiliates.
+#
+
+function test_num()
+{
+        basename "$1" .sh
+}
+
+function exit_skip()
+{
+	exit 2
+}
+
+function exit_warning()
+{
+	echo "$1"
+	exit 3
+}
+
+function exit_failed()
+{
+	echo "$1"
+	exit 1
+}
+
+function require_lib()
+{
+	if [ "$(ldconfig -p | grep -c "$1")" == 0 ]; then
+		echo "$1 not found."
+		echo "Installing $1 is required to run tests."
+		exit 1
+	fi
+}
+
+function require_program()
+{
+	[[ $(type -P "$1") ]] || \
+		{
+			echo "$1 not found."
+			echo "Installing $1 is required to run tests."
+			exit 1
+		}
+}
+
+function have_module()
+{
+	modinfo "$1" > /dev/null 2>&1
+	[ $? == 0 ]
+}
+
+function have_dev()
+{
+	[ -e "/dev/$1" ]
+}
+
+function min()
+{
+	local a=$1
+	local b=$2
+
+	echo $((a < b ? a : b))
+}
+
+function max()
+{
+	local a=$1
+	local b=$2
+
+	echo $((a > b ? a : b))
+}
+
+function devname()
+{
+	basename "$(realpath $1)"
+}
+
+function devtype()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+
+	zoned="$(cat /sys/block/${bdev}/queue/zoned)"
+	if [ "${zoned}" == "none" ]; then
+		echo "cmr"
+	else
+		echo "smr"
+	fi
+}
+
+function devname()
+{
+	basename "$(realpath $1)"
+}
+
+function dev_capacity()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+
+	echo "$(cat /sys/block/${bdev}/size)"
+}
+
+function dev_fw()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+
+	str="$(lsscsi -g | grep ${bdev})"
+	strarray=(${str})
+
+	echo ${strarray[4]}
+}
+
+function dev_has_bad_fw()
+{
+	[ "$(dev_fw "$1")" == "0BM2" ]
+}
+
+function dev_is_ata()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+	local val=$(lsscsi | grep "${bdev}" | grep -c "ATA")
+
+	[ "${val}" == "1" ]
+}
+
+function create_nullb()
+{
+	local n=0
+
+	modprobe null_blk nr_devices=0
+
+	while [ 1 ]; do
+		if [ ! -b "/dev/nullb$n" ]; then
+			break
+		fi
+		n=$(( n + 1 ))
+	done
+
+	mkdir /sys/kernel/config/nullb/nullb$n
+	echo 0 > /sys/kernel/config/nullb/nullb$n/zoned
+	echo 1 > /sys/kernel/config/nullb/nullb$n/power
+
+	echo "$n"
+}
+
+function destroy_nullb()
+{
+        local n=$1
+
+	echo 0 > /sys/kernel/config/nullb/nullb$n/power
+	rmdir /sys/kernel/config/nullb/nullb$n
+
+	rmmod null_blk >> /dev/null 2>&1
+}
+
+function set_scheduler()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+
+	if [ "$(devtype ${dev})" == "cmr" ]; then
+		sched="none"
+	else
+		sched="mq-deadline"
+	fi
+	echo "$sched" > /sys/block/${bdev}/queue/scheduler
+}
+
+function dev_cdl_supported()
+{
+	local dev="$(realpath $1)"
+
+	info="$(cdladm info ${dev} | grep "Command duration limits" | head -1)"
+	echo "${info}" | grep -c supported
+}
+
+function kernel_cdl_supported()
+{
+        local dev="$(realpath $1)"
+
+	info="$(cdladm info ${dev} | grep "Command duration limits" | tail -1)"
+	echo "${info}" | grep -c supported
+}
+
+function cdl_enabled()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+
+	cat /sys/block/${bdev}/device/duration_limits/enable
+}
+
+function enable_cdl()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+
+	echo "1" > /sys/block/${bdev}/device/duration_limits/enable
+}
+
+function disable_cdl()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+
+	echo "0" > /sys/block/${bdev}/device/duration_limits/enable
+}
+
+function fio_get_clat_avg()
+{
+	local line=$(grep "clat prio $2" "$1" | head -1)
+	local avg=$(echo "${line}" | cut -d'=' -f4 | cut -d',' -f1)
+	local unit=$(echo "${line}" | cut -d'(' -f2 | cut -d')' -f1)
+
+	if [ "${unit}" == "msec" ]; then
+		scale=1000
+	elif [ "${unit}" == "usec" ]; then
+		scale=1
+	else
+		scale=0
+	fi
+
+	echo "scale=0; ${avg} * ${scale} / 1" | bc
+}
+
+function fio_has_io_error()
+{
+	[ "$(grep -c "func=io_u error" $1)" != 0 ]
+}
+
+function fio_get_io_error()
+{
+	local err="$(grep ", err=" $1)"
+
+	if [ -z "${err}" ]; then
+		echo "0"
+		exit 0
+	fi
+
+	echo "${err}" | cut -d'=' -f3 | cut -d'/' -f1
+}

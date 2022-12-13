@@ -70,3 +70,7 @@ libtool
 
 # Built RPMs
 *.rpm
+
+# Test logs
+tests/log
+tests/log/*

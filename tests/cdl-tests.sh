@@ -1,0 +1,252 @@
+#!/bin/bash
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright (C) 2022 Western Digital Corporation or its affiliates.
+#
+
+#
+# Run everything from the current directory
+#
+basedir="$(pwd)"
+testdir="$(cd "$(dirname "$0")" && pwd)"
+export scriptdir="${testdir}/scripts"
+
+. "${scriptdir}/test_lib"
+
+#
+# trap ctrl-c interruptions
+#
+aborted=0
+trap ctrl_c INT
+
+function ctrl_c() {
+	aborted=1
+}
+
+function usage()
+{
+	echo "Usage: $(basename "$0") [Options] <block device file>"
+	echo "Options:"
+	echo "  -l            : List all tests"
+	echo "  -g <log dir>  : Use this directory to store test log files."
+	echo "                  default: cdl-tests-logs/<bdev name>"
+	echo "  -t <test num> : Execute only the specified test case. Can be"
+	echo "                  specified multiple times."
+	echo "  -h, --help    : This help message"
+}
+
+#
+# Check existence of required programs
+#
+require_program "cdladm"
+require_program "fio"
+require_program "bc"
+require_lib "libaio"
+
+#
+# Parse command line
+#
+declare -a tests
+declare list=false
+logdir=""
+
+while [ "${1#-}" != "$1" ]; do
+	case "$1" in
+	-h | --help)
+		usage
+		exit 0
+		;;
+	-t)
+		t="${scriptdir}/$2.sh"
+		if [ ! -e "$t" ]; then
+			echo "Invalid test number $2"
+			exit 1;
+		fi
+		tests+=("$t")
+		shift
+		shift
+		;;
+	-l)
+		list=true
+		shift
+		;;
+	-g)
+		shift
+		logdir="$1"
+		shift
+		;;
+	-*)
+		echo "unknow option $1"
+		exit 1
+		;;
+	esac
+done
+
+if [ ! $list ] && [ $# -lt 1 ]; then
+    usage
+    exit 1
+fi
+
+#
+# Get list of tests
+#
+if [ "${#tests[@]}" = 0 ]; then
+	for f in  ${scriptdir}/*.sh; do
+		tests+=("$f")
+	done
+fi
+
+#
+# Handle -l option (list tests)
+#
+if $list; then
+	for t in "${tests[@]}"; do
+		echo "  Test $(test_num "$t"): $( $t )"
+	done
+	exit 0
+fi
+
+dev="$1"
+if [ -z "$dev" ]; then
+	usage
+	exit 1
+fi
+
+realdev=$(realpath "$dev")
+if [ ! -b "$realdev" ]; then
+	echo "${dev} is not a block device"
+	exit 1
+fi
+
+#
+# Check credentials
+#
+if [ $(id -u) -ne 0 ]; then
+	echo "Root credentials are required to run tests."
+	exit 1
+fi
+
+#
+# Check target device: when the target is a partition device,
+# get basename of its holder device to access sysfs path of
+# the holder device
+#
+bdev=$(basename "$realdev")
+major=$((0x$(stat -L -c '%t' "$realdev")))
+minor=$((0x$(stat -L -c '%T' "$realdev")))
+
+if [[ -r "/sys/dev/block/$major:$minor/partition" ]]; then
+        realsysfs=$(readlink "/sys/dev/block/$major:$minor")
+        bdev=$(basename "${realsysfs%/*}")
+fi
+
+targetdev="/dev/${bdev}"
+if [ "$(dev_cdl_supported ${targetdev})" != "1" ]; then
+	echo "${realdev} does not support command duration limits."
+	exit 1
+fi
+
+if [ "$(kernel_cdl_supported ${targetdev})" != "1" ]; then
+	echo "WARNING: System kernel does not support command duration limits."
+fi
+
+#
+# Prepare log file
+#
+if [ "${logdir}" == "" ]; then
+	logdir="cdl-tests-logs/${bdev}"
+fi
+rm -rf "${logdir}" > /dev/null 2>&1
+mkdir -p "${logdir}"
+export logdir
+
+passed=0
+total=0
+rc=0
+
+#
+# Set IO scheduler:
+# none for CMR drives, mq-deadline for SMR drives
+#
+set_scheduler "${targetdev}"
+if [ $? != 0 ]; then
+	echo "$? Set block device scheduler failed."
+	exit 1
+fi
+
+run_test() {
+	local tnum="$(test_num $1)"
+	local ret=0
+
+	echo "==== Test ${tnum}: $( $1 )"
+	echo ""
+
+	"$1" "$2"
+	ret=$?
+
+	echo ""
+	if [ "$ret" == 0 ]; then
+		echo "==== Test ${tnum} -> PASS"
+	elif [ "$ret" == 2 ]; then
+		echo "==== Test ${tnum} -> skip"
+	else
+		echo "==== Test ${tnum} -> FAILED"
+	fi
+	echo ""
+
+	return $ret
+}
+
+type="$(devtype ${dev})"
+echo "Running CDL tests on ${type} ${dev}:"
+
+for t in "${tests[@]}"; do
+	tnum="$(test_num $t)"
+
+	echo -n "  Test ${tnum}:  "
+	printf "%-52s ... " "$( $t )"
+
+	run_test "$t" "$1" > "${logdir}/${tnum}.log" 2>&1
+	ret=$?
+	if [ "$ret" == 0 ]; then
+		# Test result OK
+		status="\e[92mPASS\e[0m"
+		rc=0
+	elif [ "$ret" == 2 ]; then
+		# Test was not applicable
+		status="skip"
+		rc=0
+	elif [ "$ret" == 3 ]; then
+		# Test passed but warning issued
+		status="\e[93mPASS\e[0m"
+		rc=0
+	else
+		# Test failed
+		status="\e[31mFAIL\e[0m"
+		rc=1
+	fi
+
+	if [ "$rc" == 0 ]; then
+		((passed++))
+	fi
+	((total++))
+	echo -e "$status"
+
+	if [ "$aborted" == 1 ]; then
+		break
+	fi
+
+	na=0
+done
+
+echo ""
+echo "$passed / $total tests passed"
+
+rm -f local-* >> /dev/null 2>&1
+
+if [ "$passed" != "$total" ]; then
+	exit 1
+fi
+
+exit 0
