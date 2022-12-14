@@ -262,10 +262,12 @@ int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 	page->cdlp = cdlp;
 	if (cdlp == CDLP_T2A) {
 		/* Read descriptors */
+		page->rw = CDL_READ;
 		page->perf_vs_duration_guideline = buf[0] & 0x0f;
 		buf += 64;
 	} else {
 		/* Write descriptors */
+		page->rw = CDL_WRITE;
 		buf += 288;
 	}
 

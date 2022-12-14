@@ -117,6 +117,7 @@ void cdl_scsi_get_ata_information(struct cdl_dev *dev)
 static int cdl_scsi_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
 {
 	struct cdl_sg_cmd cmd;
+	enum cdl_p p = CDLP_NONE;
 	uint8_t cdlp;
 	int ret;
 
@@ -148,21 +149,44 @@ static int cdl_scsi_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
 		/* rwcdlp == 1 */
 		switch (cdlp) {
 		case 0x01:
-			return CDLP_T2A;
+			p = CDLP_T2A;
+			break;
 		case 0x02:
-			return CDLP_T2B;
+			p = CDLP_T2B;
+			break;
+		default:
+			return CDLP_NONE;
 		}
 	} else {
 		/* rwcdlp == 0 */
 		switch (cdlp) {
 		case 0x01:
-			return CDLP_A;
+			p= CDLP_A;
+			break;
 		case 0x02:
-			return CDLP_B;
+			p = CDLP_B;
+			break;
+		default:
+			return CDLP_NONE;
 		}
 	}
 
-	return CDLP_NONE;
+	switch (c) {
+	case CDL_READ_16:
+	case CDL_READ_32:
+		dev->cdlrw[p] = CDL_READ;
+		break;
+	case CDL_WRITE_16:
+	case CDL_WRITE_32:
+		dev->cdlrw[p] = CDL_WRITE;
+		break;
+	default:
+		cdl_dev_err(dev,
+			    "Invalid command %x\n", (int)c);
+		return CDLP_NONE;
+	}
+
+	return p;
 }
 
 /*
@@ -272,6 +296,7 @@ int cdl_scsi_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 	}
 
 	page->cdlp = cdlp;
+	page->rw = dev->cdlrw[cdlp];
 
 	if (cdlp == CDLP_A || cdlp == CDLP_B) {
 		buf += 8;

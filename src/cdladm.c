@@ -106,7 +106,9 @@ static int cdladm_show(struct cdl_dev *dev, char *page)
 		if (page && i != cdlp)
 			continue;
 
-		printf("Page %s:\n", cdl_page_name(i));
+		printf("Page %s: %s descriptors\n",
+		       cdl_page_name(i),
+		       dev->cdl_pages[i].rw == CDL_READ ? "read" : "write");
 		n = cdl_page_show(&dev->cdl_pages[i], dev->flags);
 		if (dev->flags & CDL_SHOW_COUNT) {
 			if (!n)

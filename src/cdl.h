@@ -51,6 +51,11 @@ enum cdl_p {
 	CDL_MAX_PAGES = CDLP_NONE,
 };
 
+enum cdl_rw {
+	CDL_READ,
+	CDL_WRITE,
+};
+
 enum cdl_limit {
 	CDLP_MAX_INACTIVE_TIME,
 	CDLP_MAX_ACTIVE_TIME,
@@ -71,6 +76,7 @@ struct cdl_desc {
 
 struct cdl_page {
 	enum cdl_p		cdlp;
+	enum cdl_rw		rw;
 	uint8_t			perf_vs_duration_guideline;
 	struct cdl_desc		descs[CDL_MAX_DESC];
 	uint8_t			*msbuf;
@@ -121,6 +127,7 @@ struct cdl_dev {
 	unsigned long long	capacity;
 	bool			cdl_supported;
 	enum cdl_p		cmd_cdlp[CDL_CMD_MAX];
+	enum cdl_rw		cdlrw[CDL_MAX_PAGES];
 	struct cdl_page		cdl_pages[CDL_MAX_PAGES];
 	uint64_t		cmd_timeout;
 
