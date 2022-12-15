@@ -421,7 +421,7 @@ static int cdl_page_save_t2(struct cdl_page *page, FILE *f)
 		"#   - complete-earliest    : 0x0\n"
 		"#   - continue-next-limit  : 0x1\n"
 		"#   - continue-no-limit    : 0x2\n"
-		"#   - complete-unavailable : 0x0d\n"
+		"#   - complete-unavailable : 0xd\n"
 		"#   - abort                : 0xf\n");
 	fprintf(f, "\n");
 
