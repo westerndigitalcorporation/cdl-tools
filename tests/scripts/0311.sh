@@ -12,8 +12,7 @@ if [ $# == 0 ]; then
 	exit 0
 fi
 
-fw=$(dev_fw "$1")
-if [ "${fw}" == "0BM2" ]; then
+if dev_has_bad_fw "$1"; then
 	exit_skip
 fi
 
