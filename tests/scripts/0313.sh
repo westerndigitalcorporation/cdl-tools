@@ -12,10 +12,6 @@ if [ $# == 0 ]; then
 	exit 0
 fi
 
-if dev_has_bad_fw "$1"; then
-	exit_skip
-fi
-
 echo "Uploading T2A page"
 cdladm upload --file "${scriptdir}/cdl/T2A-active-time.cdl" "$1" || \
 	exit_failed " --> FAILED to upload T2A page"
