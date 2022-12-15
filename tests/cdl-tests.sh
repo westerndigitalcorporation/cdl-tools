@@ -175,10 +175,19 @@ if [ $? != 0 ]; then
 	exit 1
 fi
 
-run_test() {
+function log_kmsg()
+{
+	if [ -e /dev/kmsg ]; then
+		echo "$1" > /dev/kmsg
+	fi
+}
+
+function run_test()
+{
 	local tnum="$(test_num $1)"
 	local ret=0
 
+	log_kmsg "cdl-tests ${tnum}: $( $1 )"
 	echo "==== Test ${tnum}: $( $1 )"
 	echo ""
 
