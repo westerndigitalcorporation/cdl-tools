@@ -1,0 +1,33 @@
+From b8bc6b2a94e64cedb3c48d7c129201e595c5ae9c Mon Sep 17 00:00:00 2001
+From: Niklas Cassel <niklas.cassel@wdc.com>
+Date: Fri, 7 Oct 2022 15:23:37 +0200
+Subject: [PATCH 07/40] ata: add ata_port_is_frozen() helper
+
+At the request of the libata maintainer, introduce a ata_port_is_frozen()
+helper function.
+
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+---
+ include/linux/libata.h | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/include/linux/libata.h b/include/linux/libata.h
+index fe990176e6ee..af4953b95f76 100644
+--- a/include/linux/libata.h
++++ b/include/linux/libata.h
+@@ -1043,6 +1043,11 @@ static inline int ata_port_is_dummy(struct ata_port *ap)
+ 	return ap->ops == &ata_dummy_port_ops;
+ }
+ 
++static inline bool ata_port_is_frozen(const struct ata_port *ap)
++{
++	return ap->pflags & ATA_PFLAG_FROZEN;
++}
++
+ extern int ata_std_prereset(struct ata_link *link, unsigned long deadline);
+ extern int ata_wait_after_reset(struct ata_link *link, unsigned long deadline,
+ 				int (*check_ready)(struct ata_link *link));
+-- 
+2.38.1
+

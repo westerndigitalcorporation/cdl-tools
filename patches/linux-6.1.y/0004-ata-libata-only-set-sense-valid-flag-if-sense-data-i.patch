@@ -1,0 +1,115 @@
+From f9e2a152c47e42eb702801d5cd1d54274c6a493e Mon Sep 17 00:00:00 2001
+From: Niklas Cassel <niklas.cassel@wdc.com>
+Date: Mon, 26 Sep 2022 20:53:07 +0000
+Subject: [PATCH 04/40] ata: libata: only set sense valid flag if sense data is
+ valid
+
+While this shouldn't be needed if all devices that claim that they
+support NCQ autosense (ata_id_has_ncq_autosense()) and/or the sense
+data reporting feature (ata_id_has_sense_reporting()), actually
+supported those features.
+
+However, there might be some old ATA devices that either have these
+bits set, even when they don't support those features, or they simply
+return malformed data when using those features.
+
+These devices should be quirked, but in order to try to minimize the
+impact for the users of these such devices, it was suggested by Damien
+Le Moal that it might be a good idea to sanity check the sense data
+received from the device. If the sense data looks bogus, then the
+sense data is never added to the scsi_cmnd command.
+
+Introduce a new function, ata_scsi_sense_is_valid(), and use it in all
+places where sense data is received from the device.
+
+Suggested-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+---
+ drivers/ata/libata-eh.c   |  6 ++++--
+ drivers/ata/libata-sata.c | 11 +++++++----
+ drivers/ata/libata-scsi.c | 16 ++++++++++++++++
+ drivers/ata/libata.h      |  1 +
+ 4 files changed, 28 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/ata/libata-eh.c b/drivers/ata/libata-eh.c
+index 70022bf91493..0444e1c91c43 100644
+--- a/drivers/ata/libata-eh.c
++++ b/drivers/ata/libata-eh.c
+@@ -1428,8 +1428,10 @@ static void ata_eh_request_sense(struct ata_queued_cmd *qc)
+ 	err_mask = ata_exec_internal(dev, &tf, NULL, DMA_NONE, NULL, 0, 0);
+ 	/* Ignore err_mask; ATA_ERR might be set */
+ 	if (tf.status & ATA_SENSE) {
+-		ata_scsi_set_sense(dev, cmd, tf.lbah, tf.lbam, tf.lbal);
+-		qc->flags |= ATA_QCFLAG_SENSE_VALID;
++		if (ata_scsi_sense_is_valid(tf.lbah, tf.lbam, tf.lbal)) {
++			ata_scsi_set_sense(dev, cmd, tf.lbah, tf.lbam, tf.lbal);
++			qc->flags |= ATA_QCFLAG_SENSE_VALID;
++		}
+ 	} else {
+ 		ata_dev_warn(dev, "request sense failed stat %02x emask %x\n",
+ 			     tf.status, err_mask);
+diff --git a/drivers/ata/libata-sata.c b/drivers/ata/libata-sata.c
+index fd4dccc25389..d6bbdfe0c455 100644
+--- a/drivers/ata/libata-sata.c
++++ b/drivers/ata/libata-sata.c
+@@ -1468,10 +1468,13 @@ void ata_eh_analyze_ncq_error(struct ata_link *link)
+ 		sense_key = (qc->result_tf.auxiliary >> 16) & 0xff;
+ 		asc = (qc->result_tf.auxiliary >> 8) & 0xff;
+ 		ascq = qc->result_tf.auxiliary & 0xff;
+-		ata_scsi_set_sense(dev, qc->scsicmd, sense_key, asc, ascq);
+-		ata_scsi_set_sense_information(dev, qc->scsicmd,
+-					       &qc->result_tf);
+-		qc->flags |= ATA_QCFLAG_SENSE_VALID;
++		if (ata_scsi_sense_is_valid(sense_key, asc, ascq)) {
++			ata_scsi_set_sense(dev, qc->scsicmd, sense_key, asc,
++					   ascq);
++			ata_scsi_set_sense_information(dev, qc->scsicmd,
++						       &qc->result_tf);
++			qc->flags |= ATA_QCFLAG_SENSE_VALID;
++		}
+ 	}
+ 
+ 	ehc->i.err_mask &= ~AC_ERR_DEV;
+diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
+index 06a3d95ed8f9..60327cb5ec20 100644
+--- a/drivers/ata/libata-scsi.c
++++ b/drivers/ata/libata-scsi.c
+@@ -188,6 +188,22 @@ DEVICE_ATTR(unload_heads, S_IRUGO | S_IWUSR,
+ 	    ata_scsi_park_show, ata_scsi_park_store);
+ EXPORT_SYMBOL_GPL(dev_attr_unload_heads);
+ 
++bool ata_scsi_sense_is_valid(u8 sk, u8 asc, u8 ascq)
++{
++	/*
++	 * If sk == NO_SENSE, and asc + ascq == NO ADDITIONAL SENSE INFORMATION,
++	 * then there is no sense data to add.
++	 */
++	if (sk == 0 && asc == 0 && ascq == 0)
++		return false;
++
++	/* If sk > COMPLETED, sense data is bogus. */
++	if (sk > COMPLETED)
++		return false;
++
++	return true;
++}
++
+ void ata_scsi_set_sense(struct ata_device *dev, struct scsi_cmnd *cmd,
+ 			u8 sk, u8 asc, u8 ascq)
+ {
+diff --git a/drivers/ata/libata.h b/drivers/ata/libata.h
+index 2c5c8273af01..2cd6124a01e8 100644
+--- a/drivers/ata/libata.h
++++ b/drivers/ata/libata.h
+@@ -114,6 +114,7 @@ extern int ata_scsi_add_hosts(struct ata_host *host,
+ 			      struct scsi_host_template *sht);
+ extern void ata_scsi_scan_host(struct ata_port *ap, int sync);
+ extern int ata_scsi_offline_dev(struct ata_device *dev);
++extern bool ata_scsi_sense_is_valid(u8 sk, u8 asc, u8 ascq);
+ extern void ata_scsi_set_sense(struct ata_device *dev,
+ 			       struct scsi_cmnd *cmd, u8 sk, u8 asc, u8 ascq);
+ extern void ata_scsi_set_sense_information(struct ata_device *dev,
+-- 
+2.38.1
+

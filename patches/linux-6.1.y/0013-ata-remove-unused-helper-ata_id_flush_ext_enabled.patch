@@ -1,0 +1,47 @@
+From 43a938fd04e92e75908be570b6f4e1a3caf36abb Mon Sep 17 00:00:00 2001
+From: Niklas Cassel <niklas.cassel@wdc.com>
+Date: Tue, 18 Oct 2022 21:10:54 +0200
+Subject: [PATCH 13/40] ata: remove unused helper ata_id_flush_ext_enabled()
+
+Not only is this function unused, but even worse, the bit it is checking
+is actually used for signaling if the feature is supported, not enabled.
+Therefore, remove the unused helper function ata_id_flush_ext_enabled().
+
+ata_id_has_flush_ext() is left unmodified, since this extra supported bit
+(Bit 13 of word 86) is simply a copy of the bit that ata_id_has_flush_ext()
+already checks (Bit 13 of word 83), see ACS-5 r10:
+7.13.6.41 Words 85..87, 120: Commands and feature sets supported or enabled
+
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+---
+ include/linux/ata.h | 13 -------------
+ 1 file changed, 13 deletions(-)
+
+diff --git a/include/linux/ata.h b/include/linux/ata.h
+index b32d62542e26..0c18499f60b6 100644
+--- a/include/linux/ata.h
++++ b/include/linux/ata.h
+@@ -622,19 +622,6 @@ static inline bool ata_id_has_flush_ext(const u16 *id)
+ 	return id[ATA_ID_COMMAND_SET_2] & (1 << 13);
+ }
+ 
+-static inline bool ata_id_flush_ext_enabled(const u16 *id)
+-{
+-	if (ata_id_has_flush_ext(id) == 0)
+-		return false;
+-	if ((id[ATA_ID_CSF_DEFAULT] & 0xC000) != 0x4000)
+-		return false;
+-	/*
+-	 * some Maxtor disks have bit 13 defined incorrectly
+-	 * so check bit 10 too
+-	 */
+-	return (id[ATA_ID_CFS_ENABLE_2] & 0x2400) == 0x2400;
+-}
+-
+ static inline u32 ata_id_logical_sector_size(const u16 *id)
+ {
+ 	/* T13/1699-D Revision 6a, Sep 6, 2008. Page 128.
+-- 
+2.38.1
+

@@ -1,0 +1,45 @@
+From ff1029eab705835971726ac1f06546d5f66358db Mon Sep 17 00:00:00 2001
+From: Niklas Cassel <niklas.cassel@wdc.com>
+Date: Fri, 7 Oct 2022 15:23:40 +0200
+Subject: [PATCH 10/40] ata: libata-core: do not retry reading the log on
+ timeout
+
+ata_read_log_page() first tries to read the log using READ LOG DMA EXT.
+If that fails it will instead try to read the log using READ LOG EXT.
+
+ata_exec_internal_sg() is synchronous, so it will wait for the command to
+finish. If we actually got an error back from the device, it is correct
+to retry. However, if the command timed out, ata_exec_internal_sg() will
+freeze the port.
+
+There is no point in retrying if the port is frozen, as
+ata_exec_internal_sg() will return AC_ERR_SYSTEM on a frozen port,
+without ever sending the command down to the drive.
+
+Therefore, avoid retrying if the first command froze the port, as that
+will result in a misleading AC_ERR_SYSTEM error print, instead of printing
+the error that actually caused the port to be frozen (AC_ERR_TIMEOUT).
+
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+---
+ drivers/ata/libata-core.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
+index 695a20dee1d1..884ae73b11ea 100644
+--- a/drivers/ata/libata-core.c
++++ b/drivers/ata/libata-core.c
+@@ -2000,7 +2000,8 @@ unsigned int ata_read_log_page(struct ata_device *dev, u8 log,
+ 	if (err_mask) {
+ 		if (dma) {
+ 			dev->horkage |= ATA_HORKAGE_NO_DMA_LOG;
+-			goto retry;
++			if (!ata_port_is_frozen(dev->link->ap))
++				goto retry;
+ 		}
+ 		ata_dev_err(dev,
+ 			    "Read log 0x%02x page 0x%02x failed, Emask 0x%x\n",
+-- 
+2.38.1
+
