@@ -476,7 +476,7 @@ The file can then be edited to modify the duration limit descriptors fields.
 #   - complete-earliest    : 0x0
 #   - continue-next-limit  : 0x1
 #   - continue-no-limit    : 0x2
-#   - complete-unavailable : 0x0d
+#   - complete-unavailable : 0xd
 #   - abort                : 0xf
 
 cdlp: T2A
