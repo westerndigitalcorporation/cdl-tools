@@ -268,6 +268,12 @@ function test_setup()
 	local page_type=$2
 	local original_page=$3
 
+	# temporary, remove once FW is stable
+	local rdev="$(realpath $1)"
+	local bdev="$(basename ${rdev})"
+	echo 1 > /sys/block/${bdev}/device/queue_depth
+	echo 32 > /sys/block/${bdev}/device/queue_depth
+
 	echo "Uploading $page_type page"
 	cdladm upload --file $original_page $dev || \
 		exit_failed " --> FAILED to upload $page_type page"
