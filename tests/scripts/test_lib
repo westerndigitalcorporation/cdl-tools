@@ -212,6 +212,22 @@ function disable_cdl()
 	echo "0" > /sys/block/${bdev}/device/duration_limits/enable
 }
 
+function validate_page()
+{
+	local dev=$1
+	local page_type=$2
+	local original_page=$3
+	local saved_page="${logdir}/saved_page.cdl"
+
+	cdladm save --page $page_type --file $saved_page $dev || \
+		return 1
+
+	diff $original_page $saved_page || \
+		return 1
+
+	return 0
+}
+
 function fio_get_clat_avg()
 {
 	local line=$(grep "clat prio $2" "$1" | head -1)
@@ -255,6 +271,9 @@ function test_setup()
 	echo "Uploading $page_type page"
 	cdladm upload --file $original_page $dev || \
 		exit_failed " --> FAILED to upload $page_type page"
+
+	validate_page $dev $page_type $original_page || \
+		exit_failed " --> FAILED to validate uploaded page"
 
 	enable_cdl $dev || exit_failed " --> FAILED to enable CDL"
 }
