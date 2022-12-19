@@ -57,7 +57,6 @@ max-active-time-policy: 0xd
 duration-guideline: 0
 duration-guideline-policy: 0x0
 
-# Policy 0xe descriptor, disabled for now
 == descriptor: 3
 t2cdlunits: 0x0
 max-inactive-time: 0

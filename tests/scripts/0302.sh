@@ -7,6 +7,8 @@
 
 . "${scriptdir}/test_lib"
 
+cdl_file="${scriptdir}/cdl/T2A-duration-guideline.cdl"
+
 if [ $# == 0 ]; then
 	echo "CDL dur. guideline (0x2 continue-no-limit policy)"
 	exit 0
@@ -18,11 +20,8 @@ if [ "${have_dg}" == "0" ]; then
 	exit_skip
 fi
 
-echo "Uploading T2A page"
-cdladm upload --file "${scriptdir}/cdl/T2A-duration-guideline.cdl" "$1" || \
-	exit_failed " --> FAILED to upload T2A page"
-
-enable_cdl "$1" || exit_failed " --> FAILED to enable CDL"
+test_setup $1 T2A $cdl_file || \
+	exit_failed " --> FAILED (error during setup)"
 
 # fio command
 fiocmd="fio --name=duration-guideline-best-effort"

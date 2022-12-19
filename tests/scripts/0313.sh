@@ -7,16 +7,15 @@
 
 . "${scriptdir}/test_lib"
 
+cdl_file="${scriptdir}/cdl/T2A-active-time.cdl"
+
 if [ $# == 0 ]; then
 	echo "CDL active time (0xf abort policy)"
 	exit 0
 fi
 
-echo "Uploading T2A page"
-cdladm upload --file "${scriptdir}/cdl/T2A-active-time.cdl" "$1" || \
-	exit_failed " --> FAILED to upload T2A page"
-
-enable_cdl "$1" || exit_failed " --> FAILED to enable CDL"
+test_setup $1 T2A $cdl_file || \
+	exit_failed " --> FAILED (error during setup)"
 
 # fio command
 fiocmd="fio --name=active-time-abort"

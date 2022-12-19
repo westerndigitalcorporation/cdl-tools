@@ -245,3 +245,16 @@ function fio_get_io_error()
 
 	echo "${err}" | cut -d'=' -f3 | cut -d'/' -f1
 }
+
+function test_setup()
+{
+	local dev=$1
+	local page_type=$2
+	local original_page=$3
+
+	echo "Uploading $page_type page"
+	cdladm upload --file $original_page $dev || \
+		exit_failed " --> FAILED to upload $page_type page"
+
+	enable_cdl $dev || exit_failed " --> FAILED to enable CDL"
+}
