@@ -805,7 +805,7 @@ Executing the test suite requires root access rights.
 ```
 sudo tests/cdl-tests.sh /dev/sdo
 Running CDL tests on cmr /dev/sdo:
-    Force all tests: enabled, NCQ: enabled, quick tests: enabled
+    NCQ: enabled, force all tests: disabled, quick tests: disabled
   Test 0001:  cdladm (get device information)                      ... PASS
   Test 0002:  cdladm (bad devices)                                 ... PASS
   Test 0100:  cdladm (list CDL descriptors)                        ... PASS
