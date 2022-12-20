@@ -1,10 +1,10 @@
-From 3efe70d9a1dab4a77658067dfe8ea816bd402633 Mon Sep 17 00:00:00 2001
+From 0d6e202c5da8ab49fff0096c350c318af0da42f8 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
-Date: Mon, 18 Apr 2022 15:47:14 +0900
-Subject: [PATCH 16/17] scsi: sd: set read/write commands CDL index
+Date: Fri, 9 Dec 2022 15:35:23 +0900
+Subject: [PATCH 45/48] scsi: sd: set read/write commands CDL index
 
 Introduce the command duration limits helper function
-sd_cdl_cmd_limit() to retreive and set the DLD bits of the
+sd_cdl_cmd_limit() to retrieve and set the DLD bits of the
 READ/WRITE 16 and READ/WRITE 32 commands to indicate to the device
 the command duration limit descriptor to apply to the command.
 
@@ -19,22 +19,24 @@ to 0 (default), command duration limits specified by the user are
 ignored. The user must set this attribute to 1 for command duration
 limits to be set. Enabling and disabling the command duration limits
 feature for ATA devices must be done using the ATA feature sub-page of
-the control mode page. The sd_cdl_enable() function is introduce to
+the control mode page. The sd_cdl_enable() function is introduced to
 check if this mode page is supported by the device and if it is, use
 it to enable/disable CDL.
 
+Co-developed-by: Niklas Cassel <niklas.cassel@wdc.com>
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
 Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
- drivers/scsi/sd.c     |  16 +++---
+ drivers/scsi/sd.c     |  16 +++--
  drivers/scsi/sd.h     |  10 ++++
- drivers/scsi/sd_cdl.c | 123 +++++++++++++++++++++++++++++++++++++++++-
- 3 files changed, 141 insertions(+), 8 deletions(-)
+ drivers/scsi/sd_cdl.c | 134 +++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 152 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
-index d3e215c68214..b488e2717f93 100644
+index 1ccdc7fa3708..21629c08d8ef 100644
 --- a/drivers/scsi/sd.c
 +++ b/drivers/scsi/sd.c
-@@ -1132,7 +1132,7 @@ static blk_status_t sd_setup_flush_cmnd(struct scsi_cmnd *cmd)
+@@ -1133,7 +1133,7 @@ static blk_status_t sd_setup_flush_cmnd(struct scsi_cmnd *cmd)
  
  static blk_status_t sd_setup_rw32_cmnd(struct scsi_cmnd *cmd, bool write,
  				       sector_t lba, unsigned int nr_blocks,
@@ -43,7 +45,7 @@ index d3e215c68214..b488e2717f93 100644
  {
  	cmd->cmnd = mempool_alloc(sd_cdb_pool, GFP_ATOMIC);
  	if (unlikely(cmd->cmnd == NULL))
-@@ -1145,6 +1145,7 @@ static blk_status_t sd_setup_rw32_cmnd(struct scsi_cmnd *cmd, bool write,
+@@ -1146,6 +1146,7 @@ static blk_status_t sd_setup_rw32_cmnd(struct scsi_cmnd *cmd, bool write,
  	cmd->cmnd[7]  = 0x18; /* Additional CDB len */
  	cmd->cmnd[9]  = write ? WRITE_32 : READ_32;
  	cmd->cmnd[10] = flags;
@@ -51,7 +53,7 @@ index d3e215c68214..b488e2717f93 100644
  	put_unaligned_be64(lba, &cmd->cmnd[12]);
  	put_unaligned_be32(lba, &cmd->cmnd[20]); /* Expected Indirect LBA */
  	put_unaligned_be32(nr_blocks, &cmd->cmnd[28]);
-@@ -1154,12 +1155,12 @@ static blk_status_t sd_setup_rw32_cmnd(struct scsi_cmnd *cmd, bool write,
+@@ -1155,12 +1156,12 @@ static blk_status_t sd_setup_rw32_cmnd(struct scsi_cmnd *cmd, bool write,
  
  static blk_status_t sd_setup_rw16_cmnd(struct scsi_cmnd *cmd, bool write,
  				       sector_t lba, unsigned int nr_blocks,
@@ -67,7 +69,7 @@ index d3e215c68214..b488e2717f93 100644
  	cmd->cmnd[15] = 0;
  	put_unaligned_be64(lba, &cmd->cmnd[2]);
  	put_unaligned_be32(nr_blocks, &cmd->cmnd[10]);
-@@ -1222,6 +1223,7 @@ static blk_status_t sd_setup_read_write_cmnd(struct scsi_cmnd *cmd)
+@@ -1223,6 +1224,7 @@ static blk_status_t sd_setup_read_write_cmnd(struct scsi_cmnd *cmd)
  	unsigned int mask = logical_to_sectors(sdp, 1) - 1;
  	bool write = rq_data_dir(rq) == WRITE;
  	unsigned char protect, fua;
@@ -75,7 +77,7 @@ index d3e215c68214..b488e2717f93 100644
  	blk_status_t ret;
  	unsigned int dif;
  	bool dix;
-@@ -1271,6 +1273,8 @@ static blk_status_t sd_setup_read_write_cmnd(struct scsi_cmnd *cmd)
+@@ -1272,6 +1274,8 @@ static blk_status_t sd_setup_read_write_cmnd(struct scsi_cmnd *cmd)
  	fua = rq->cmd_flags & REQ_FUA ? 0x8 : 0;
  	dix = scsi_prot_sg_count(cmd);
  	dif = scsi_host_dif_capable(cmd->device->host, sdkp->protection_type);
@@ -84,7 +86,7 @@ index d3e215c68214..b488e2717f93 100644
  
  	if (dif || dix)
  		protect = sd_setup_protect_cmnd(cmd, dix, dif);
-@@ -1279,10 +1283,10 @@ static blk_status_t sd_setup_read_write_cmnd(struct scsi_cmnd *cmd)
+@@ -1280,10 +1284,10 @@ static blk_status_t sd_setup_read_write_cmnd(struct scsi_cmnd *cmd)
  
  	if (protect && sdkp->protection_type == T10_PI_TYPE2_PROTECTION) {
  		ret = sd_setup_rw32_cmnd(cmd, write, lba, nr_blocks,
@@ -134,10 +136,10 @@ index cdf924537ba3..b324e63767ac 100644
  
  #endif /* _SCSI_DISK_H */
 diff --git a/drivers/scsi/sd_cdl.c b/drivers/scsi/sd_cdl.c
-index 513cd989f19a..5fda81ed60e2 100644
+index 513cd989f19a..59d02dbb5ea1 100644
 --- a/drivers/scsi/sd_cdl.c
 +++ b/drivers/scsi/sd_cdl.c
-@@ -93,6 +93,52 @@ static const char *sd_cdl_policy_name(u8 policy)
+@@ -93,6 +93,63 @@ static const char *sd_cdl_policy_name(u8 policy)
  	}
  }
  
@@ -149,18 +151,29 @@ index 513cd989f19a..5fda81ed60e2 100644
 +	struct scsi_device *sdp = sdkp->device;
 +	struct scsi_mode_data data;
 +	struct scsi_sense_hdr sshdr;
++	struct scsi_vpd *vpd;
++	bool is_ata = false;
 +	char buf[64];
 +	int ret;
 +
++	rcu_read_lock();
++	vpd = rcu_dereference(sdp->vpd_pg89);
++	if (vpd)
++		is_ata = true;
++	rcu_read_unlock();
++
 +	/*
-+	 * See if the device supports the ATA feature sub-page of the
-+	 * control mode page.
++	 * For ATA devices, CDL needs to be enabled with a SET FEATURES command.
 +	 */
-+	ret = scsi_mode_sense(sdp, 0x08, 0x0a, 0xf2, buf, sizeof(buf),
-+			      SD_TIMEOUT, sdkp->max_retries, &data, NULL);
-+	if (!ret) {
++	if (is_ata) {
 +		char *buf_data;
 +		int len;
++
++		ret = scsi_mode_sense(sdp, 0x08, 0x0a, 0xf2, buf, sizeof(buf),
++				      SD_TIMEOUT, sdkp->max_retries, &data,
++				      NULL);
++		if (ret)
++			return -EINVAL;
 +
 +		/* Enable CDL using the ATA feature page */
 +		len = min_t(size_t, sizeof(buf),
@@ -190,7 +203,7 @@ index 513cd989f19a..5fda81ed60e2 100644
  /*
   * Command duration limits descriptors sysfs plumbing.
   */
-@@ -324,6 +370,7 @@ static int sd_cdl_sysfs_register_page(struct scsi_disk *sdkp,
+@@ -324,6 +381,7 @@ static int sd_cdl_sysfs_register_page(struct scsi_disk *sdkp,
  struct sd_cdl_sysfs_entry {
  	struct attribute attr;
  	ssize_t (*show)(struct sd_cdl *cdl, char *buf);
@@ -198,7 +211,7 @@ index 513cd989f19a..5fda81ed60e2 100644
  };
  
  #define CDL_ATTR_RO(_name)	\
-@@ -332,6 +379,13 @@ struct sd_cdl_sysfs_entry {
+@@ -332,6 +390,13 @@ struct sd_cdl_sysfs_entry {
  		.show	= cdl_##_name##_show,				\
  	}
  
@@ -212,7 +225,7 @@ index 513cd989f19a..5fda81ed60e2 100644
  static ssize_t cdl_perf_vs_duration_guideline_show(struct sd_cdl *cdl,
  						   char *buf)
  {
-@@ -340,8 +394,31 @@ static ssize_t cdl_perf_vs_duration_guideline_show(struct sd_cdl *cdl,
+@@ -340,8 +405,31 @@ static ssize_t cdl_perf_vs_duration_guideline_show(struct sd_cdl *cdl,
  }
  CDL_ATTR_RO(perf_vs_duration_guideline);
  
@@ -244,7 +257,7 @@ index 513cd989f19a..5fda81ed60e2 100644
  	NULL,
  };
  
-@@ -375,8 +452,25 @@ static ssize_t sd_cdl_sysfs_show(struct kobject *kobj,
+@@ -375,8 +463,25 @@ static ssize_t sd_cdl_sysfs_show(struct kobject *kobj,
  	return entry->show(cdl, page);
  }
  
@@ -270,7 +283,7 @@ index 513cd989f19a..5fda81ed60e2 100644
  };
  
  static void sd_cdl_sysfs_release(struct kobject *kobj)
-@@ -411,6 +505,7 @@ static void sd_cdl_sysfs_unregister(struct scsi_disk *sdkp)
+@@ -411,6 +516,7 @@ static void sd_cdl_sysfs_unregister(struct scsi_disk *sdkp)
  			sd_cdl_sysfs_unregister_page(&cdl->pages[i]);
  	}
  
@@ -278,7 +291,7 @@ index 513cd989f19a..5fda81ed60e2 100644
  	kobject_del(&cdl->kobj);
  	kobject_put(&cdl->kobj);
  }
-@@ -689,7 +784,7 @@ static bool sd_cdl_supported(struct scsi_disk *sdkp, enum sd_cdlp *rw_cdlp,
+@@ -689,7 +795,7 @@ static bool sd_cdl_supported(struct scsi_disk *sdkp, enum sd_cdlp *rw_cdlp,
  		rw_cdlp[SD_CDL_WRITE] != SD_CDLP_NONE;
  }
  
@@ -287,7 +300,7 @@ index 513cd989f19a..5fda81ed60e2 100644
  {
  	struct sd_cdl *cdl;
  	struct sd_cdl_page *page;
-@@ -699,6 +794,7 @@ static struct sd_cdl *sd_cdl_alloc(void)
+@@ -699,6 +805,7 @@ static struct sd_cdl *sd_cdl_alloc(void)
  	if (!cdl)
  		return NULL;
  
@@ -295,7 +308,7 @@ index 513cd989f19a..5fda81ed60e2 100644
  	kobject_init(&cdl->kobj, &sd_cdl_ktype);
  	for (i = 0; i < SD_CDL_RW; i++) {
  		page = &cdl->pages[i];
-@@ -725,7 +821,7 @@ void sd_read_cdl(struct scsi_disk *sdkp, unsigned char *buf)
+@@ -725,7 +832,7 @@ void sd_read_cdl(struct scsi_disk *sdkp, unsigned char *buf)
  		goto unregister;
  
  	if (!cdl) {
@@ -304,7 +317,7 @@ index 513cd989f19a..5fda81ed60e2 100644
  		if (!cdl)
  			return;
  	}
-@@ -762,3 +858,26 @@ void sd_cdl_release(struct scsi_disk *sdkp)
+@@ -762,3 +869,26 @@ void sd_cdl_release(struct scsi_disk *sdkp)
  {
  	sd_cdl_sysfs_unregister(sdkp);
  }
@@ -332,5 +345,5 @@ index 513cd989f19a..5fda81ed60e2 100644
 +	return dld;
 +}
 -- 
-2.35.1
+2.38.1
 

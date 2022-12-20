@@ -1,25 +1,25 @@
-From 39565619f071973a11c70d55449ab248ecda0a34 Mon Sep 17 00:00:00 2001
+From 269796ed52ad575fbfadce257a59534912da87c7 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
-Date: Sat, 2 Apr 2022 14:10:40 +0900
-Subject: [PATCH 14/17] scsi: Define the COMPLETED sense key
+Date: Mon, 26 Sep 2022 20:53:05 +0000
+Subject: [PATCH 14/48] scsi: Define the COMPLETED sense key
+
+Upstream commit d9504c65be2a0794822363f3d75bb41e9c8b3691
 
 Add the definition for the COMPLETED sense key in scsi_proto.h. While at
 it, cleanup the white lines around the sense keys macro definitions.
 
 Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
+Acked-by: Martin K. Petersen <martin.petersen@oracle.com>
 ---
- include/scsi/scsi_proto.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ include/scsi/scsi_proto.h | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/include/scsi/scsi_proto.h b/include/scsi/scsi_proto.h
-index f017843a8124..53cafcd2e9ca 100644
+index f017843a8124..2fc8c538722e 100644
 --- a/include/scsi/scsi_proto.h
 +++ b/include/scsi/scsi_proto.h
-@@ -205,10 +205,10 @@ enum sam_status {
- };
- 
- #define STATUS_MASK         0xfe
-+
+@@ -208,7 +208,6 @@ enum sam_status {
  /*
   *  SENSE KEYS
   */
@@ -27,7 +27,7 @@ index f017843a8124..53cafcd2e9ca 100644
  #define NO_SENSE            0x00
  #define RECOVERED_ERROR     0x01
  #define NOT_READY           0x02
-@@ -223,7 +223,7 @@ enum sam_status {
+@@ -223,7 +222,7 @@ enum sam_status {
  #define ABORTED_COMMAND     0x0b
  #define VOLUME_OVERFLOW     0x0d
  #define MISCOMPARE          0x0e
@@ -37,5 +37,5 @@ index f017843a8124..53cafcd2e9ca 100644
  /*
   *  DEVICE TYPES
 -- 
-2.35.1
+2.38.1
 

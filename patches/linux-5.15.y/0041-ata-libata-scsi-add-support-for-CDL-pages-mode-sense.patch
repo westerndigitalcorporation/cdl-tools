@@ -1,8 +1,7 @@
-From e0f1fab3ae471d67042ba40b005877147826c643 Mon Sep 17 00:00:00 2001
+From 0313f01cb5b9b13ae472b0461ac2121160499884 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Tue, 28 Sep 2021 21:00:02 +0900
-Subject: [PATCH 09/17] ata: libata-scsi: Add support for T2A and T2B pages
- mode sense
+Subject: [PATCH 41/48] ata: libata-scsi: add support for CDL pages mode sense
 
 Modify ata_scsiop_mode_sense() and ata_msense_control() to support mode
 sense access to the T2A and T2B sub-pages of the control mode page.
@@ -14,13 +13,15 @@ sub-pages of the control mode page is also supported by increasing the
 value of ATA_SCSI_RBUF_SIZE from 576B up to 2048B to ensure that all
 sub-pages fit in the fill buffer.
 
+Co-developed-by: Niklas Cassel <niklas.cassel@wdc.com>
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
 Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
- drivers/ata/libata-scsi.c | 146 ++++++++++++++++++++++++++++++++------
- 1 file changed, 124 insertions(+), 22 deletions(-)
+ drivers/ata/libata-scsi.c | 150 ++++++++++++++++++++++++++++++++------
+ 1 file changed, 128 insertions(+), 22 deletions(-)
 
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index a51716da48fc..af1657e1bf24 100644
+index 966163e7a1be..b4a72e50781e 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -37,7 +37,7 @@
@@ -38,11 +39,11 @@ index a51716da48fc..af1657e1bf24 100644
  #define ALL_SUB_MPAGES			0xff
 +#define CDL_T2A_SUB_MPAGE		0x07
 +#define CDL_T2B_SUB_MPAGE		0x08
-+#define CDL_T2_SUB_MPAGE_LEN		0xe4
++#define CDL_T2_SUB_MPAGE_LEN		232
  
  static const u8 def_rw_recovery_mpage[RW_RECOVERY_MPAGE_LEN] = {
  	RW_RECOVERY_MPAGE,
-@@ -2168,10 +2171,94 @@ static unsigned int ata_msense_caching(u16 *id, u8 *buf, bool changeable)
+@@ -2178,10 +2181,98 @@ static unsigned int ata_msense_caching(u16 *id, u8 *buf, bool changeable)
  	return sizeof(def_cache_mpage);
  }
  
@@ -90,10 +91,14 @@ index a51716da48fc..af1657e1bf24 100644
 +	u32 policy;
 +	int i;
 +
-+	/* Fill the subpage, starting with the header */
++	/*
++	 * Fill the subpage. The first four bytes of the T2A/T2B mode pages
++	 * are a header. The PAGE LENGTH field is the size of the page
++	 * excluding the header.
++	 */
 +	buf[0] = CONTROL_MPAGE;
 +	buf[1] = spg;
-+	put_unaligned_be16(CDL_T2_SUB_MPAGE_LEN, &buf[2]);
++	put_unaligned_be16(CDL_T2_SUB_MPAGE_LEN - 4, &buf[2]);
 +	if (spg == CDL_T2A_SUB_MPAGE) {
 +		/*
 +		 * Read descriptors map to the T2A page:
@@ -137,7 +142,7 @@ index a51716da48fc..af1657e1bf24 100644
   *	@changeable: whether changeable parameters are requested
   *
   *	Generate a generic MODE SENSE control mode page.
-@@ -2180,17 +2267,24 @@ static unsigned int ata_msense_caching(u16 *id, u8 *buf, bool changeable)
+@@ -2190,17 +2281,24 @@ static unsigned int ata_msense_caching(u16 *id, u8 *buf, bool changeable)
   *	None.
   */
  static unsigned int ata_msense_control(struct ata_device *dev, u8 *buf,
@@ -171,7 +176,7 @@ index a51716da48fc..af1657e1bf24 100644
  }
  
  /**
-@@ -2289,13 +2383,24 @@ static unsigned int ata_scsiop_mode_sense(struct ata_scsi_args *args, u8 *rbuf)
+@@ -2299,13 +2397,24 @@ static unsigned int ata_scsiop_mode_sense(struct ata_scsi_args *args, u8 *rbuf)
  
  	pg = scsicmd[2] & 0x3f;
  	spg = scsicmd[3];
@@ -201,7 +206,7 @@ index a51716da48fc..af1657e1bf24 100644
  	}
  
  	switch(pg) {
-@@ -2308,13 +2413,13 @@ static unsigned int ata_scsiop_mode_sense(struct ata_scsi_args *args, u8 *rbuf)
+@@ -2318,13 +2427,13 @@ static unsigned int ata_scsiop_mode_sense(struct ata_scsi_args *args, u8 *rbuf)
  		break;
  
  	case CONTROL_MPAGE:
@@ -217,7 +222,7 @@ index a51716da48fc..af1657e1bf24 100644
  		break;
  
  	default:		/* invalid page code */
-@@ -2335,10 +2440,7 @@ static unsigned int ata_scsiop_mode_sense(struct ata_scsi_args *args, u8 *rbuf)
+@@ -2345,10 +2454,7 @@ static unsigned int ata_scsiop_mode_sense(struct ata_scsi_args *args, u8 *rbuf)
  			memcpy(rbuf + 4, sat_blk_desc, sizeof(sat_blk_desc));
  		}
  	} else {
@@ -229,7 +234,7 @@ index a51716da48fc..af1657e1bf24 100644
  		rbuf[3] |= dpofua;
  		if (ebd) {
  			rbuf[7] = sizeof(sat_blk_desc);
-@@ -3648,7 +3750,7 @@ static int ata_mselect_control(struct ata_queued_cmd *qc,
+@@ -3659,7 +3765,7 @@ static int ata_mselect_control(struct ata_queued_cmd *qc,
  	/*
  	 * Check that read-only bits are not modified.
  	 */
@@ -239,5 +244,5 @@ index a51716da48fc..af1657e1bf24 100644
  		if (i == 0)
  			continue;
 -- 
-2.35.1
+2.38.1
 

@@ -1,22 +1,24 @@
-From d056d36aab7db3dd939bbdaca89304f396ba123c Mon Sep 17 00:00:00 2001
+From 0cb8239f8885857df3d5d7f9e073bedf99b94957 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
-Date: Mon, 11 Apr 2022 14:01:34 +0900
-Subject: [PATCH 05/17] block: Introduce BLK_STS_DURATION_LIMIT
+Date: Fri, 9 Dec 2022 15:27:41 +0900
+Subject: [PATCH 38/48] block: introduce BLK_STS_DURATION_LIMIT
 
 Introduce the new block IO status BLK_STS_DURATION_LIMIT for LLDDs to
 report command that failed due to a command duration limit being
 exceeded. This new status is mapped to the ETIME error code to allow
-users to differenciate "soft" duration limit failures from other more
+users to differentiate "soft" duration limit failures from other more
 serious hardware related errors.
 
+Co-developed-by: Niklas Cassel <niklas.cassel@wdc.com>
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
 Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  block/blk-core.c          | 3 +++
- include/linux/blk_types.h | 3 ++-
- 2 files changed, 5 insertions(+), 1 deletion(-)
+ include/linux/blk_types.h | 6 ++++++
+ 2 files changed, 9 insertions(+)
 
 diff --git a/block/blk-core.c b/block/blk-core.c
-index 5009b9f1c3c9..29681d0cc377 100644
+index 13e1fca1e923..42ff0c6fcaea 100644
 --- a/block/blk-core.c
 +++ b/block/blk-core.c
 @@ -188,6 +188,9 @@ static const struct {
@@ -30,19 +32,22 @@ index 5009b9f1c3c9..29681d0cc377 100644
  	[BLK_STS_IOERR]		= { -EIO,	"I/O" },
  };
 diff --git a/include/linux/blk_types.h b/include/linux/blk_types.h
-index be622b5a21ed..82d77bdb80c4 100644
+index 36ce3d0fb9f3..d97ff31bcf21 100644
 --- a/include/linux/blk_types.h
 +++ b/include/linux/blk_types.h
-@@ -79,7 +79,8 @@ typedef u8 __bitwise blk_status_t;
- #define BLK_STS_MEDIUM		((__force blk_status_t)7)
- #define BLK_STS_PROTECTION	((__force blk_status_t)8)
- #define BLK_STS_RESOURCE	((__force blk_status_t)9)
--#define BLK_STS_IOERR		((__force blk_status_t)10)
-+#define BLK_STS_DURATION_LIMIT	((__force blk_status_t)10)
-+#define BLK_STS_IOERR		((__force blk_status_t)11)
+@@ -134,6 +134,12 @@ typedef u8 __bitwise blk_status_t;
+  */
+ #define BLK_STS_ZONE_ACTIVE_RESOURCE	((__force blk_status_t)16)
  
- /* hack for device mapper, don't use elsewhere: */
- #define BLK_STS_DM_REQUEUE    ((__force blk_status_t)11)
++/*
++ * BLK_STS_DURATION_LIMIT is returned from the driver when the target device
++ * aborted the command because it exceeded one of its Command Duration Limits.
++ */
++#define BLK_STS_DURATION_LIMIT	((__force blk_status_t)17)
++
+ /**
+  * blk_path_error - returns true if error may be path related
+  * @error: status the request was completed with
 -- 
-2.35.1
+2.38.1
 

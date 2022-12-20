@@ -1,7 +1,7 @@
-From d15d9339ef8097e42d6cd86b6cbd1a6261aa2a59 Mon Sep 17 00:00:00 2001
+From b97a1f9e4df9a3581a4ea9a1683bdafa82f9d489 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
-Date: Sat, 31 Jul 2021 11:06:09 +0900
-Subject: [PATCH 04/17] block: Introduce duration-limits priority class
+Date: Fri, 9 Dec 2022 15:25:16 +0900
+Subject: [PATCH 37/48] block: introduce duration-limits priority class
 
 Introduce the IOPRIO_CLASS_DL priority class to indicate that IOs should
 be executed using duration-limits targets. The duration target to apply
@@ -11,23 +11,21 @@ supported, with level 0 indiating "no limit".
 This priority class has effect only if the target device supports the
 command duration limits feature and this feature is enabled by the user.
 In BFQ and mq-deadline, all requests with this new priority class are
-handled using the highest prioty class RT and priority level 0.
+handled using the highest priority class RT and priority level 0.
 
 Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  block/bfq-iosched.c         | 10 ++++++++++
- block/blk-ioprio.c          |  3 +++
  block/ioprio.c              |  3 ++-
- block/mq-deadline.c         |  1 +
  include/linux/ioprio.h      |  2 +-
  include/uapi/linux/ioprio.h |  7 +++++++
- 6 files changed, 24 insertions(+), 2 deletions(-)
+ 4 files changed, 20 insertions(+), 2 deletions(-)
 
 diff --git a/block/bfq-iosched.c b/block/bfq-iosched.c
-index e66970bf27db..8414cdf2dee5 100644
+index 7d8fe13573f6..43cde40fe0c0 100644
 --- a/block/bfq-iosched.c
 +++ b/block/bfq-iosched.c
-@@ -5291,6 +5291,14 @@ bfq_set_next_ioprio_data(struct bfq_queue *bfqq, struct bfq_io_cq *bic)
+@@ -5318,6 +5318,14 @@ bfq_set_next_ioprio_data(struct bfq_queue *bfqq, struct bfq_io_cq *bic)
  		bfqq->new_ioprio_class = IOPRIO_CLASS_IDLE;
  		bfqq->new_ioprio = 7;
  		break;
@@ -42,7 +40,7 @@ index e66970bf27db..8414cdf2dee5 100644
  	}
  
  	if (bfqq->new_ioprio >= IOPRIO_NR_LEVELS) {
-@@ -5417,6 +5425,8 @@ static struct bfq_queue **bfq_async_queue_prio(struct bfq_data *bfqd,
+@@ -5444,6 +5452,8 @@ static struct bfq_queue **bfq_async_queue_prio(struct bfq_data *bfqd,
  		return &bfqg->async_bfqq[1][ioprio];
  	case IOPRIO_CLASS_IDLE:
  		return &bfqg->async_idle_bfqq;
@@ -51,34 +49,6 @@ index e66970bf27db..8414cdf2dee5 100644
  	default:
  		return NULL;
  	}
-diff --git a/block/blk-ioprio.c b/block/blk-ioprio.c
-index 332a07761bf8..73ee10ebfbdc 100644
---- a/block/blk-ioprio.c
-+++ b/block/blk-ioprio.c
-@@ -27,6 +27,7 @@
-  * @POLICY_RESTRICT_TO_BE: modify IOPRIO_CLASS_NONE and IOPRIO_CLASS_RT into
-  *		IOPRIO_CLASS_BE.
-  * @POLICY_ALL_TO_IDLE: change the I/O priority class into IOPRIO_CLASS_IDLE.
-+ * @POLICY_ALL_TO_DL: change the I/O priority class into IOPRIO_CLASS_DL.
-  *
-  * See also <linux/ioprio.h>.
-  */
-@@ -35,6 +36,7 @@ enum prio_policy {
- 	POLICY_NONE_TO_RT	= 1,
- 	POLICY_RESTRICT_TO_BE	= 2,
- 	POLICY_ALL_TO_IDLE	= 3,
-+	POLICY_ALL_TO_DL	= 4,
- };
- 
- static const char *policy_name[] = {
-@@ -42,6 +44,7 @@ static const char *policy_name[] = {
- 	[POLICY_NONE_TO_RT]	= "none-to-rt",
- 	[POLICY_RESTRICT_TO_BE]	= "restrict-to-be",
- 	[POLICY_ALL_TO_IDLE]	= "idle",
-+	[POLICY_ALL_TO_DL]	= "duration-limits",
- };
- 
- static struct blkcg_policy ioprio_policy;
 diff --git a/block/ioprio.c b/block/ioprio.c
 index 6f01d35a5145..ff0b696988ba 100644
 --- a/block/ioprio.c
@@ -100,20 +70,8 @@ index 6f01d35a5145..ff0b696988ba 100644
  		case IOPRIO_CLASS_BE:
  			if (data >= IOPRIO_NR_LEVELS || data < 0)
  				return -EINVAL;
-diff --git a/block/mq-deadline.c b/block/mq-deadline.c
-index cd2342d29704..0cb2b739020b 100644
---- a/block/mq-deadline.c
-+++ b/block/mq-deadline.c
-@@ -136,6 +136,7 @@ static const enum dd_prio ioprio_class_to_prio[] = {
- 	[IOPRIO_CLASS_RT]	= DD_RT_PRIO,
- 	[IOPRIO_CLASS_BE]	= DD_BE_PRIO,
- 	[IOPRIO_CLASS_IDLE]	= DD_IDLE_PRIO,
-+	[IOPRIO_CLASS_DL]	= DD_RT_PRIO,
- };
- 
- static inline struct rb_root *
 diff --git a/include/linux/ioprio.h b/include/linux/ioprio.h
-index 3f53bc27a19b..d3537fc4f1b9 100644
+index 3d088a88f832..a417e9804958 100644
 --- a/include/linux/ioprio.h
 +++ b/include/linux/ioprio.h
 @@ -20,7 +20,7 @@ static inline bool ioprio_valid(unsigned short ioprio)
@@ -151,5 +109,5 @@ index f70f2596a6bf..15908b9e9d8c 100644
  	IOPRIO_WHO_PROCESS = 1,
  	IOPRIO_WHO_PGRP,
 -- 
-2.35.1
+2.38.1
 

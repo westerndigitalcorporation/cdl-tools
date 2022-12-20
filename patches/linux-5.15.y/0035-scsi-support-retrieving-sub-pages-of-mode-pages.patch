@@ -1,9 +1,9 @@
-From 7cc4b461937a8ce728c833faab5f7534378575cc Mon Sep 17 00:00:00 2001
+From 2c63d1bd2fc64386591b124b15a94cc689556f2e Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Fri, 30 Jul 2021 16:51:22 +0900
-Subject: [PATCH 12/17] scsi: Support retreiving sub-pages of mode pages
+Subject: [PATCH 35/48] scsi: support retrieving sub-pages of mode pages
 
-Allow scsi_mode_sense() to retreive sub-pages of mode pages by adding
+Allow scsi_mode_sense() to retrieve sub-pages of mode pages by adding
 the subpage argument. Change all the current caller sites to specify
 the subpage 0.
 
@@ -13,8 +13,8 @@ Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
  drivers/scsi/scsi_transport_sas.c | 2 +-
  drivers/scsi/sd.c                 | 9 ++++-----
  drivers/scsi/sr.c                 | 2 +-
- include/scsi/scsi_device.h        | 4 ++--
- 5 files changed, 11 insertions(+), 10 deletions(-)
+ include/scsi/scsi_device.h        | 5 +++--
+ 5 files changed, 12 insertions(+), 10 deletions(-)
 
 diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
 index 8e402313ee36..65cc86348ec4 100644
@@ -46,10 +46,10 @@ index 8e402313ee36..65cc86348ec4 100644
  	/* caller might not be interested in sense, but we need it */
  	if (!sshdr)
 diff --git a/drivers/scsi/scsi_transport_sas.c b/drivers/scsi/scsi_transport_sas.c
-index 4a96fb05731d..65a390693ded 100644
+index c6256fdc24b1..ef151f6b99e5 100644
 --- a/drivers/scsi/scsi_transport_sas.c
 +++ b/drivers/scsi/scsi_transport_sas.c
-@@ -1234,7 +1234,7 @@ int sas_read_port_mode_page(struct scsi_device *sdev)
+@@ -1239,7 +1239,7 @@ int sas_read_port_mode_page(struct scsi_device *sdev)
  	if (!buffer)
  		return -ENOMEM;
  
@@ -59,7 +59,7 @@ index 4a96fb05731d..65a390693ded 100644
  
  	if (error)
 diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
-index 07efece1197d..169c6405d452 100644
+index 2d273ced1b35..18dd3f70830e 100644
 --- a/drivers/scsi/sd.c
 +++ b/drivers/scsi/sd.c
 @@ -192,7 +192,7 @@ cache_type_store(struct device *dev, struct device_attribute *attr,
@@ -71,7 +71,7 @@ index 07efece1197d..169c6405d452 100644
  			    sdkp->max_retries, &data, NULL))
  		return -EINVAL;
  	len = min_t(size_t, sizeof(buffer), data.length - data.header_length -
-@@ -2615,9 +2615,8 @@ sd_do_mode_sense(struct scsi_disk *sdkp, int dbd, int modepage,
+@@ -2616,9 +2616,8 @@ sd_do_mode_sense(struct scsi_disk *sdkp, int dbd, int modepage,
  	if (sdkp->device->use_10_for_ms && len < 8)
  		len = 8;
  
@@ -83,7 +83,7 @@ index 07efece1197d..169c6405d452 100644
  }
  
  /*
-@@ -2873,7 +2872,7 @@ static void sd_read_app_tag_own(struct scsi_disk *sdkp, unsigned char *buffer)
+@@ -2874,7 +2873,7 @@ static void sd_read_app_tag_own(struct scsi_disk *sdkp, unsigned char *buffer)
  	if (sdkp->protection_type == 0)
  		return;
  
@@ -93,7 +93,7 @@ index 07efece1197d..169c6405d452 100644
  
  	if (res < 0 || !data.header_length ||
 diff --git a/drivers/scsi/sr.c b/drivers/scsi/sr.c
-index 973d6e079b02..31f6020a94bc 100644
+index 652cd81d7775..67fd76ec3718 100644
 --- a/drivers/scsi/sr.c
 +++ b/drivers/scsi/sr.c
 @@ -862,7 +862,7 @@ static void get_capabilities(struct scsi_cd *cd)
@@ -106,20 +106,21 @@ index 973d6e079b02..31f6020a94bc 100644
  
  	if (rc < 0 || data.length > ms_len ||
 diff --git a/include/scsi/scsi_device.h b/include/scsi/scsi_device.h
-index b9276dc3f7c6..452728a68111 100644
+index 81285909c302..fcf48c604627 100644
 --- a/include/scsi/scsi_device.h
 +++ b/include/scsi/scsi_device.h
-@@ -410,8 +410,8 @@ extern int scsi_track_queue_full(struct scsi_device *, int);
+@@ -415,8 +415,9 @@ extern int scsi_track_queue_full(struct scsi_device *, int);
  extern int scsi_set_medium_removal(struct scsi_device *, char);
  
  extern int scsi_mode_sense(struct scsi_device *sdev, int dbd, int modepage,
 -			   unsigned char *buffer, int len, int timeout,
 -			   int retries, struct scsi_mode_data *data,
 +			   int subpage, unsigned char *buffer, int len,
-+			   int timeout, int retries,struct scsi_mode_data *data,
++			   int timeout, int retries,
++			   struct scsi_mode_data *data,
  			   struct scsi_sense_hdr *);
  extern int scsi_mode_select(struct scsi_device *sdev, int pf, int sp,
  			    unsigned char *buffer, int len, int timeout,
 -- 
-2.35.1
+2.38.1
 

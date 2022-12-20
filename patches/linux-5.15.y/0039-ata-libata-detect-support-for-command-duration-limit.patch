@@ -1,28 +1,30 @@
-From 81fb25fada91ea9497fca36f57ae1993937ff2cd Mon Sep 17 00:00:00 2001
+From 4bb2ef0ca0ffeb4b4e303df52522cb0b217389e9 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
-Date: Mon, 18 Apr 2022 15:38:29 +0900
-Subject: [PATCH 07/17] ata: libata: detect command duration limits support
+Date: Fri, 9 Dec 2022 15:29:36 +0900
+Subject: [PATCH 39/48] ata: libata: detect support for command duration limits
 
-Use the supported capabilities log page to detect if a device supports
-the command duration limits feature. For devices supporting this
-feature, set the device flag ATA_DFLAG_CDL. To support scsi-ata
-translation, retreive the command duration limits log page 18h and
-cache this page content using the cdl array added to the ata_device
+Use the supported capabilities identify device data log page to detect
+if a device supports the command duration limits feature. For devices
+supporting this feature, set the device flag ATA_DFLAG_CDL. To support
+scsi-ata translation, retrieve the command duration limits log page 18h
+and cache this page content using the cdl array added to the ata_device
 data structure.
 
+Co-developed-by: Niklas Cassel <niklas.cassel@wdc.com>
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
 Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
- drivers/ata/libata-core.c | 46 +++++++++++++++++++++++++++++++++++++--
- drivers/ata/libata-scsi.c | 17 +++++++--------
- include/linux/ata.h       |  7 ++++++
+ drivers/ata/libata-core.c | 54 +++++++++++++++++++++++++++++++++++++--
+ drivers/ata/libata-scsi.c | 17 ++++++------
+ include/linux/ata.h       |  5 +++-
  include/linux/libata.h    |  6 ++++-
- 4 files changed, 64 insertions(+), 12 deletions(-)
+ 4 files changed, 69 insertions(+), 13 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index 24b67d78cb83..b5b1d5b55218 100644
+index 941a32788824..3b108edae800 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
-@@ -2377,6 +2377,46 @@ static void ata_dev_config_trusted(struct ata_device *dev)
+@@ -2378,6 +2378,54 @@ static void ata_dev_config_trusted(struct ata_device *dev)
  		dev->flags |= ATA_DFLAG_TRUSTED;
  }
  
@@ -30,6 +32,10 @@ index 24b67d78cb83..b5b1d5b55218 100644
 +{
 +	struct ata_port *ap = dev->link->ap;
 +	unsigned int err_mask;
++	u64 val;
++
++	if (ata_id_major_version(dev->id) < 12)
++		goto not_supported;
 +
 +	if (!ata_log_supported(dev, ATA_LOG_IDENTIFY_DEVICE) ||
 +	    !ata_identify_page_supported(dev, ATA_LOG_SUPPORTED_CAPABILITIES))
@@ -41,16 +47,20 @@ index 24b67d78cb83..b5b1d5b55218 100644
 +	if (err_mask)
 +		goto not_supported;
 +
-+	if (!(ap->sector_buf[ATA_LOG_CDL_VALID_OFFSET] & BIT(7)))
++	/* Check Command Duration Limit Supported bits */
++	val = get_unaligned_le64(&ap->sector_buf[168]);
++	if (!(val & BIT_ULL(63)) || !(val & BIT_ULL(0)))
 +		goto not_supported;
 +
-+	if (!(ap->sector_buf[ATA_LOG_CDL_FEATURE_OFFSET] & BIT(0)))
-+		goto not_supported;
++	/* Warn the user if command duration guideline is not supported */
++	if (!(val & BIT_ULL(1)))
++		ata_dev_warn(dev,
++			"Command duration guideline is not supported\n");
 +
-+	if (!(ap->sector_buf[ATA_LOG_CDL_FEATURE_OFFSET] & BIT(1)))
-+		goto not_supported;
-+
-+	/* Command duration limits is supported: cache the CDL log page 18h */
++	/*
++	 * Command duration limits is supported: cache the CDL log page 18h
++	 * (command duration descriptors).
++	 */
 +	err_mask = ata_read_log_page(dev, ATA_LOG_CDL, 0, ap->sector_buf, 1);
 +	if (err_mask) {
 +		ata_dev_warn(dev, "Read Command Duration Limits log failed\n");
@@ -69,7 +79,7 @@ index 24b67d78cb83..b5b1d5b55218 100644
  static int ata_dev_config_lba(struct ata_device *dev)
  {
  	struct ata_port *ap = dev->link->ap;
-@@ -2470,12 +2510,13 @@ static void ata_dev_print_features(struct ata_device *dev)
+@@ -2471,12 +2519,13 @@ static void ata_dev_print_features(struct ata_device *dev)
  		return;
  
  	ata_dev_info(dev,
@@ -81,11 +91,11 @@ index 24b67d78cb83..b5b1d5b55218 100644
  		     dev->flags & ATA_DFLAG_NCQ_SEND_RECV ? " NCQ-sndrcv" : "",
 -		     dev->flags & ATA_DFLAG_NCQ_PRIO ? " NCQ-prio" : "");
 +		     dev->flags & ATA_DFLAG_NCQ_PRIO ? " NCQ-prio" : "",
-+		     dev->flags & ATA_DFLAG_CDL ? " NCQ-cdl" : "");
++		     dev->flags & ATA_DFLAG_CDL ? " CDL" : "");
  }
  
  /**
-@@ -2639,6 +2680,7 @@ int ata_dev_configure(struct ata_device *dev)
+@@ -2640,6 +2689,7 @@ int ata_dev_configure(struct ata_device *dev)
  		ata_dev_config_sense_reporting(dev);
  		ata_dev_config_zac(dev);
  		ata_dev_config_trusted(dev);
@@ -94,7 +104,7 @@ index 24b67d78cb83..b5b1d5b55218 100644
  
  		if (ata_msg_drv(ap) && print_info)
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index 7f7d71a4378e..b889d3995f62 100644
+index 0e47bb44ee6a..98e0f78ee5a7 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
 @@ -47,15 +47,14 @@ typedef unsigned int (*ata_xlat_func_t)(struct ata_queued_cmd *qc);
@@ -122,10 +132,10 @@ index 7f7d71a4378e..b889d3995f62 100644
  static const u8 def_rw_recovery_mpage[RW_RECOVERY_MPAGE_LEN] = {
  	RW_RECOVERY_MPAGE,
 diff --git a/include/linux/ata.h b/include/linux/ata.h
-index 1b44f40c7700..55390adf89ee 100644
+index 3b1ad57d0e01..15399b289288 100644
 --- a/include/linux/ata.h
 +++ b/include/linux/ata.h
-@@ -323,13 +323,20 @@ enum {
+@@ -323,14 +323,17 @@ enum {
  	ATA_LOG_SATA_NCQ	= 0x10,
  	ATA_LOG_NCQ_NON_DATA	= 0x12,
  	ATA_LOG_NCQ_SEND_RECV	= 0x13,
@@ -139,26 +149,24 @@ index 1b44f40c7700..55390adf89ee 100644
  	ATA_LOG_SATA_SETTINGS	  = 0x08,
  	ATA_LOG_ZONED_INFORMATION = 0x09,
  
-+	/* Identify device Supported Capabilities log: */
-+	ATA_LOG_CDL_VALID_OFFSET	= 175,
-+	ATA_LOG_CDL_FEATURE_OFFSET	= 168,
-+
- 	/* Identify device SATA settings log:*/
+-	/* Identify device SATA settings log:*/
++	/* Identify device SATA settings log: */
  	ATA_LOG_DEVSLP_OFFSET	  = 0x30,
  	ATA_LOG_DEVSLP_SIZE	  = 0x08,
+ 	ATA_LOG_DEVSLP_MDAT	  = 0x00,
 diff --git a/include/linux/libata.h b/include/linux/libata.h
-index a64e12605d31..cc78a75c3ea4 100644
+index ca0919a12a29..6de7ba652b9c 100644
 --- a/include/linux/libata.h
 +++ b/include/linux/libata.h
-@@ -150,6 +150,7 @@ enum {
- 	ATA_DFLAG_NCQ_SEND_RECV = (1 << 19), /* device supports NCQ SEND and RECV */
- 	ATA_DFLAG_NCQ_PRIO	= (1 << 20), /* device supports NCQ priority */
- 	ATA_DFLAG_NCQ_PRIO_ENABLE = (1 << 21), /* Priority cmds sent to dev */
-+	ATA_DFLAG_CDL		= (1 << 22), /* supports cmd duration limits*/
- 	ATA_DFLAG_INIT_MASK	= (1 << 24) - 1,
- 
- 	ATA_DFLAG_DETACH	= (1 << 24),
-@@ -163,7 +164,7 @@ enum {
+@@ -138,6 +138,7 @@ enum {
+ 	ATA_DFLAG_ACPI_FAILED	= (1 << 6), /* ACPI on devcfg has failed */
+ 	ATA_DFLAG_AN		= (1 << 7), /* AN configured */
+ 	ATA_DFLAG_TRUSTED	= (1 << 8), /* device supports trusted send/recv */
++	ATA_DFLAG_CDL		= (1 << 9), /* supports cmd duration limits */
+ 	ATA_DFLAG_DMADIR	= (1 << 10), /* device requires DMADIR */
+ 	ATA_DFLAG_NCQ_SEND_RECV = (1 << 11), /* device supports NCQ SEND and RECV */
+ 	ATA_DFLAG_NCQ_PRIO	= (1 << 12), /* device supports NCQ priority */
+@@ -162,7 +163,7 @@ enum {
  
  	ATA_DFLAG_FEATURES_MASK	= ATA_DFLAG_TRUSTED | ATA_DFLAG_DA | \
  				  ATA_DFLAG_DEVSLP | ATA_DFLAG_NCQ_SEND_RECV | \
@@ -167,7 +175,7 @@ index a64e12605d31..cc78a75c3ea4 100644
  
  	ATA_DEV_UNKNOWN		= 0,	/* unknown device */
  	ATA_DEV_ATA		= 1,	/* ATA device */
-@@ -735,6 +736,9 @@ struct ata_device {
+@@ -741,6 +742,9 @@ struct ata_device {
  	u32			zac_zones_optimal_nonseq;
  	u32			zac_zones_max_open;
  
@@ -178,5 +186,5 @@ index a64e12605d31..cc78a75c3ea4 100644
  	int			spdn_cnt;
  	/* ering is CLEAR_END, read comment above CLEAR_END */
 -- 
-2.35.1
+2.38.1
 

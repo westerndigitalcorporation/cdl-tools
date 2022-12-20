@@ -1,12 +1,11 @@
-From 8a8f1e093704fbdf517c2e12b584c1381ba3a643 Mon Sep 17 00:00:00 2001
+From a4850fc58b1b2a03b2f33c9eef8cb6085047cb46 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Thu, 19 Aug 2021 16:19:44 +0900
-Subject: [PATCH 06/17] ata: libata-scsi: Support service action in
- ata_scsiop_maint_in()
+Subject: [PATCH 33/48] ata: libata-scsi: improve ata_scsiop_maint_in()
 
-Allow translation of the REPORT_SUPPORTED_OPERATION_CODES commands
-using the command format 0x3, that is, checking support for commands
-that are identified using an opcode and a service action.
+Allow translation of REPORT_SUPPORTED_OPERATION_CODES commands using
+the command format 0x3, that is, checking support for commands that are
+identified using an opcode and a service action.
 
 Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
@@ -14,10 +13,10 @@ Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
-index 10303611d17b..7f7d71a4378e 100644
+index 4c5c89ac38d2..0e47bb44ee6a 100644
 --- a/drivers/ata/libata-scsi.c
 +++ b/drivers/ata/libata-scsi.c
-@@ -3245,11 +3245,12 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
+@@ -3255,11 +3255,12 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
  	u8 supported = 0;
  	unsigned int err = 0;
  
@@ -32,5 +31,5 @@ index 10303611d17b..7f7d71a4378e 100644
  	case INQUIRY:
  	case MODE_SENSE:
 -- 
-2.35.1
+2.38.1
 

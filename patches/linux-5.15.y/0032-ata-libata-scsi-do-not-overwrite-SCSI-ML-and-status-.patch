@@ -1,0 +1,103 @@
+From c7b3f95f0ef1c27eff02e2ec6bed34eb898644d1 Mon Sep 17 00:00:00 2001
+From: Niklas Cassel <niklas.cassel@wdc.com>
+Date: Fri, 9 Dec 2022 15:09:30 +0900
+Subject: [PATCH 32/48] ata: libata-scsi: do not overwrite SCSI ML and status
+ bytes
+
+For SCSI ML byte:
+In the case where a command is completed via libata EH:
+irq -> ata_qc_complete() -> ata_qc_schedule_eh()
+irq done
+... -> ata_do_eh() -> ata_eh_link_autopsy() -> ata_eh_finish() ->
+ata_eh_qc_complete() -> __ata_eh_qc_complete() -> __ata_qc_complete() ->
+qc->complete_fn() (ata_scsi_qc_complete()) -> ata_qc_done() ->
+qc->scsidone() (empty stub)
+... -> scsi_eh_finish_cmd() -> scsi_eh_flush_done_q() ->
+scsi_finish_command()
+
+ata_eh_link_autopsy() will call ata_eh_analyze_tf(), which calls
+scsi_check_sense(), which sets the SCSI ML byte.
+
+Since ata_scsi_qc_complete() is called after scsi_check_sense() when
+a command is completed via libata EH, we cannot simply overwrite the
+SCSI ML byte that was set earlier in the call chain.
+
+For SCSI status byte:
+When a SCSI command is prepared using scsi_prepare_cmd(), it sets
+cmd->result to 0. (SAM_STAT_GOOD is defined as 0x0).
+Likewise, when a command is requeued from SCSI EH, scsi_queue_insert()
+is called, which sets cmd->result to 0.
+
+A SCSI command thus always has a GOOD status by default when being
+sent to libata.
+
+If libata fetches sense data from the device, it will call
+ata_scsi_set_sense(), which will set the status byte to
+SAM_STAT_CHECK_CONDITION, if the caller deems that the status should be
+a check condition.
+
+ata_scsi_qc_complete() should therefore never overwrite the existing
+status byte, because if it is != GOOD, it was set by libata itself,
+for a reason.
+
+For the host byte:
+When libata abort commands, because of a NCQ error, it will schedule
+SCSI EH for all QCs using blk_abort_request(), which will all end up in
+scsi_timeout(), which will call scsi_abort_command(). scsi_timeout()
+sets DID_TIME_OUT regardless if a command was aborted or timed out.
+If we don't clear the DID_TIME_OUT byte for the QC that caused the
+NCQ error, we that QC will be reported as a timed out command, instead
+of being reported as a NCQ error.
+
+For a command that actually timed out, DID_TIME_OUT would be fine to
+keep, but libata has its own way of detecting that a command timed out
+(see ata_scsi_cmd_error_handler()), and sets AC_ERR_TIMEOUT if that is
+the case. libata will retry timed out commands.
+
+We could clear DID_TIME_OUT only for the QC that caused the NCQ error,
+but since libata has its own way of detecting timeouts, simply clear it
+always.
+
+Note that the existing ata_scsi_qc_complete() code does:
+cmd->result = SAM_STAT_CHECK_CONDITION or cmd->result = SAM_STAT_GOOD.
+This WILL clear the host byte. So us clearing the host byte
+unconditionally is in line with the existing libata behavior.
+
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+---
+ drivers/ata/libata-scsi.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
+index bc904b42b5ac..4c5c89ac38d2 100644
+--- a/drivers/ata/libata-scsi.c
++++ b/drivers/ata/libata-scsi.c
+@@ -1657,7 +1657,8 @@ static void ata_scsi_qc_complete(struct ata_queued_cmd *qc)
+ 	struct ata_port *ap = qc->ap;
+ 	struct scsi_cmnd *cmd = qc->scsicmd;
+ 	u8 *cdb = cmd->cmnd;
+-	int need_sense = (qc->err_mask != 0);
++	int need_sense = (qc->err_mask != 0) &&
++		!(qc->flags & ATA_QCFLAG_SENSE_VALID);
+ 
+ 	/* For ATA pass thru (SAT) commands, generate a sense block if
+ 	 * user mandated it or if there's an error.  Note that if we
+@@ -1671,12 +1672,11 @@ static void ata_scsi_qc_complete(struct ata_queued_cmd *qc)
+ 	if (((cdb[0] == ATA_16) || (cdb[0] == ATA_12)) &&
+ 	    ((cdb[2] & 0x20) || need_sense))
+ 		ata_gen_passthru_sense(qc);
+-	else if (qc->flags & ATA_QCFLAG_SENSE_VALID)
+-		cmd->result = SAM_STAT_CHECK_CONDITION;
+ 	else if (need_sense)
+ 		ata_gen_ata_sense(qc);
+ 	else
+-		cmd->result = SAM_STAT_GOOD;
++		/* Keep the SCSI ML and status byte, clear host byte. */
++		cmd->result &= 0x0000ffff;
+ 
+ 	if (need_sense && !ap->ops->error_handler)
+ 		ata_dump_status(ap->print_id, &qc->result_tf);
+-- 
+2.38.1
+

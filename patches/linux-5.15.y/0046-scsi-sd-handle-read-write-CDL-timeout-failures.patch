@@ -1,0 +1,171 @@
+From 92652f3a179f7827980776774492a6c8d0275f70 Mon Sep 17 00:00:00 2001
+From: Niklas Cassel <niklas.cassel@wdc.com>
+Date: Fri, 9 Dec 2022 15:42:57 +0900
+Subject: [PATCH 46/48] scsi: sd: handle read/write CDL timeout failures
+
+Commands using a duration limit descriptor that has limit policies set
+to a value other than 0x0 may be failed by the device if one of the
+limits are exceeded. For such commands, since the failure is the result
+of the user duration limit configuration and workload, the commands
+should not be retried and terminated immediately. Furthermore, to allow
+the user to differentiate these "soft" failures from hard errors due to
+hardware problem, a different error code than EIO should be returned.
+
+There are 2 cases to consider:
+(1) The failure is due to a limit policy failing the command with a
+check condition sense key, that is, any limit policy other than 0xD.
+For this case, scsi_check_sense() is modified to detect failures with
+the ABORTED COMMAND sense key and the COMMAND TIMEOUT BEFORE PROCESSING
+or COMMAND TIMEOUT DURING PROCESSING or COMMAND TIMEOUT DURING
+PROCESSING DUE TO ERROR RECOVERY additional sense code. For these
+failures, a SUCCESS disposition is returned so that
+scsi_finish_command() is called to terminate the command.
+
+(2) The failure is due to a limit policy set to 0xD, which result in the
+command being terminated with a GOOD status, COMPLETED sense key, and
+DATA CURRENTLY UNAVAILABLE additional sense code. To handle this case,
+the scsi_check_sense() is modified to return a SUCCESS disposition so
+that scsi_finish_command() is called to terminate the command.
+In addition, scsi_decide_disposition() has to be modified to see if a
+command being terminated with GOOD status has sense data.
+This is as defined in SCSI Primary Commands - 6 (SPC-6), so all
+according to spec, even if GOOD status commands were not checked before.
+
+If scsi_check_sense() detects sense data representing a duration limit,
+scsi_check_sense() will set the newly introduced SCSI ML byte
+SCSIML_STAT_DL_TIMEOUT. This SCSI ML byte is checked in
+scsi_noretry_cmd(), so that a command that failed because of a CDL
+timeout cannot be retried. The SCSI ML byte is also checked in
+scsi_result_to_blk_status() to complete the command request with the
+BLK_STS_DURATION_LIMIT status, which result in the user seeing ETIME
+errors for the failed commands.
+
+Co-developed-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
+---
+ drivers/scsi/scsi_error.c | 46 +++++++++++++++++++++++++++++++++++++++
+ drivers/scsi/scsi_lib.c   |  2 ++
+ include/scsi/scsi_cmnd.h  |  1 +
+ 3 files changed, 49 insertions(+)
+
+diff --git a/drivers/scsi/scsi_error.c b/drivers/scsi/scsi_error.c
+index 8d798763b848..21c1a180eadb 100644
+--- a/drivers/scsi/scsi_error.c
++++ b/drivers/scsi/scsi_error.c
+@@ -535,6 +535,7 @@ static void scsi_report_sense(struct scsi_device *sdev,
+  */
+ enum scsi_disposition scsi_check_sense(struct scsi_cmnd *scmd)
+ {
++	struct request *req = scsi_cmd_to_rq(scmd);
+ 	struct scsi_device *sdev = scmd->device;
+ 	struct scsi_sense_hdr sshdr;
+ 
+@@ -593,6 +594,22 @@ enum scsi_disposition scsi_check_sense(struct scsi_cmnd *scmd)
+ 		if (sshdr.asc == 0x10) /* DIF */
+ 			return SUCCESS;
+ 
++		/*
++		 * Check aborts due to command duration limit policy:
++		 * ABORTED COMMAND additional sense code with the
++		 * COMMAND TIMEOUT BEFORE PROCESSING or
++		 * COMMAND TIMEOUT DURING PROCESSING or
++		 * COMMAND TIMEOUT DURING PROCESSING DUE TO ERROR RECOVERY
++		 * additional sense code qualifiers.
++		 */
++		if (sshdr.asc == 0x2e &&
++		    sshdr.ascq >= 0x01 && sshdr.ascq <= 0x03) {
++			scmd->flags |= SCMD_STAT_DL_TIMEOUT;
++			req->cmd_flags |= REQ_FAILFAST_DEV;
++			req->rq_flags |= RQF_QUIET;
++			return SUCCESS;
++		}
++
+ 		if (sshdr.asc == 0x44 && sdev->sdev_bflags & BLIST_RETRY_ITF)
+ 			return ADD_TO_MLQUEUE;
+ 		if (sshdr.asc == 0xc1 && sshdr.ascq == 0x01 &&
+@@ -689,6 +706,15 @@ enum scsi_disposition scsi_check_sense(struct scsi_cmnd *scmd)
+ 		}
+ 		return SUCCESS;
+ 
++	case COMPLETED:
++		if (sshdr.asc == 0x55 && sshdr.ascq == 0x0a) {
++			scmd->flags |= SCMD_STAT_DL_TIMEOUT;
++			req->cmd_flags |= REQ_FAILFAST_DEV;
++			req->rq_flags |= RQF_QUIET;
++			return SUCCESS;
++		}
++		return SUCCESS;
++
+ 	default:
+ 		return SUCCESS;
+ 	}
+@@ -783,6 +809,14 @@ static enum scsi_disposition scsi_eh_completed_normally(struct scsi_cmnd *scmd)
+ 	switch (get_status_byte(scmd)) {
+ 	case SAM_STAT_GOOD:
+ 		scsi_handle_queue_ramp_up(scmd->device);
++		if (scmd->sense_buffer && SCSI_SENSE_VALID(scmd))
++			/*
++			 * If we have sense data, call scsi_check_sense() in
++			 * order to set the correct SCSI ML byte (if any).
++			 * No point in checking the return value, since the
++			 * command has already completed successfully.
++			 */
++			scsi_check_sense(scmd);
+ 		fallthrough;
+ 	case SAM_STAT_COMMAND_TERMINATED:
+ 		return SUCCESS;
+@@ -1804,6 +1838,10 @@ int scsi_noretry_cmd(struct scsi_cmnd *scmd)
+ 		return req->cmd_flags & REQ_FAILFAST_DRIVER;
+ 	}
+ 
++	/* Never retry commands aborted due to a duration limit timeout */
++	if (scmd->flags & SCMD_STAT_DL_TIMEOUT)
++		return 1;
++
+ 	if (!scsi_status_is_check_condition(scmd->result))
+ 		return 0;
+ 
+@@ -1963,6 +2001,14 @@ enum scsi_disposition scsi_decide_disposition(struct scsi_cmnd *scmd)
+ 		if (scmd->cmnd[0] == REPORT_LUNS)
+ 			scmd->device->sdev_target->expecting_lun_change = 0;
+ 		scsi_handle_queue_ramp_up(scmd->device);
++		if (scmd->sense_buffer && SCSI_SENSE_VALID(scmd))
++			/*
++			 * If we have sense data, call scsi_check_sense() in
++			 * order to set the correct SCSI ML byte (if any).
++			 * No point in checking the return value, since the
++			 * command has already completed successfully.
++			 */
++			scsi_check_sense(scmd);
+ 		fallthrough;
+ 	case SAM_STAT_COMMAND_TERMINATED:
+ 		return SUCCESS;
+diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
+index 65cc86348ec4..14f58773dea5 100644
+--- a/drivers/scsi/scsi_lib.c
++++ b/drivers/scsi/scsi_lib.c
+@@ -759,6 +759,8 @@ static void scsi_io_completion_action(struct scsi_cmnd *cmd, int result)
+ 				blk_stat = BLK_STS_ZONE_OPEN_RESOURCE;
+ 			}
+ 			break;
++		case COMPLETED:
++			fallthrough;
+ 		default:
+ 			action = ACTION_FAIL;
+ 			break;
+diff --git a/include/scsi/scsi_cmnd.h b/include/scsi/scsi_cmnd.h
+index c20bf3980f00..30b7e3ac23b1 100644
+--- a/include/scsi/scsi_cmnd.h
++++ b/include/scsi/scsi_cmnd.h
+@@ -63,6 +63,7 @@ struct scsi_pointer {
+  * SCSI EH should not overwrite scmd->result when SCMD_EH_SUCCESS_CMD is set.
+  */
+ #define SCMD_EH_SUCCESS_CMD	(1 << 3)
++#define SCMD_STAT_DL_TIMEOUT	(1 << 4)
+ /* flags preserved across unprep / reprep */
+ #define SCMD_PRESERVED_FLAGS	(SCMD_INITIALIZED)
+ 
+-- 
+2.38.1
+

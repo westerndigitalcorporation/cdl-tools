@@ -1,11 +1,16 @@
-From a51c55ed05ff5d6fc07a1e45c64b2de1cedc627e Mon Sep 17 00:00:00 2001
+From 45bf59620c04d7ede8a64c0785050d8ee78b893c Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Wed, 29 Sep 2021 18:01:21 +0900
-Subject: [PATCH 03/17] scsi: fix scsi_mode_select() interface
+Subject: [PATCH 05/48] scsi: core: Fix scsi_mode_select() interface
+
+Upstream commit 81d3f500ee98cf9f5388f0fb0548ba5a57598827
 
 The modepage argument is unused. Remove it.
 
+Link: https://lore.kernel.org/r/20210929091744.706003-3-damien.lemoal@wdc.com
+Reviewed-by: Himanshu Madhani <himanshu.madhani@oracle.com>
 Signed-off-by: Damien Le Moal <damien.lemoal@wdc.com>
+Signed-off-by: Martin K. Petersen <martin.petersen@oracle.com>
 ---
  drivers/scsi/scsi_lib.c    | 8 +++-----
  drivers/scsi/sd.c          | 2 +-
@@ -39,7 +44,7 @@ index 9764230ec11e..8e402313ee36 100644
  	unsigned char cmd[10];
  	unsigned char *real_buffer;
 diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
-index 564a21b5da9d..07efece1197d 100644
+index 1e887c11e83d..2d273ced1b35 100644
 --- a/drivers/scsi/sd.c
 +++ b/drivers/scsi/sd.c
 @@ -210,7 +210,7 @@ cache_type_store(struct device *dev, struct device_attribute *attr,
@@ -52,10 +57,10 @@ index 564a21b5da9d..07efece1197d 100644
  		if (scsi_sense_valid(&sshdr))
  			sd_print_sense_hdr(sdkp, &sshdr);
 diff --git a/include/scsi/scsi_device.h b/include/scsi/scsi_device.h
-index b97e142a7ca9..b9276dc3f7c6 100644
+index 41ff0b929ee5..81285909c302 100644
 --- a/include/scsi/scsi_device.h
 +++ b/include/scsi/scsi_device.h
-@@ -414,9 +414,8 @@ extern int scsi_mode_sense(struct scsi_device *sdev, int dbd, int modepage,
+@@ -419,9 +419,8 @@ extern int scsi_mode_sense(struct scsi_device *sdev, int dbd, int modepage,
  			   int retries, struct scsi_mode_data *data,
  			   struct scsi_sense_hdr *);
  extern int scsi_mode_select(struct scsi_device *sdev, int pf, int sp,
@@ -68,5 +73,5 @@ index b97e142a7ca9..b9276dc3f7c6 100644
  extern int scsi_test_unit_ready(struct scsi_device *sdev, int timeout,
  				int retries, struct scsi_sense_hdr *sshdr);
 -- 
-2.35.1
+2.38.1
 

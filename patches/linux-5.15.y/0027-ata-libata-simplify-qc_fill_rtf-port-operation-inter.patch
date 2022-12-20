@@ -1,0 +1,250 @@
+From c45c1d47fa46abd07688c488cfd7632ad02300c3 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Date: Thu, 8 Dec 2022 18:41:03 +0900
+Subject: [PATCH 27/48] ata: libata: simplify qc_fill_rtf port operation
+ interface
+
+The boolean return value of the qc_fill_rtf operation is used nowhere.
+Simplify this operation interface by making it a void function. All
+drivers defining this operation are also updated.
+
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+---
+ drivers/ata/acard-ahci.c      |  6 ++----
+ drivers/ata/libahci.c         |  6 ++----
+ drivers/ata/libata-sff.c      |  6 +-----
+ drivers/ata/sata_fsl.c        |  3 +--
+ drivers/ata/sata_inic162x.c   | 12 +++++-------
+ drivers/ata/sata_sil24.c      |  5 ++---
+ drivers/scsi/ipr.c            |  7 +------
+ drivers/scsi/libsas/sas_ata.c |  3 +--
+ include/linux/libata.h        |  4 ++--
+ 9 files changed, 17 insertions(+), 35 deletions(-)
+
+diff --git a/drivers/ata/acard-ahci.c b/drivers/ata/acard-ahci.c
+index ddc895849479..1c8995baea54 100644
+--- a/drivers/ata/acard-ahci.c
++++ b/drivers/ata/acard-ahci.c
+@@ -57,7 +57,7 @@ struct acard_sg {
+ };
+ 
+ static enum ata_completion_errors acard_ahci_qc_prep(struct ata_queued_cmd *qc);
+-static bool acard_ahci_qc_fill_rtf(struct ata_queued_cmd *qc);
++static void acard_ahci_qc_fill_rtf(struct ata_queued_cmd *qc);
+ static int acard_ahci_port_start(struct ata_port *ap);
+ static int acard_ahci_init_one(struct pci_dev *pdev, const struct pci_device_id *ent);
+ 
+@@ -250,7 +250,7 @@ static enum ata_completion_errors acard_ahci_qc_prep(struct ata_queued_cmd *qc)
+ 	return AC_ERR_OK;
+ }
+ 
+-static bool acard_ahci_qc_fill_rtf(struct ata_queued_cmd *qc)
++static void acard_ahci_qc_fill_rtf(struct ata_queued_cmd *qc)
+ {
+ 	struct ahci_port_priv *pp = qc->ap->private_data;
+ 	u8 *rx_fis = pp->rx_fis;
+@@ -270,8 +270,6 @@ static bool acard_ahci_qc_fill_rtf(struct ata_queued_cmd *qc)
+ 		qc->result_tf.status = (rx_fis + RX_FIS_PIO_SETUP)[15];
+ 	} else
+ 		ata_tf_from_fis(rx_fis + RX_FIS_D2H_REG, &qc->result_tf);
+-
+-	return true;
+ }
+ 
+ static int acard_ahci_port_start(struct ata_port *ap)
+diff --git a/drivers/ata/libahci.c b/drivers/ata/libahci.c
+index 4675f519bb67..a8d7e83b079d 100644
+--- a/drivers/ata/libahci.c
++++ b/drivers/ata/libahci.c
+@@ -54,7 +54,7 @@ static ssize_t ahci_transmit_led_message(struct ata_port *ap, u32 state,
+ 
+ static int ahci_scr_read(struct ata_link *link, unsigned int sc_reg, u32 *val);
+ static int ahci_scr_write(struct ata_link *link, unsigned int sc_reg, u32 val);
+-static bool ahci_qc_fill_rtf(struct ata_queued_cmd *qc);
++static void ahci_qc_fill_rtf(struct ata_queued_cmd *qc);
+ static int ahci_port_start(struct ata_port *ap);
+ static void ahci_port_stop(struct ata_port *ap);
+ static enum ata_completion_errors ahci_qc_prep(struct ata_queued_cmd *qc);
+@@ -2021,7 +2021,7 @@ unsigned int ahci_qc_issue(struct ata_queued_cmd *qc)
+ }
+ EXPORT_SYMBOL_GPL(ahci_qc_issue);
+ 
+-static bool ahci_qc_fill_rtf(struct ata_queued_cmd *qc)
++static void ahci_qc_fill_rtf(struct ata_queued_cmd *qc)
+ {
+ 	struct ahci_port_priv *pp = qc->ap->private_data;
+ 	u8 *rx_fis = pp->rx_fis;
+@@ -2055,8 +2055,6 @@ static bool ahci_qc_fill_rtf(struct ata_queued_cmd *qc)
+ 		qc->result_tf.error = fis[3];
+ 	} else
+ 		ata_tf_from_fis(rx_fis + RX_FIS_D2H_REG, &qc->result_tf);
+-
+-	return true;
+ }
+ 
+ static void ahci_freeze(struct ata_port *ap)
+diff --git a/drivers/ata/libata-sff.c b/drivers/ata/libata-sff.c
+index 17cc13979e2f..10852323b8d4 100644
+--- a/drivers/ata/libata-sff.c
++++ b/drivers/ata/libata-sff.c
+@@ -1445,14 +1445,10 @@ EXPORT_SYMBOL_GPL(ata_sff_qc_issue);
+  *
+  *	LOCKING:
+  *	spin_lock_irqsave(host lock)
+- *
+- *	RETURNS:
+- *	true indicating that result TF is successfully filled.
+  */
+-bool ata_sff_qc_fill_rtf(struct ata_queued_cmd *qc)
++void ata_sff_qc_fill_rtf(struct ata_queued_cmd *qc)
+ {
+ 	qc->ap->ops->sff_tf_read(qc->ap, &qc->result_tf);
+-	return true;
+ }
+ EXPORT_SYMBOL_GPL(ata_sff_qc_fill_rtf);
+ 
+diff --git a/drivers/ata/sata_fsl.c b/drivers/ata/sata_fsl.c
+index 48ba48e2c6db..31c7d72c6832 100644
+--- a/drivers/ata/sata_fsl.c
++++ b/drivers/ata/sata_fsl.c
+@@ -581,7 +581,7 @@ static unsigned int sata_fsl_qc_issue(struct ata_queued_cmd *qc)
+ 	return 0;
+ }
+ 
+-static bool sata_fsl_qc_fill_rtf(struct ata_queued_cmd *qc)
++static void sata_fsl_qc_fill_rtf(struct ata_queued_cmd *qc)
+ {
+ 	struct sata_fsl_port_priv *pp = qc->ap->private_data;
+ 	struct sata_fsl_host_priv *host_priv = qc->ap->host->private_data;
+@@ -592,7 +592,6 @@ static bool sata_fsl_qc_fill_rtf(struct ata_queued_cmd *qc)
+ 	cd = pp->cmdentry + tag;
+ 
+ 	ata_tf_from_fis(cd->sfis, &qc->result_tf);
+-	return true;
+ }
+ 
+ static int sata_fsl_scr_write(struct ata_link *link,
+diff --git a/drivers/ata/sata_inic162x.c b/drivers/ata/sata_inic162x.c
+index 3f61e21665e5..48da6da8b645 100644
+--- a/drivers/ata/sata_inic162x.c
++++ b/drivers/ata/sata_inic162x.c
+@@ -568,7 +568,7 @@ static void inic_tf_read(struct ata_port *ap, struct ata_taskfile *tf)
+ 	tf->status	= readb(port_base + PORT_TF_COMMAND);
+ }
+ 
+-static bool inic_qc_fill_rtf(struct ata_queued_cmd *qc)
++static void inic_qc_fill_rtf(struct ata_queued_cmd *qc)
+ {
+ 	struct ata_taskfile *rtf = &qc->result_tf;
+ 	struct ata_taskfile tf;
+@@ -582,12 +582,10 @@ static bool inic_qc_fill_rtf(struct ata_queued_cmd *qc)
+ 	 */
+ 	inic_tf_read(qc->ap, &tf);
+ 
+-	if (!(tf.status & ATA_ERR))
+-		return false;
+-
+-	rtf->status = tf.status;
+-	rtf->error = tf.error;
+-	return true;
++	if (tf.status & ATA_ERR) {
++		rtf->status = tf.status;
++		rtf->error = tf.error;
++	}
+ }
+ 
+ static void inic_freeze(struct ata_port *ap)
+diff --git a/drivers/ata/sata_sil24.c b/drivers/ata/sata_sil24.c
+index 4b1c71eb86dc..0841b2ad73fa 100644
+--- a/drivers/ata/sata_sil24.c
++++ b/drivers/ata/sata_sil24.c
+@@ -328,7 +328,7 @@ static int sil24_scr_write(struct ata_link *link, unsigned sc_reg, u32 val);
+ static int sil24_qc_defer(struct ata_queued_cmd *qc);
+ static enum ata_completion_errors sil24_qc_prep(struct ata_queued_cmd *qc);
+ static unsigned int sil24_qc_issue(struct ata_queued_cmd *qc);
+-static bool sil24_qc_fill_rtf(struct ata_queued_cmd *qc);
++static void sil24_qc_fill_rtf(struct ata_queued_cmd *qc);
+ static void sil24_pmp_attach(struct ata_port *ap);
+ static void sil24_pmp_detach(struct ata_port *ap);
+ static void sil24_freeze(struct ata_port *ap);
+@@ -904,10 +904,9 @@ static unsigned int sil24_qc_issue(struct ata_queued_cmd *qc)
+ 	return 0;
+ }
+ 
+-static bool sil24_qc_fill_rtf(struct ata_queued_cmd *qc)
++static void sil24_qc_fill_rtf(struct ata_queued_cmd *qc)
+ {
+ 	sil24_read_tf(qc->ap, qc->hw_tag, &qc->result_tf);
+-	return true;
+ }
+ 
+ static void sil24_pmp_attach(struct ata_port *ap)
+diff --git a/drivers/scsi/ipr.c b/drivers/scsi/ipr.c
+index 965bec6a9d2b..8f109ebdc74a 100644
+--- a/drivers/scsi/ipr.c
++++ b/drivers/scsi/ipr.c
+@@ -7138,11 +7138,8 @@ static unsigned int ipr_qc_issue(struct ata_queued_cmd *qc)
+ /**
+  * ipr_qc_fill_rtf - Read result TF
+  * @qc: ATA queued command
+- *
+- * Return value:
+- * 	true
+  **/
+-static bool ipr_qc_fill_rtf(struct ata_queued_cmd *qc)
++static void ipr_qc_fill_rtf(struct ata_queued_cmd *qc)
+ {
+ 	struct ipr_sata_port *sata_port = qc->ap->private_data;
+ 	struct ipr_ioasa_gata *g = &sata_port->ioasa;
+@@ -7159,8 +7156,6 @@ static bool ipr_qc_fill_rtf(struct ata_queued_cmd *qc)
+ 	tf->hob_lbal = g->hob_lbal;
+ 	tf->hob_lbam = g->hob_lbam;
+ 	tf->hob_lbah = g->hob_lbah;
+-
+-	return true;
+ }
+ 
+ static struct ata_port_operations ipr_sata_ops = {
+diff --git a/drivers/scsi/libsas/sas_ata.c b/drivers/scsi/libsas/sas_ata.c
+index 1357ebb9ccb8..6378de7db55a 100644
+--- a/drivers/scsi/libsas/sas_ata.c
++++ b/drivers/scsi/libsas/sas_ata.c
+@@ -234,12 +234,11 @@ static unsigned int sas_ata_qc_issue(struct ata_queued_cmd *qc)
+ 	return ret;
+ }
+ 
+-static bool sas_ata_qc_fill_rtf(struct ata_queued_cmd *qc)
++static void sas_ata_qc_fill_rtf(struct ata_queued_cmd *qc)
+ {
+ 	struct domain_device *dev = qc->ap->private_data;
+ 
+ 	ata_tf_from_fis(dev->sata_dev.fis, &qc->result_tf);
+-	return true;
+ }
+ 
+ static struct sas_internal *dev_to_sas_internal(struct domain_device *dev)
+diff --git a/include/linux/libata.h b/include/linux/libata.h
+index 5591252e6422..7878cfbc679f 100644
+--- a/include/linux/libata.h
++++ b/include/linux/libata.h
+@@ -912,7 +912,7 @@ struct ata_port_operations {
+ 	int (*check_atapi_dma)(struct ata_queued_cmd *qc);
+ 	enum ata_completion_errors (*qc_prep)(struct ata_queued_cmd *qc);
+ 	unsigned int (*qc_issue)(struct ata_queued_cmd *qc);
+-	bool (*qc_fill_rtf)(struct ata_queued_cmd *qc);
++	void (*qc_fill_rtf)(struct ata_queued_cmd *qc);
+ 
+ 	/*
+ 	 * Configuration and exception handling
+@@ -1957,7 +1957,7 @@ extern void ata_sff_queue_delayed_work(struct delayed_work *dwork,
+ 		unsigned long delay);
+ extern void ata_sff_queue_pio_task(struct ata_link *link, unsigned long delay);
+ extern unsigned int ata_sff_qc_issue(struct ata_queued_cmd *qc);
+-extern bool ata_sff_qc_fill_rtf(struct ata_queued_cmd *qc);
++extern void ata_sff_qc_fill_rtf(struct ata_queued_cmd *qc);
+ extern unsigned int ata_sff_port_intr(struct ata_port *ap,
+ 				      struct ata_queued_cmd *qc);
+ extern irqreturn_t ata_sff_interrupt(int irq, void *dev_instance);
+-- 
+2.38.1
+

@@ -1,7 +1,7 @@
-From 77fbd6d1236f8fbe939e5cd1c582f97067fc2621 Mon Sep 17 00:00:00 2001
+From 04a3943411ab85a93f098238bb93569252360747 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
-Date: Mon, 18 Apr 2022 15:45:10 +0900
-Subject: [PATCH 15/17] scsi: sd: detect support for command duration limits
+Date: Fri, 9 Dec 2022 15:33:51 +0900
+Subject: [PATCH 44/48] scsi: sd: detect support for command duration limits
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -52,10 +52,10 @@ that supports command duration limits.
 Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 ---
  drivers/scsi/Makefile |   2 +-
- drivers/scsi/sd.c     |   4 +
+ drivers/scsi/sd.c     |   2 +
  drivers/scsi/sd.h     |  61 ++++
  drivers/scsi/sd_cdl.c | 764 ++++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 830 insertions(+), 1 deletion(-)
+ 4 files changed, 828 insertions(+), 1 deletion(-)
  create mode 100644 drivers/scsi/sd_cdl.c
 
 diff --git a/drivers/scsi/Makefile b/drivers/scsi/Makefile
@@ -72,10 +72,10 @@ index 19814c26c908..7965d4d56050 100644
  sd_mod-$(CONFIG_BLK_DEV_ZONED) += sd_zbc.o
  
 diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
-index 623a349d77b2..d3e215c68214 100644
+index 9395c917b6eb..1ccdc7fa3708 100644
 --- a/drivers/scsi/sd.c
 +++ b/drivers/scsi/sd.c
-@@ -3209,6 +3209,7 @@ static int sd_revalidate_disk(struct gendisk *disk)
+@@ -3210,6 +3210,7 @@ static int sd_revalidate_disk(struct gendisk *disk)
  		sd_read_app_tag_own(sdkp, buffer);
  		sd_read_write_same(sdkp, buffer);
  		sd_read_security(sdkp, buffer);
@@ -83,20 +83,11 @@ index 623a349d77b2..d3e215c68214 100644
  	}
  
  	/*
-@@ -3480,6 +3481,7 @@ static int sd_probe(struct device *dev)
- 	put_disk(gd);
-  out_free:
- 	sd_zbc_release_disk(sdkp);
-+	sd_cdl_release(sdkp);
- 	kfree(sdkp);
-  out:
- 	scsi_autopm_put_device(sdp);
-@@ -3547,6 +3549,8 @@ static void scsi_disk_release(struct device *dev)
+@@ -3547,6 +3548,7 @@ static void scsi_disk_release(struct device *dev)
  	blk_mq_freeze_queue(q);
  	blk_mq_unfreeze_queue(q);
  
 +	sd_cdl_release(sdkp);
-+
  	disk->private_data = NULL;
  	put_disk(disk);
  	put_device(&sdkp->device->sdev_gendev);
@@ -955,5 +946,5 @@ index 000000000000..513cd989f19a
 +	sd_cdl_sysfs_unregister(sdkp);
 +}
 -- 
-2.35.1
+2.38.1
 
