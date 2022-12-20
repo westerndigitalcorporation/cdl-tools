@@ -184,11 +184,21 @@ fi
 
 export quick_tests
 
-function log_kmsg()
+function kmsg_log()
 {
 	if [ -e /dev/kmsg ]; then
 		echo "$1" > /dev/kmsg
 	fi
+}
+
+function kmsg_log_start()
+{
+	kmsg_log "#### cdl-tests case $1 start ####"
+}
+
+function kmsg_log_end()
+{
+	kmsg_log "#### cdl-tests case $1 end ####"
 }
 
 function run_test()
@@ -196,7 +206,8 @@ function run_test()
 	local tnum="$(test_num $1)"
 	local ret=0
 
-	log_kmsg "cdl-tests ${tnum}: $( $1 )"
+	kmsg_log_start ${tnum}
+
 	echo "==== Test ${tnum}: $( $1 )"
 	echo ""
 
@@ -212,6 +223,8 @@ function run_test()
 		echo "==== Test ${tnum} -> FAILED"
 	fi
 	echo ""
+
+	kmsg_log_end ${tnum}
 
 	return $ret
 }
