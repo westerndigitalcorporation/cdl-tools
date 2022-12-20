@@ -28,12 +28,12 @@ function usage()
 {
 	echo "Usage: $(basename "$0") [Options] <block device file>"
 	echo "Options:"
-	echo "  -l            : List all tests"
-	echo "  -g <log dir>  : Use this directory to store test log files."
-	echo "                  default: cdl-tests-logs/<bdev name>"
-	echo "  -t <test num> : Execute only the specified test case. Can be"
-	echo "                  specified multiple times."
-	echo "  -h, --help    : This help message"
+	echo "  --list | -l              : List all tests"
+	echo "  --logdir | -g <log dir>  : Use this directory to store test log files."
+	echo "                             default: cdl-tests-logs/<bdev name>"
+	echo "  --test | -t <test num>   : Execute only the specified test case. Can be"
+	echo "                             specified multiple times."
+	echo "  --help | -h              : This help message"
 }
 
 #
@@ -57,7 +57,7 @@ while [ "${1#-}" != "$1" ]; do
 		usage
 		exit 0
 		;;
-	-t)
+	-t | --test)
 		t="${scriptdir}/$2.sh"
 		if [ ! -e "$t" ]; then
 			echo "Invalid test number $2"
@@ -67,11 +67,11 @@ while [ "${1#-}" != "$1" ]; do
 		shift
 		shift
 		;;
-	-l)
+	-l | --list)
 		list=true
 		shift
 		;;
-	-g)
+	-g | --logdir)
 		shift
 		logdir="$1"
 		shift
