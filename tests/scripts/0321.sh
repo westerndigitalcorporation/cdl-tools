@@ -14,6 +14,10 @@ if [ $# == 0 ]; then
 	exit 0
 fi
 
+if dev_has_bad_fw "$1"; then
+	exit_skip
+fi
+
 test_setup $1 T2A $cdl_file || \
 	exit_failed " --> FAILED (error during setup)"
 
