@@ -109,15 +109,22 @@ function dev_fw()
 	local dev="$(realpath $1)"
 	local bdev="$(basename ${dev})"
 
-	str="$(lsscsi -g | grep ${bdev})"
-	strarray=(${str})
-
-	echo ${strarray[4]}
+	cat /sys/block/${bdev}/device/rev
 }
 
 function dev_has_bad_fw()
 {
-	[ "$(dev_fw "$1")" == "0BM2" ]
+	local devfw="$(dev_fw "$1")"
+	declare -a badfw=("0BM2" "WTC0")
+
+	for fw in "${badfw[@]}"; do
+		if [ "$devfw" == "$fw" ]; then
+			true
+			return
+		fi
+	done
+
+	false
 }
 
 function dev_is_ata()
