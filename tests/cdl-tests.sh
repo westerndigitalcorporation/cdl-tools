@@ -36,6 +36,8 @@ function usage()
 	echo "                            specified multiple times."
 	echo "  --quick | -q            : Run quick tests with shorter fio runs."
 	echo "                            This can result in less reliable test results."
+	echo "  --noncq | -n            : Disable NCQ/set device max QD to 1 during tests."
+	echo "                            Default: enable NCQ for ATA drives."
 }
 
 #
@@ -53,6 +55,7 @@ declare -a tests
 declare list=false
 logdir=""
 quick_tests=0
+no_ncq=0
 
 while [ "${1#-}" != "$1" ]; do
 	case "$1" in
@@ -82,6 +85,10 @@ while [ "${1#-}" != "$1" ]; do
 	-q | --quick)
 		shift
 		quick_tests=1
+		;;
+	-n | --noncq)
+		shift
+		no_ncq=1
 		;;
 	-*)
 		echo "unknow option $1"
@@ -182,7 +189,13 @@ if [ $? != 0 ]; then
 	exit 1
 fi
 
+#
+# Save current device queue depth
+#
+saved_qd=$(dev_qd "${targetdev}")
+
 export quick_tests
+export no_ncq
 
 function kmsg_log()
 {
@@ -231,6 +244,16 @@ function run_test()
 
 type="$(devtype ${dev})"
 echo "Running CDL tests on ${type} ${dev}:"
+if [ "${no_ncq}" == "1" ]; then
+	echo -n "    NCQ: disabled"
+else
+	echo -n "    NCQ: enabled"
+fi
+if [ "${quick_tests}" == "1" ]; then
+	echo ", quick tests: disabled"
+else
+	echo ", quick tests: enabled"
+fi
 
 for t in "${tests[@]}"; do
 	tnum="$(test_num $t)"
@@ -270,6 +293,11 @@ for t in "${tests[@]}"; do
 
 	na=0
 done
+
+#
+# Restore device queue depth
+#
+set_qd "${targetdev}" "${saved_qd}"
 
 echo ""
 echo "$passed / $total tests passed"

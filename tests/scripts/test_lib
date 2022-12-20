@@ -269,17 +269,50 @@ function fio_get_io_error()
 	echo "${err}" | cut -d'=' -f3 | cut -d'/' -f1
 }
 
-function test_setup()
+function dev_qd()
 {
-	local dev=$1
-	local page_type=$2
-	local original_page=$3
-
-	# temporary, remove once FW is stable
 	local rdev="$(realpath $1)"
 	local bdev="$(basename ${rdev})"
+
+	cat /sys/block/${bdev}/device/queue_depth
+}
+
+function set_qd()
+{
+	local rdev="$(realpath $1)"
+	local bdev="$(basename ${rdev})"
+
+	echo "$2" > /sys/block/${bdev}/device/queue_depth
+}
+
+function enable_ncq()
+{
+	local rdev="$(realpath $1)"
+	local bdev="$(basename ${rdev})"
+
 	echo 1 > /sys/block/${bdev}/device/queue_depth
 	echo 32 > /sys/block/${bdev}/device/queue_depth
+}
+
+function disable_ncq()
+{
+	local rdev="$(realpath $1)"
+	local bdev="$(basename ${rdev})"
+
+	echo 1 > /sys/block/${bdev}/device/queue_depth
+}
+
+function test_setup()
+{
+	local dev="$1"
+	local page_type="$2"
+	local original_page="$3"
+
+	if [ "${no_ncq}" == "1" ]; then
+		disable_ncq "$dev"
+	elif dev_is_ata "$1"; then
+		enable_ncq "$dev"
+	fi
 
 	echo "Uploading $page_type page"
 	cdladm upload --file $original_page $dev || \
