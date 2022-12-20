@@ -34,6 +34,8 @@ function usage()
 	echo "                            default: cdl-tests-logs/<bdev name>"
 	echo "  --test | -t <test num>  : Execute only the specified test case. Can be"
 	echo "                            specified multiple times."
+	echo "  --force | -f            : Run all tests, even the ones skipped due to"
+	echo "                            an inadequate device fw being detected."
 	echo "  --quick | -q            : Run quick tests with shorter fio runs."
 	echo "                            This can result in less reliable test results."
 	echo "  --noncq | -n            : Disable NCQ/set device max QD to 1 during tests."
@@ -54,6 +56,7 @@ require_lib "libaio"
 declare -a tests
 declare list=false
 logdir=""
+force_tests=0
 quick_tests=0
 no_ncq=0
 
@@ -81,6 +84,10 @@ while [ "${1#-}" != "$1" ]; do
 		shift
 		logdir="$1"
 		shift
+		;;
+	-f | --force)
+		shift
+		force_tests=1
 		;;
 	-q | --quick)
 		shift
@@ -194,6 +201,7 @@ fi
 #
 saved_qd=$(dev_qd "${targetdev}")
 
+export force_tests
 export quick_tests
 export no_ncq
 
@@ -245,9 +253,14 @@ function run_test()
 type="$(devtype ${dev})"
 echo "Running CDL tests on ${type} ${dev}:"
 if [ "${no_ncq}" == "1" ]; then
-	echo -n "    NCQ: disabled"
+	echo -n "    Force all tests: disabled"
 else
-	echo -n "    NCQ: enabled"
+	echo -n "    Force all tests: enabled"
+fi
+if [ "${no_ncq}" == "1" ]; then
+	echo -n ", NCQ: disabled"
+else
+	echo -n ", NCQ: enabled"
 fi
 if [ "${quick_tests}" == "1" ]; then
 	echo ", quick tests: disabled"

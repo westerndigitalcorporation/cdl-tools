@@ -117,6 +117,11 @@ function dev_has_bad_fw()
 	local devfw="$(dev_fw "$1")"
 	declare -a badfw=("0BM2" "WTC0")
 
+	if [ "${force_tests}" == "1" ]; then
+		false
+		return
+	fi
+
 	for fw in "${badfw[@]}"; do
 		if [ "$devfw" == "$fw" ]; then
 			true
