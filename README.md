@@ -115,6 +115,7 @@ Usage:
   cdladm <command> [options] <device>
 Options common to all commands:
   --verbose | -v       : Verbose output
+  --force-ata | -a     : Force the use of ATA passthrough commands
 Commands:
   info    : Show device and system support information
   list    : List supported pages
@@ -124,6 +125,10 @@ Commands:
   enable  : Enable command duration limits
   disable : Disable command duration limits
 Command options:
+  --count
+	Apply to the show command.
+	Omit the descriptor details and only print the number of
+	descriptors valid in a page
   --page <name>
 	Apply to the show and save commands.
 	Specify the target page name. The page name can be:
@@ -146,30 +151,33 @@ Command options:
 See "man cdladm" for more information
 ```
 
-## Checking for command duration limits support
+### Checking for command duration limits support
 
 To check if a disk supports command duration limits, the "info" command can be
 used:
 
 ```
-# cdladm info /dev/sdf
-sdf:
+# cdladm info /dev/sda
+Device: /dev/sda
     Vendor: ATA
-    Product: WDC  WUH721818AL
-    Revision: WTW2
-    35156656128 512-byte sectors (18.000 TB)
+    Product: WDC  WUH722222AL
+    Revision: WTC0
+    42970644480 512-byte sectors (22.000 TB)
     Device interface: ATA
+      SAT Vendor: linux
+      SAT Product: libata
+      SAT revision: 3.00
     Command duration limits: supported, enabled
     Command duration guidelines: supported
-    High priority enhancement: not supported, disabled
-    Minimum limit: 1000000 ns
-    Maximum limit: 10000000000 ns
+    High priority enhancement: supported, disabled
+    Duration minimum limit: 1000000 ns
+    Duration maximum limit: 4294967295000 ns
 System:
     Node name: xyz.domain.com
-    Kernel: Linux 5.10.75+ #82 SMP PREEMPT Thu Oct 21 17:50:25 JST 2021
+    Kernel: Linux 5.10.158+ #1635 SMP Tue Dec 20 13:53:45 JST 2022
     Architecture: x86_64
-    Command duration limits: supported, disabled
-WARNING: Command duration limits is disabled on the system but enabled on the device
+    Command duration limits: supported, enabled
+    Device sda command timeout: 30 s
 ```
 
 In the above example, the SATA drive tested supports command duration limits.
@@ -181,7 +189,7 @@ When applied to a disk that does not support command duration limits, *cdladm*
 displays the following output.
 
 ```
- cdladm info /dev/sde
+# cdladm info /dev/sde
 sde:
     Vendor: ATA
     Product: WDC  WSH722020AL
@@ -314,7 +322,7 @@ the kernel to display the values for all time limits of all descriptors.
 These attributes are read-only. Modifications of the limit descriptors can only
 be done using the *cdladm* attributes.
 
-## Checking Duration Limits Descriptors
+### Checking Duration Limits Descriptors
 
 As explained above, the device sysfs duration limits attribute files expose all
 read and write limit descriptors values.
@@ -407,7 +415,7 @@ Page T2B:
 In the above example, the disk sdf has the read descriptors 1 to 4 configured
 with a duration guideline limit of 30ms, 50ms, 100ms and 500ms.
 
-## Modifying Duration Limits Descriptors
+### Modifying Duration Limits Descriptors
 
 To modify the duration limit descriptors of a device, *cdladm* "save" and
 "upload" commands can be used. These commands operate on either the read
@@ -611,13 +619,13 @@ The new descriptors values are reflected in the sysfs attribute files for the
 disk. E.g. the new descriptor 5 duration limit can be seen in sysfs:
 
 ```
- cat /sys/block/sdf/device/duration_limits/read/5/duration_guideline
+# cat /sys/block/sdf/device/duration_limits/read/5/duration_guideline
 1000000
 ```
 
-## Testing Command Duration Limits
+## Using Command Duration Limits
 
-The LInux kernel support for command duration limits disable the feature by
+The Linux kernel support for command duration limits disable the feature by
 default. For command duration limits to be effective, CDL support must first be
 enabled.
 
@@ -648,7 +656,7 @@ System:
     Architecture: x86_64
     Command duration limits: supported, disabled
 Command duration limits is enabled
-#
+
 # cat /sys/block/sdf/device/duration_limits/enable
 1
 ```
@@ -738,3 +746,74 @@ cmdprio_split=1/33:2/67
 
 will result in the IO job executing 33% of 30% of all IOs (10% overall) using 
 descriptor 1 and 67% of 30% of all IOs (20% overall) using descriptor 2.
+
+## Testing a system Command Duration Limits Support
+
+The *cdl-tools* project includes a test suite to exercise a device supporting
+command duration limits. Executing the test suite results also in the
+host-bus-adapter and kernel being tested.
+
+*cdl-tools* test suite is written as a collection of bash scripts. The top
+script to use for executing tests is ```tests/cdl-tests.sh```
+
+```
+# tests/cdl-tests.sh --help
+Usage: cdl-tests.sh [Options] <block device file>
+Options:
+  --help | -h             : This help message
+  --list | -l             : List all tests
+  --logdir | -g <log dir> : Use this directory to store test log files.
+                            default: cdl-tests-logs/<bdev name>
+  --test | -t <test num>  : Execute only the specified test case. Can be
+                            specified multiple times.
+  --force | -f            : Run all tests, even the ones skipped due to
+                            an inadequate device fw being detected.
+  --quick | -q            : Run quick tests with shorter fio runs.
+                            This can result in less reliable test results.
+  --noncq | -n            : Disable NCQ/set device max QD to 1 during tests.
+                            Default: enable NCQ for ATA drives.
+```
+
+The test cases can be listed using the option "--list".
+
+```
+# tests/cdl-tests.sh --list
+  Test 0001: cdladm (get device information)
+  Test 0002: cdladm (bad devices)
+  Test 0100: cdladm (list CDL descriptors)
+  Test 0101: cdladm (show CDL descriptors)
+  Test 0102: cdladm (save CDL descriptors)
+  Test 0103: cdladm (upload CDL descriptors)
+  Test 0200: CDL sysfs (all attributes present)
+  Test 0201: CDL (enable/disable)
+  Test 0300: CDL dur. guideline (0x0 complete-earliest policy)
+  Test 0301: CDL dur. guideline (0x1 continue-next-limit policy)
+  Test 0302: CDL dur. guideline (0x2 continue-no-limit policy)
+  Test 0303: CDL dur. guideline (0xd complete-unavailable policy)
+  Test 0304: CDL dur. guideline (0xf abort policy)
+  Test 0310: CDL active time (0x0 complete-earliest policy)
+  Test 0311: CDL active time (0xd complete-unavailable policy)
+  Test 0312: CDL active time (0xe abort-recovery policy)
+  Test 0313: CDL active time (0xf abort policy)
+  Test 0320: CDL inactive time (0x0 complete-earliest policy)
+  Test 0321: CDL inactive time (0xd complete-unavailable policy)
+  Test 0322: CDL inactive time (0xf abort policy)
+```
+
+Executing the test suite requires root access rights.
+
+```
+sudo tests/cdl-tests.sh /dev/sdo
+Running CDL tests on cmr /dev/sdo:
+    Force all tests: enabled, NCQ: enabled, quick tests: enabled
+  Test 0001:  cdladm (get device information)                      ... PASS
+  Test 0002:  cdladm (bad devices)                                 ... PASS
+  Test 0100:  cdladm (list CDL descriptors)                        ... PASS
+  Test 0101:  cdladm (show CDL descriptors)                        ... PASS
+  Test 0102:  cdladm (save CDL descriptors)                        ... PASS
+  Test 0103:  cdladm (upload CDL descriptors)                      ...
+  ...
+```
+
+Log files for each test case are written by default in the "cdl-tests-logs"
+directory in the current working directory.
