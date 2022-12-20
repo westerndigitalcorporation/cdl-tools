@@ -252,10 +252,10 @@ function run_test()
 
 type="$(devtype ${dev})"
 echo "Running CDL tests on ${type} ${dev}:"
-if [ "${no_ncq}" == "1" ]; then
-	echo -n "    Force all tests: disabled"
-else
+if [ "${force_tests}" == "1" ]; then
 	echo -n "    Force all tests: enabled"
+else
+	echo -n "    Force all tests: disabled"
 fi
 if [ "${no_ncq}" == "1" ]; then
 	echo -n ", NCQ: disabled"
@@ -263,9 +263,9 @@ else
 	echo -n ", NCQ: enabled"
 fi
 if [ "${quick_tests}" == "1" ]; then
-	echo ", quick tests: disabled"
-else
 	echo ", quick tests: enabled"
+else
+	echo ", quick tests: disabled"
 fi
 
 for t in "${tests[@]}"; do
