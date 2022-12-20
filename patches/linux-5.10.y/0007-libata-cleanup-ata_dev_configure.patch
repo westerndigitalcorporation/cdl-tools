@@ -1,7 +1,7 @@
-From 479f0e4255b7e829e3969e0097871c6ea23f04f6 Mon Sep 17 00:00:00 2001
+From 84154f66cb45383d5a6fbe444900630e4ca73258 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:50 +0900
-Subject: [PATCH 07/34] libata: cleanup ata_dev_configure()
+Subject: [PATCH 07/64] libata: cleanup ata_dev_configure()
 
 Upstream commit 891fd7c61952ed3fddb82a3b00ae4b3edfce8733
 
@@ -21,7 +21,7 @@ Signed-off-by: Jens Axboe <axboe@kernel.dk>
  1 file changed, 75 insertions(+), 56 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index 29e4fbae84fb..abd5f83837db 100644
+index 5f3b9bef7be4..308ceec248b0 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
 @@ -159,6 +159,12 @@ MODULE_DESCRIPTION("Library module for ATA devices");
@@ -195,5 +195,5 @@ index 29e4fbae84fb..abd5f83837db 100644
  
  		ata_dev_config_devslp(dev);
 -- 
-2.35.1
+2.38.1
 

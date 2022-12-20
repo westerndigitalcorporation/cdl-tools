@@ -1,7 +1,7 @@
-From 7ba8e6d8e59ca461bd105b6442990463f3bded22 Mon Sep 17 00:00:00 2001
+From 4b313a977a49d1d21ab270b8454e50e79e7693b8 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:53 +0900
-Subject: [PATCH 09/34] libata: print feature list on device scan
+Subject: [PATCH 09/64] libata: print feature list on device scan
 
 Upstream commit d633b8a702ab2eb4ef9263f1ab1610bb8cdf71a5
 
@@ -21,7 +21,7 @@ Signed-off-by: Jens Axboe <axboe@kernel.dk>
  2 files changed, 21 insertions(+)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index a3ab509b45c9..dc2739311f0e 100644
+index 19846094a0fd..ef81c7c3abe3 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
 @@ -2459,6 +2459,20 @@ static void ata_dev_config_devslp(struct ata_device *dev)
@@ -71,5 +71,5 @@ index 52c8fb610906..bb657b79fb0f 100644
  	ATA_DEV_ATA		= 1,	/* ATA device */
  	ATA_DEV_ATA_UNSUP	= 2,	/* ATA device (unsupported) */
 -- 
-2.35.1
+2.38.1
 

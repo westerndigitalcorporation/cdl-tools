@@ -1,0 +1,41 @@
+From 4dfeb1be56d87017284dcf348d77b7f5eab133c1 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Date: Mon, 26 Sep 2022 20:53:05 +0000
+Subject: [PATCH 30/64] scsi: Define the COMPLETED sense key
+
+Upstream commit d9504c65be2a0794822363f3d75bb41e9c8b3691
+
+Add the definition for the COMPLETED sense key in scsi_proto.h. While at
+it, cleanup the white lines around the sense keys macro definitions.
+
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
+Acked-by: Martin K. Petersen <martin.petersen@oracle.com>
+---
+ include/scsi/scsi_proto.h | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/include/scsi/scsi_proto.h b/include/scsi/scsi_proto.h
+index c36860111932..0933d6fc51ce 100644
+--- a/include/scsi/scsi_proto.h
++++ b/include/scsi/scsi_proto.h
+@@ -226,7 +226,6 @@ struct scsi_varlen_cdb_hdr {
+ /*
+  *  SENSE KEYS
+  */
+-
+ #define NO_SENSE            0x00
+ #define RECOVERED_ERROR     0x01
+ #define NOT_READY           0x02
+@@ -241,7 +240,7 @@ struct scsi_varlen_cdb_hdr {
+ #define ABORTED_COMMAND     0x0b
+ #define VOLUME_OVERFLOW     0x0d
+ #define MISCOMPARE          0x0e
+-
++#define COMPLETED	    0x0f
+ 
+ /*
+  *  DEVICE TYPES
+-- 
+2.38.1
+

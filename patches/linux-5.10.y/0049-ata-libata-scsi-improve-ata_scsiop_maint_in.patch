@@ -1,0 +1,35 @@
+From 48b1cdaccdb5f2d6a0cc3bc3e2c11a46b20d1146 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Date: Thu, 19 Aug 2021 16:19:44 +0900
+Subject: [PATCH 49/64] ata: libata-scsi: improve ata_scsiop_maint_in()
+
+Allow translation of REPORT_SUPPORTED_OPERATION_CODES commands using
+the command format 0x3, that is, checking support for commands that are
+identified using an opcode and a service action.
+
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+---
+ drivers/ata/libata-scsi.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/ata/libata-scsi.c b/drivers/ata/libata-scsi.c
+index 51d695f4917b..7b06c22a8b41 100644
+--- a/drivers/ata/libata-scsi.c
++++ b/drivers/ata/libata-scsi.c
+@@ -3255,11 +3255,12 @@ static unsigned int ata_scsiop_maint_in(struct ata_scsi_args *args, u8 *rbuf)
+ 	u8 supported = 0;
+ 	unsigned int err = 0;
+ 
+-	if (cdb[2] != 1) {
++	if (cdb[2] != 1 && cdb[2] != 3) {
+ 		ata_dev_warn(dev, "invalid command format %d\n", cdb[2]);
+ 		err = 2;
+ 		goto out;
+ 	}
++
+ 	switch (cdb[3]) {
+ 	case INQUIRY:
+ 	case MODE_SENSE:
+-- 
+2.38.1
+

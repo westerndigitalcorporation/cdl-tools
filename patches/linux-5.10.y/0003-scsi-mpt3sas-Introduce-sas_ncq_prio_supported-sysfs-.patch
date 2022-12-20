@@ -1,7 +1,7 @@
-From 4fabc670e641db26d926653aad6cd567655b987a Mon Sep 17 00:00:00 2001
+From 173d3f41b45c02c861cbacc0c089d8c699010269 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Sat, 7 Aug 2021 13:18:59 +0900
-Subject: [PATCH 03/34] scsi: mpt3sas: Introduce sas_ncq_prio_supported sysfs
+Subject: [PATCH 03/64] scsi: mpt3sas: Introduce sas_ncq_prio_supported sysfs
  sttribute
 
 Upstream commit 4758fd91d5a07d46be1101d6d47b289ed5d904d0
@@ -61,5 +61,5 @@ index edd26a2570fa..93158b757a4a 100644
  	NULL,
  };
 -- 
-2.35.1
+2.38.1
 

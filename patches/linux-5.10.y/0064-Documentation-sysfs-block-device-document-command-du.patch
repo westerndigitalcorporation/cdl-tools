@@ -1,0 +1,169 @@
+From 6b1ce73dcbb0cc043d87a2d1633a06044e844673 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Date: Tue, 6 Dec 2022 18:05:47 +0900
+Subject: [PATCH 64/64] Documentation: sysfs-block-device: document command
+ duration limits
+
+Document ABI/testing/sysfs-block-device the sysfs attributes present
+under /sys/block/*/device/duration_limits for ATA and SCSI devices
+supporting the command duration limits feature.
+
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+---
+ Documentation/ABI/testing/sysfs-block-device | 143 +++++++++++++++++++
+ 1 file changed, 143 insertions(+)
+
+diff --git a/Documentation/ABI/testing/sysfs-block-device b/Documentation/ABI/testing/sysfs-block-device
+index 7ac7b19b2f72..44841f91c69b 100644
+--- a/Documentation/ABI/testing/sysfs-block-device
++++ b/Documentation/ABI/testing/sysfs-block-device
+@@ -95,3 +95,146 @@ Description:
+ 		This file does not exist if the HBA driver does not implement
+ 		support for the SATA NCQ priority feature, regardless of the
+ 		device support for this feature.
++
++
++What:		/sys/block/*/device/duration_limits/enable
++Date:		Dec, 2022
++KernelVersion:	v6.3
++Contact:	linux-scsi@vger.kernel.org
++Description:
++		(RW) For ATA and SCSI devices supporting the command duration
++		limits feature, write to the file to turn on or off the
++		feature. By default this feature is turned off. If the device
++		does not support the command duration limits feature, this
++		attribute does not exist (the directory
++		"/sys/block/*/device/duration_limits" does not exist).
++		Writing "1" to this file enables the use of command duration
++		limits for read and write commands in the kernel and turns on
++		the feature on the device. Writing "0" disables the feature.
++
++
++What:		/sys/block/*/device/duration_limits/read/[1-7]/*
++Date:		Dec, 2022
++KernelVersion:	v6.3
++Contact:	linux-scsi@vger.kernel.org
++Description:
++		(RO) For ATA and SCSI devices supporting the command duration
++		limits feature, this shows the set of 7 command duration limits
++		descriptors for read commands currently set on the device. For
++		each of the 7 descritors, the following read-only attributes
++		are present:
++
++		  - duration_guideline: specifies the preferred length of time
++		    in microseconds for the completion of a command.
++
++		  - duration_guideline_policy: specifies the policy action
++		    taken if the duration_guideline attribute specifies a
++		    non-zero command duration guideline that the device is
++		    unable to achieve for a command.
++
++		    Possible values are:
++
++		      - 0x0: The device will complete the command at the
++			     earliest possible time consistent with the
++			     specified command duration guideline.
++		      - 0x1: If the specified command duration guideline has
++			     not been achieved and the command duration
++			     guideline policy field is not the seventh command
++			     duration limits descriptor, then the device
++			     continues processing that command using the
++			     command duration limits descriptor that has
++			     the next higher number.
++		      - 0x2: The device will continue processing the command
++			     as with no command duration limits descriptor
++			     being used.
++		      - 0xD: The device will complete the command and an IO
++			     failure will be reported to the user with the ETIME
++			     error code.
++		      - 0xF: Same as 0xD.
++
++		  - max_active_time: specifies an upper limit in microseconds
++		    on the time that elapses from the time at which the device
++		    initiates actions to access, transfer, or act upon the
++		    specified data until the time the device returns status for
++		    the command.
++
++		  - max_active_time_policy: specifies the policy action taken
++		    if the time used to process a command exceeds a non-zero
++		    time specified by the max_active_time attribute.
++
++		    Possible values are:
++
++		      - 0x0: The device will complete the command at the
++			     earliest possible time (i.e, do nothing based on
++			     the max limit not being met).
++		      - 0xD: The device will complete the command and an IO
++			     failure will be reported to the user with the ETIME
++			     error code.
++		      - 0xE: Same as 0xD.
++		      - 0xF: Same as 0xD.
++
++		  - max_inactive_time: specifies an upper limit in microseconds
++		    on the time that elapses from the time at which the device
++		    receives the command until the time at which the device
++		    initiates actions to access, transfer, or act upon the
++		    specified data.
++
++		  - max_inactive_time_policy: specifies the policy action taken
++		    if a non-zero max_inactive_time limit is not met.
++
++		    Possible values are:
++
++		      - 0x0: The device will complete the command at the
++			     earliest possible time (i.e, do nothing based on
++			     the time limit not being met).
++		      - 0xD: The device will complete the command and an IO
++			     failure will be reported to the user with the ETIME
++			     error code.
++		      - 0xF: Same as 0xD.
++
++
++What:		/sys/block/*/device/duration_limits/read/page
++Date:		Dec, 2022
++KernelVersion:	v6.3
++Contact:	linux-scsi@vger.kernel.org
++Description:
++		(RO) For ATA and SCSI devices supporting the command duration
++		limits feature, this shows the name of the device VPD page
++		specifying the set of 7 command duration limits descriptors for
++		read commands. Possible values are "T2A" and "T2B".
++
++
++What:		/sys/block/*/device/duration_limits/write/[1-7]/*
++Date:		Dec, 2022
++KernelVersion:	v6.3
++Contact:	linux-scsi@vger.kernel.org
++Description:
++		(RO) For ATA and SCSI devices supporting the command duration
++		limits feature, this shows the set of 7 command duration limits
++		descriptors for write commands currently set on the device. For
++		each of the 7 descritors, the same set of read-only attributes
++		as for read commands is present.
++
++
++What:		/sys/block/*/device/duration_limits/write/page
++Date:		Dec, 2022
++KernelVersion:	v6.3
++Contact:	linux-scsi@vger.kernel.org
++Description:
++		(RO) For ATA and SCSI devices supporting the command duration
++		limits feature, this shows the name of the device VPD page
++		specifying the set of 7 command duration limits descriptors for
++		write commands. Possible values are "T2A" and "T2B".
++
++
++What:		/sys/block/*/device/duration_limits/perf_vs_duration_guideline
++Date:		Dec, 2022
++KernelVersion:	v6.3
++Contact:	linux-scsi@vger.kernel.org
++Description:
++		(RO) For ATA and SCSI devices supporting the command duration
++		limits feature, this specifies the maximum percentage increase
++		in average command completion times (reduction in IOPS) that
++		is allowed for the device to perform actions based on the
++		contents of the duration guideline field in every command
++		duration limit descriptor for both read and write commands.
+-- 
+2.38.1
+

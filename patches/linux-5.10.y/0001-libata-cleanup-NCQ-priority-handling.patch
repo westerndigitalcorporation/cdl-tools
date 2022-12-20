@@ -1,7 +1,7 @@
-From 49aff8d462bf59eb5f2801845bf4f4784cb9e08c Mon Sep 17 00:00:00 2001
+From f3dc84270081c9c47fe18e1c2ee2e198103ccdbb Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@wdc.com>
 Date: Mon, 16 Aug 2021 10:44:51 +0900
-Subject: [PATCH 01/34] libata: cleanup NCQ priority handling
+Subject: [PATCH 01/64] libata: cleanup NCQ priority handling
 
 Upstream commit 2360fa1812cd77e1de13d3cca789fbd23462b651
 
@@ -42,7 +42,7 @@ Signed-off-by: Jens Axboe <axboe@kernel.dk>
  2 files changed, 26 insertions(+), 43 deletions(-)
 
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index d2b544bdc7b5..b747db74dc76 100644
+index d13474c6d181..fd4699214198 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
 @@ -706,11 +706,9 @@ int ata_build_rw_tf(struct ata_taskfile *tf, struct ata_device *dev,
@@ -179,5 +179,5 @@ index c16423e44525..90a3a972bbf4 100644
  }
  
 -- 
-2.35.1
+2.38.1
 
