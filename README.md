@@ -108,7 +108,7 @@ of SAS and SATA hard-disks supporting this feature.
 *cdladm* provide many functions. The usage is as follows:
 
 ```
-> cdladm --help
+# cdladm --help
 Usage:
   cdladm --help | -h
   cdladm --version
@@ -798,6 +798,18 @@ The test cases can be listed using the option "--list".
   Test 0320: CDL inactive time (0x0 complete-earliest policy)
   Test 0321: CDL inactive time (0xd complete-unavailable policy)
   Test 0322: CDL inactive time (0xf abort policy)
+```
+
+NOTE: the test suite is destructive. This means that it will overwrite the
+CDL descriptors in the T2A and T2B page.
+
+If you want to keep your original CDL settings set by your system administrator
+or HDD vendor, you should back up the T2A and T2B page manually, before running
+the test suite using:
+
+```
+# cdladm save --page T2A --file original_T2A.cdl /dev/sdo
+# cdladm save --page T2B --file original_T2B.cdl /dev/sdo
 ```
 
 Executing the test suite requires root access rights.
