@@ -28,12 +28,14 @@ function usage()
 {
 	echo "Usage: $(basename "$0") [Options] <block device file>"
 	echo "Options:"
-	echo "  --list | -l              : List all tests"
-	echo "  --logdir | -g <log dir>  : Use this directory to store test log files."
-	echo "                             default: cdl-tests-logs/<bdev name>"
-	echo "  --test | -t <test num>   : Execute only the specified test case. Can be"
-	echo "                             specified multiple times."
-	echo "  --help | -h              : This help message"
+	echo "  --help | -h             : This help message"
+	echo "  --list | -l             : List all tests"
+	echo "  --logdir | -g <log dir> : Use this directory to store test log files."
+	echo "                            default: cdl-tests-logs/<bdev name>"
+	echo "  --test | -t <test num>  : Execute only the specified test case. Can be"
+	echo "                            specified multiple times."
+	echo "  --quick | -q            : Run quick tests with shorter fio runs."
+	echo "                            This can result in less reliable test results."
 }
 
 #
@@ -50,6 +52,7 @@ require_lib "libaio"
 declare -a tests
 declare list=false
 logdir=""
+quick_tests=0
 
 while [ "${1#-}" != "$1" ]; do
 	case "$1" in
@@ -75,6 +78,10 @@ while [ "${1#-}" != "$1" ]; do
 		shift
 		logdir="$1"
 		shift
+		;;
+	-q | --quick)
+		shift
+		quick_tests=1
 		;;
 	-*)
 		echo "unknow option $1"
@@ -174,6 +181,8 @@ if [ $? != 0 ]; then
 	echo "$? Set block device scheduler failed."
 	exit 1
 fi
+
+export quick_tests
 
 function log_kmsg()
 {

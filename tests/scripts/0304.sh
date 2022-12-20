@@ -37,7 +37,7 @@ fiocmd+=" --log_prio=1 --per_job_logs=0"
 fiocmd+=" --rw=randread --ioengine=libaio --iodepth=4"
 fiocmd+=" --bs=2M --direct=1"
 fiocmd+=" --cmdprio_percentage=100 --cmdprio_class=4 --cmdprio=6"
-fiocmd+=" --runtime=60"
+fiocmd+=" --runtime=$(fio_run_time)"
 
 echo "Running fio:"
 fiolog="${logdir}/$(test_num $0)_fio.log"

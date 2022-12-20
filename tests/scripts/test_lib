@@ -290,3 +290,12 @@ function test_setup()
 
 	enable_cdl $dev || exit_failed " --> FAILED to enable CDL"
 }
+
+function fio_run_time()
+{
+	if [ "$quick_tests" == "1" ]; then
+		echo "10"
+	else
+		echo "60"
+	fi
+}
