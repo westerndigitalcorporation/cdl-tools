@@ -753,6 +753,18 @@ The *cdl-tools* project includes a test suite to exercise a device supporting
 command duration limits. Executing the test suite results also in the
 host-bus-adapter and kernel being tested.
 
+> **Warning**: cdl-tools test suite is destructive. This means that it will
+> overwrite the CDL descriptors in the T2A and T2B pages.
+>
+> If you want to keep your original limit descriptors settings set by your
+> system administrator or HDD vendor, you must back up the T2A and T2B page
+> manually, before running the test suite using:
+>
+> ```
+> # cdladm save --page T2A --file original_T2A.cdl /dev/sda
+> # cdladm save --page T2B --file original_T2B.cdl /dev/sda
+> ```
+
 *cdl-tools* test suite is written as a collection of bash scripts. The top
 script to use for executing tests is ```tests/cdl-tests.sh```
 
@@ -800,23 +812,11 @@ The test cases can be listed using the option "--list".
   Test 0322: CDL inactive time (0xf abort policy)
 ```
 
-NOTE: the test suite is destructive. This means that it will overwrite the
-CDL descriptors in the T2A and T2B page.
-
-If you want to keep your original CDL settings set by your system administrator
-or HDD vendor, you should back up the T2A and T2B page manually, before running
-the test suite using:
-
-```
-# cdladm save --page T2A --file original_T2A.cdl /dev/sdo
-# cdladm save --page T2B --file original_T2B.cdl /dev/sdo
-```
-
 Executing the test suite requires root access rights.
 
 ```
-sudo tests/cdl-tests.sh /dev/sdo
-Running CDL tests on cmr /dev/sdo:
+sudo tests/cdl-tests.sh /dev/sda
+Running CDL tests on cmr /dev/sda:
     NCQ: enabled, force all tests: disabled, quick tests: disabled
   Test 0001:  cdladm (get device information)                      ... PASS
   Test 0002:  cdladm (bad devices)                                 ... PASS
