@@ -65,7 +65,7 @@ changed using the configure script. Executing the following command displays
 the options used to control the installation path.
 
 ```
-> ./configure --help
+$ ./configure --help
 ```
 
 ## Building RPM Packages
@@ -756,7 +756,7 @@ host-bus-adapter and kernel being tested.
 > **Warning**: cdl-tools test suite is destructive. This means that it will
 > overwrite the CDL descriptors in the T2A and T2B pages.
 >
-> If you want to keep your original limit descriptors settings set by your
+> If you want to keep your original limit descriptor settings set by your
 > system administrator or HDD vendor, you must back up the T2A and T2B page
 > manually, before running the test suite using:
 >
@@ -815,7 +815,7 @@ The test cases can be listed using the option "--list".
 Executing the test suite requires root access rights.
 
 ```
-sudo tests/cdl-tests.sh /dev/sda
+$ sudo tests/cdl-tests.sh /dev/sda
 Running CDL tests on cmr /dev/sda:
     NCQ: enabled, force all tests: disabled, quick tests: disabled
   Test 0001:  cdladm (get device information)                      ... PASS
