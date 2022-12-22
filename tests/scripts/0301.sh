@@ -41,4 +41,18 @@ if fio_has_io_error "${fiolog}"; then
 	exit_failed " --> FAILED (IO errors detected, we should not have any)"
 fi
 
+#
+# Get IO completion average latencies and issue a warning if we do not
+# detect sufficient difference between cdl vs no-cdl latencies
+#
+nocdl=$(fio_get_clat_avg "${fiolog}" "0/0")
+cdl=$(fio_get_clat_avg "${fiolog}" "4/1")
+
+echo "Average latency: no-cdl=${nocdl}, cdl=${cdl}"
+
+thresh=$(( nocdl / 2 ))
+if [ ${cdl} -gt ${thresh} ]; then
+	exit_warning " --> WARNING: bad average latency"
+fi
+
 exit 0
