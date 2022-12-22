@@ -337,3 +337,23 @@ function fio_run_time()
 		echo "60"
 	fi
 }
+
+function fio_common_cmdline()
+{
+	local dev="$1"
+	local filename="$2"
+	local testname="$3"
+	local fiocmd=""
+
+	fiocmd+="fio --name=$testname"
+	fiocmd+=" --filename=$dev"
+	fiocmd+=" --random_generator=tausworthe64"
+	fiocmd+=" --continue_on_error=none"
+	fiocmd+=" --write_lat_log=${logdir}/$(test_num $filename)_lat.log"
+	fiocmd+=" --log_prio=1 --per_job_logs=0"
+	fiocmd+=" --rw=randread --ioengine=libaio --iodepth=32"
+	fiocmd+=" --bs=512k --direct=1"
+	fiocmd+=" --runtime=$(fio_run_time)"
+
+	echo $fiocmd
+}

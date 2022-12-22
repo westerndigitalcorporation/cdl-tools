@@ -7,34 +7,29 @@
 
 . "${scriptdir}/test_lib"
 
-cdl_file="${scriptdir}/cdl/T2A-active-time.cdl"
-
 if [ $# == 0 ]; then
 	echo "CDL active time (0xd complete-unavailable policy)"
 	exit 0
 fi
 
+cdl_file="${scriptdir}/cdl/T2A-active-time.cdl"
+testname=active-time-complete-unavailable
+filename=$0
+dev=$1
+
 if dev_has_bad_fw "$1"; then
 	exit_skip
 fi
 
-test_setup $1 T2A $cdl_file || \
+test_setup $dev T2A $cdl_file || \
 	exit_failed " --> FAILED (error during setup)"
 
 # fio command
-fiocmd="fio --name=active-time-complete-unavailable"
-fiocmd+=" --filename=$1"
-fiocmd+=" --random_generator=tausworthe64"
-fiocmd+=" --continue_on_error=none"
-fiocmd+=" --write_lat_log=${logdir}/$(test_num $0)_lat.log"
-fiocmd+=" --log_prio=1 --per_job_logs=0"
-fiocmd+=" --rw=randread --ioengine=libaio --iodepth=32"
-fiocmd+=" --bs=512k --direct=1"
+fiocmd=$(fio_common_cmdline $dev $filename $testname)
 fiocmd+=" --cmdprio_percentage=100 --cmdprio_class=4 --cmdprio=2"
-fiocmd+=" --runtime=$(fio_run_time)"
 
 echo "Running fio:"
-fiolog="${logdir}/$(test_num $0)_fio.log"
+fiolog="${logdir}/$(test_num $filename)_fio.log"
 echo "${fiocmd}"
 eval ${fiocmd} | tee "${fiolog}" || exit_failed " --> FAILED"
 
