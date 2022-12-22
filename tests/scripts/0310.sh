@@ -23,7 +23,6 @@ test_setup $dev T2A $cdl_file || \
 # fio command
 fiocmd=$(fio_common_cmdline $dev $filename $testname)
 fiocmd+=" --cmdprio_percentage=100 --cmdprio_class=4 --cmdprio=1"
-fiocmd+=" --ramp_time=10"
 
 echo "Running fio:"
 fiolog="${logdir}/$(test_num $filename)_fio.log"
