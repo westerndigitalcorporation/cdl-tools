@@ -98,7 +98,7 @@ while [ "${1#-}" != "$1" ]; do
 		no_ncq=1
 		;;
 	-*)
-		echo "unknow option $1"
+		echo "unknown option $1"
 		exit 1
 		;;
 	esac

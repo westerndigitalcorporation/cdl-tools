@@ -315,7 +315,7 @@ function test_setup()
 
 	if [ "${no_ncq}" == "1" ]; then
 		disable_ncq "$dev"
-	elif dev_is_ata "$1"; then
+	elif dev_is_ata "$dev"; then
 		enable_ncq "$dev"
 	fi
 
