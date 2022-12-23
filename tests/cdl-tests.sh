@@ -48,6 +48,7 @@ function usage()
 require_program "cdladm"
 require_program "fio"
 require_program "bc"
+require_program "time"
 require_lib "libaio"
 
 #

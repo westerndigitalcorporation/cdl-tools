@@ -373,6 +373,14 @@ function fio_run_time()
 	fi
 }
 
+function time_cmdline()
+{
+	# format is not supported in the built-in time command
+	local time_bin=$(type -P time)
+
+	echo "$time_bin -f 'CDL_REAL_RUNTIME: %e' -- "
+}
+
 function fio_common_cmdline()
 {
 	local dev="$1"
@@ -381,7 +389,7 @@ function fio_common_cmdline()
 	local cdl_dld="$4"
 	local expect_error="$5"
 	local compare_latencies="$6"
-	local fiocmd=""
+	local fiocmd=$(time_cmdline)
 
 	fiocmd+="fio --name=\"$testname\""
 	fiocmd+=" --filename=$dev"
@@ -399,6 +407,8 @@ function fio_common_cmdline()
 		fiocmd+=" --cmdprio_percentage=100"
 	fi
 
+	fiocmd+=" 2>&1"
+
 	echo $fiocmd
 }
 
@@ -408,6 +418,35 @@ function analyze_log()
 	local expect_error="$2"
 	local compare_latencies="$3"
 	local cdl_dld="$4"
+	local real_runtime
+	local max_runtime
+
+	real_runtime="$(grep "CDL_REAL_RUNTIME: " $fiolog)"
+	if [ -z "$real_runtime" ]; then
+		exit_failed " --> FAILED (real runtime not seen in fio log)"
+	fi
+
+	real_runtime=${real_runtime#CDL_REAL_RUNTIME: }
+
+	max_runtime=$(fio_run_time $expect_error)
+	# If comparing latencies, we also have a ramptime of 10 seconds
+	if [ "$compare_latencies" == "1" ]; then
+		max_runtime=$((max_runtime + 10))
+	fi
+
+	# Add a 2 second buffer on top of the max time fio is supposed to run,
+	# to account for the time it takes to start and exit the binary.
+	# We need a small buffer so that we do not accidentally fail test cases
+	# that are expected to run the whole run time.
+	max_runtime=$((max_runtime + 2))
+
+	# If fio ran longer than max_runtime, then most likely an I/O timed out
+	# and the HBA had to be hard reset. This would suggest a FW issue.
+	# This check tries to catch such cases, so that we don't accidentally
+	# PASS a test case which had I/O timeouts.
+	if [ $(echo "$real_runtime > $max_runtime" | bc) -gt 0 ]; then
+		exit_failed " --> FAILED (fio ran longer than specified)"
+	fi
 
 	if [ "$expect_error" == "1" ]; then
 		# We should have IO errors
