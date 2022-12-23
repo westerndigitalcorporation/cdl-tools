@@ -319,21 +319,27 @@ function test_setup()
 		enable_ncq "$dev"
 	fi
 
-	echo "Uploading T2A page"
-	cdladm upload --file $original_T2A $dev || \
-		exit_failed " --> FAILED to upload T2A page"
+	# Only upload if page it differs from the existing page
+	validate_page $dev T2A $original_T2A || {
+		echo "Uploading T2A page"
+		cdladm upload --file $original_T2A $dev || \
+			exit_failed " --> FAILED to upload T2A page"
 
-	validate_page $dev T2A $original_T2A || \
-		exit_failed " --> FAILED to validate uploaded T2A page"
+		validate_page $dev T2A $original_T2A || \
+			exit_failed " --> FAILED to validate uploaded T2A page"
+	}
 
-	echo "Uploading T2B page"
-	cdladm upload --file $original_T2B $dev || \
-		exit_failed " --> FAILED to upload T2B page"
+	# Only upload if page it differs from the existing page
+	validate_page $dev T2B $original_T2B || {
+		echo "Uploading T2B page"
+		cdladm upload --file $original_T2B $dev || \
+			exit_failed " --> FAILED to upload T2B page"
 
-	validate_page $dev T2B $original_T2B || \
-		exit_failed " --> FAILED to validate uploaded T2B page"
+		validate_page $dev T2B $original_T2B || \
+			exit_failed " --> FAILED to validate uploaded T2B page"
 
-	enable_cdl $dev || exit_failed " --> FAILED to enable CDL"
+		enable_cdl $dev || exit_failed " --> FAILED to enable CDL"
+	}
 }
 
 function fio_run_time()
