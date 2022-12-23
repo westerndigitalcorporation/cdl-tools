@@ -7,14 +7,15 @@
 
 . "${scriptdir}/test_lib"
 
+testname="CDL dur. guideline (0x1 continue-next-limit policy)"
+T2A_file="${scriptdir}/cdl/T2A-duration-guideline.cdl"
+T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
+
 if [ $# == 0 ]; then
-	echo "CDL dur. guideline (0x1 continue-next-limit policy)"
+	echo $testname
 	exit 0
 fi
 
-T2A_file="${scriptdir}/cdl/T2A-duration-guideline.cdl"
-T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
-testname=duration-guideline-best-effort
 filename=$0
 dev=$1
 
@@ -28,7 +29,7 @@ test_setup $dev $T2A_file $T2B_file || \
 	exit_failed " --> FAILED (error during setup)"
 
 # fio command
-fiocmd=$(fio_common_cmdline $dev $filename $testname)
+fiocmd=$(fio_common_cmdline $dev $filename "$testname")
 fiocmd+=" --cmdprio_percentage=10 --cmdprio_class=4 --cmdprio=2"
 fiocmd+=" --ramp_time=10"
 

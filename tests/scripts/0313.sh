@@ -7,14 +7,15 @@
 
 . "${scriptdir}/test_lib"
 
+testname="CDL active time (0xf abort policy)"
+T2A_file="${scriptdir}/cdl/T2A-active-time.cdl"
+T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
+
 if [ $# == 0 ]; then
-	echo "CDL active time (0xf abort policy)"
+	echo $testname
 	exit 0
 fi
 
-T2A_file="${scriptdir}/cdl/T2A-active-time.cdl"
-T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
-testname=active-time-abort
 filename=$0
 dev=$1
 
@@ -22,7 +23,7 @@ test_setup $dev $T2A_file $T2B_file || \
 	exit_failed " --> FAILED (error during setup)"
 
 # fio command
-fiocmd=$(fio_common_cmdline $dev $filename $testname)
+fiocmd=$(fio_common_cmdline $dev $filename "$testname")
 fiocmd+=" --cmdprio_percentage=100 --cmdprio_class=4 --cmdprio=4"
 
 echo "Running fio:"

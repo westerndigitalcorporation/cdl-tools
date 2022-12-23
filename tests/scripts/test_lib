@@ -358,7 +358,7 @@ function fio_common_cmdline()
 	local testname="$3"
 	local fiocmd=""
 
-	fiocmd+="fio --name=$testname"
+	fiocmd+="fio --name=\"$testname\""
 	fiocmd+=" --filename=$dev"
 	fiocmd+=" --random_generator=tausworthe64"
 	fiocmd+=" --write_lat_log=${logdir}/$(test_num $filename)_lat.log"
