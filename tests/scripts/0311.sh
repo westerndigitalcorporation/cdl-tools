@@ -35,14 +35,15 @@ fiolog="${logdir}/$(test_num $filename)_fio.log"
 echo "${fiocmd}"
 eval ${fiocmd} | tee "${fiolog}" || exit_failed " --> FAILED"
 
-err="$(grep ", err=" ${fiolog})"
-if [ -z "${err}" ]; then
-        exit_failed " --> FAILED (fio did not see any IO error)"
+# We should have IO errors
+if ! fio_has_io_error "${fiolog}"; then
+	exit_failed " --> FAILED (fio did not see any IO error)"
 fi
 
-errno="$(echo "${err}" | cut -d'=' -f3 | cut -d'/' -f1)"
+# IO errors should be 62 (ETIME)
+errno="$(fio_get_io_error ${fiolog})"
 if [ "${errno}" != "62" ]; then
-        exit_failed " --> FAILED (fio saw error ${errno} instead of ETIME=62)"
+	exit_failed " --> FAILED (fio saw error ${errno} instead of ETIME=62)"
 fi
 
 exit 0
