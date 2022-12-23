@@ -10,6 +10,8 @@
 testname="CDL dur. guideline (0x2 continue-no-limit policy)"
 T2A_file="${scriptdir}/cdl/T2A-duration-guideline.cdl"
 T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
+cdl_dld=4
+compare_latencies=1
 
 if [ $# == 0 ]; then
 	echo $testname
@@ -29,9 +31,7 @@ test_setup $dev $T2A_file $T2B_file || \
 	exit_failed " --> FAILED (error during setup)"
 
 # fio command
-fiocmd=$(fio_common_cmdline $dev $filename "$testname")
-fiocmd+=" --cmdprio_percentage=10 --cmdprio_class=4 --cmdprio=4"
-fiocmd+=" --ramp_time=10"
+fiocmd=$(fio_common_cmdline $dev $filename "$testname" $cdl_dld $compare_latencies)
 
 echo "Running fio:"
 fiolog="${logdir}/$(test_num $filename)_fio.log"
@@ -48,7 +48,7 @@ fi
 # detect sufficient difference between cdl vs no-cdl latencies
 #
 nocdl=$(fio_get_clat_avg "${fiolog}" "0/0")
-cdl=$(fio_get_clat_avg "${fiolog}" "4/4")
+cdl=$(fio_get_clat_avg "${fiolog}" "4/${cdl_dld}")
 
 echo "Average latency: no-cdl=${nocdl}, cdl=${cdl}"
 

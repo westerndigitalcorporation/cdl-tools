@@ -356,6 +356,8 @@ function fio_common_cmdline()
 	local dev="$1"
 	local filename="$2"
 	local testname="$3"
+	local cdl_dld="$4"
+	local compare_latencies="$5"
 	local fiocmd=""
 
 	fiocmd+="fio --name=\"$testname\""
@@ -366,6 +368,13 @@ function fio_common_cmdline()
 	fiocmd+=" --rw=randread --ioengine=libaio --iodepth=32"
 	fiocmd+=" --bs=512k --direct=1"
 	fiocmd+=" --runtime=$(fio_run_time)"
+	fiocmd+=" --cmdprio_class=4 --cmdprio=$cdl_dld"
+
+	if [ "$compare_latencies" == "1" ]; then
+		fiocmd+=" --cmdprio_percentage=10 --ramp_time=10"
+	else
+		fiocmd+=" --cmdprio_percentage=100"
+	fi
 
 	echo $fiocmd
 }
