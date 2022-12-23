@@ -378,3 +378,45 @@ function fio_common_cmdline()
 
 	echo $fiocmd
 }
+
+function analyze_log()
+{
+	local fiolog="$1"
+	local expect_error="$2"
+	local compare_latencies="$3"
+	local cdl_dld="$4"
+
+	if [ "$expect_error" == "1" ]; then
+		# We should have IO errors
+		if ! fio_has_io_error "${fiolog}"; then
+			exit_failed " --> FAILED (fio did not see any IO error)"
+		fi
+
+		# IO errors should be 62 (ETIME)
+		errno="$(fio_get_io_error ${fiolog})"
+		if [ "${errno}" != "62" ]; then
+			exit_failed " --> FAILED (fio saw error ${errno} instead of ETIME=62)"
+		fi
+	else
+		# We should not have any IO error
+		if fio_has_io_error "${fiolog}"; then
+			exit_failed " --> FAILED (IO errors detected, we should not have any)"
+		fi
+	fi
+
+	if [ "$compare_latencies" == "1" ]; then
+		#
+		# Get IO completion average latencies and issue a warning if we do not
+		# detect sufficient difference between cdl vs no-cdl latencies
+		#
+		nocdl=$(fio_get_clat_avg "${fiolog}" "0/0")
+		cdl=$(fio_get_clat_avg "${fiolog}" "4/${cdl_dld}")
+
+		echo "Average latency: no-cdl=${nocdl}, cdl=${cdl}"
+
+		thresh=$(( nocdl / 2 ))
+		if [ ${cdl} -gt ${thresh} ]; then
+			exit_warning " --> WARNING: bad average latency"
+		fi
+	fi
+}

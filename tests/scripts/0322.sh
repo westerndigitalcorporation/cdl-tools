@@ -12,6 +12,7 @@ T2A_file="${scriptdir}/cdl/T2A-inactive-time.cdl"
 T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
 cdl_dld=3
 compare_latencies=0
+expect_error=1
 
 if [ $# == 0 ]; then
 	echo $testname
@@ -32,15 +33,7 @@ fiolog="${logdir}/$(test_num $filename)_fio.log"
 echo "${fiocmd}"
 eval ${fiocmd} | tee "${fiolog}" || exit_failed " --> FAILED"
 
-# We should have IO errors
-if ! fio_has_io_error "${fiolog}"; then
-	exit_failed " --> FAILED (fio did not see any IO error)"
-fi
-
-# IO errors should be 62 (ETIME)
-errno="$(fio_get_io_error ${fiolog})"
-if [ "${errno}" != "62" ]; then
-	exit_failed " --> FAILED (fio saw error ${errno} instead of ETIME=62)"
-fi
+analyze_log $fiolog $expect_error $compare_latencies $cdl_dld || \
+	exit_failed " --> FAILED (error during analyze log)"
 
 exit 0
