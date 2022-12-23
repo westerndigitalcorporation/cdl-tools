@@ -48,7 +48,7 @@ fi
 # detect sufficient difference between cdl vs no-cdl latencies
 #
 nocdl=$(fio_get_clat_avg "${fiolog}" "0/0")
-cdl=$(fio_get_clat_avg "${fiolog}" "4/1")
+cdl=$(fio_get_clat_avg "${fiolog}" "4/2")
 
 echo "Average latency: no-cdl=${nocdl}, cdl=${cdl}"
 
