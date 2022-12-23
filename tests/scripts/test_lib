@@ -310,8 +310,8 @@ function disable_ncq()
 function test_setup()
 {
 	local dev="$1"
-	local page_type="$2"
-	local original_page="$3"
+	local original_T2A="$2"
+	local original_T2B="$3"
 
 	if [ "${no_ncq}" == "1" ]; then
 		disable_ncq "$dev"
@@ -319,12 +319,19 @@ function test_setup()
 		enable_ncq "$dev"
 	fi
 
-	echo "Uploading $page_type page"
-	cdladm upload --file $original_page $dev || \
-		exit_failed " --> FAILED to upload $page_type page"
+	echo "Uploading T2A page"
+	cdladm upload --file $original_T2A $dev || \
+		exit_failed " --> FAILED to upload T2A page"
 
-	validate_page $dev $page_type $original_page || \
-		exit_failed " --> FAILED to validate uploaded page"
+	validate_page $dev T2A $original_T2A || \
+		exit_failed " --> FAILED to validate uploaded T2A page"
+
+	echo "Uploading T2B page"
+	cdladm upload --file $original_T2B $dev || \
+		exit_failed " --> FAILED to upload T2B page"
+
+	validate_page $dev T2B $original_T2B || \
+		exit_failed " --> FAILED to validate uploaded T2B page"
 
 	enable_cdl $dev || exit_failed " --> FAILED to enable CDL"
 }

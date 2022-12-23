@@ -24,12 +24,12 @@
 cdlp: T2B
 
 == descriptor: 1
-t2cdlunits: 0xa
+t2cdlunits: 0x0
 max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
 max-active-time-policy: 0x0
-duration-guideline: 5
+duration-guideline: 0
 duration-guideline-policy: 0x0
 
 == descriptor: 2
@@ -78,11 +78,11 @@ duration-guideline: 0
 duration-guideline-policy: 0x0
 
 == descriptor: 7
-t2cdlunits: 0xa
+t2cdlunits: 0x0
 max-inactive-time: 0
 max-inactive-time-policy: 0x0
-max-active-time: 1
-max-active-time-policy: 0xd
+max-active-time: 0
+max-active-time-policy: 0x0
 duration-guideline: 0
 duration-guideline-policy: 0x0
 

@@ -12,12 +12,13 @@ if [ $# == 0 ]; then
 	exit 0
 fi
 
-cdl_file="${scriptdir}/cdl/T2A-inactive-time.cdl"
+T2A_file="${scriptdir}/cdl/T2A-inactive-time.cdl"
+T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
 testname=inactive-time-complete-earliest
 filename=$0
 dev=$1
 
-test_setup $dev T2A $cdl_file || \
+test_setup $dev $T2A_file $T2B_file || \
 	exit_failed " --> FAILED (error during setup)"
 
 # fio command

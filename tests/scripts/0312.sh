@@ -12,7 +12,8 @@ if [ $# == 0 ]; then
 	exit 0
 fi
 
-cdl_file="${scriptdir}/cdl/T2A-active-time.cdl"
+T2A_file="${scriptdir}/cdl/T2A-active-time.cdl"
+T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
 testname=active-time-abort-recovery
 filename=$0
 dev=$1
@@ -21,7 +22,7 @@ if dev_has_bad_fw "$1"; then
 	exit_skip
 fi
 
-test_setup $dev T2A $cdl_file || \
+test_setup $dev $T2A_file $T2B_file || \
 	exit_failed " --> FAILED (error during setup)"
 
 # fio command

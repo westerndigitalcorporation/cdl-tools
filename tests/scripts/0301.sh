@@ -12,7 +12,8 @@ if [ $# == 0 ]; then
 	exit 0
 fi
 
-cdl_file="${scriptdir}/cdl/T2A-duration-guideline.cdl"
+T2A_file="${scriptdir}/cdl/T2A-duration-guideline.cdl"
+T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
 testname=duration-guideline-best-effort
 filename=$0
 dev=$1
@@ -23,7 +24,7 @@ if [ "${have_dg}" == "0" ]; then
 	exit_skip
 fi
 
-test_setup $dev T2A $cdl_file || \
+test_setup $dev $T2A_file $T2B_file || \
 	exit_failed " --> FAILED (error during setup)"
 
 # fio command
