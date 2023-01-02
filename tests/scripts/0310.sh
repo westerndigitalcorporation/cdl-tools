@@ -11,8 +11,8 @@ testname="CDL active time (0x0 complete-earliest policy)"
 T2A_file="${scriptdir}/cdl/T2A-active-time.cdl"
 T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
 cdl_dld=1
-compare_latencies=0
 expect_error=0
+compare_latencies=0
 
 if [ $# == 0 ]; then
 	echo $testname
@@ -22,18 +22,7 @@ fi
 filename=$0
 dev=$1
 
-test_setup $dev $T2A_file $T2B_file || \
-	exit_failed " --> FAILED (error during setup)"
-
-# fio command
-fiocmd=$(fio_common_cmdline $dev $filename "$testname" $cdl_dld $compare_latencies)
-
-echo "Running fio:"
-fiolog="${logdir}/$(test_num $filename)_fio.log"
-echo "${fiocmd}"
-eval ${fiocmd} | tee "${fiolog}" || exit_failed " --> FAILED"
-
-analyze_log $fiolog $expect_error $compare_latencies $cdl_dld || \
-	exit_failed " --> FAILED (error during analyze log)"
+execute_test "$testname" $T2A_file $T2B_file $cdl_dld $expect_error $compare_latencies $filename $dev || \
+	exit_failed " --> FAILED (error executing test)"
 
 exit 0

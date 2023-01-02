@@ -405,10 +405,8 @@ function analyze_log()
 	fi
 
 	if [ "$compare_latencies" == "1" ]; then
-		#
 		# Get IO completion average latencies and issue a warning if we do not
 		# detect sufficient difference between cdl vs no-cdl latencies
-		#
 		nocdl=$(fio_get_clat_avg "${fiolog}" "0/0")
 		cdl=$(fio_get_clat_avg "${fiolog}" "4/${cdl_dld}")
 
@@ -419,4 +417,34 @@ function analyze_log()
 			exit_warning " --> WARNING: bad average latency"
 		fi
 	fi
+}
+
+function execute_test()
+{
+	local testname="$1"
+	local T2A_file="$2"
+	local T2B_file="$3"
+	local cdl_dld="$4"
+	local expect_error="$5"
+	local compare_latencies="$6"
+	local filename="$7"
+	local dev="$8"
+
+	if [ $# -ne 8 ]; then
+		exit_failed " --> FAILED (incorrect number of arguments given)"
+	fi
+
+	test_setup $dev $T2A_file $T2B_file || \
+		exit_failed " --> FAILED (error during setup)"
+
+	# fio command
+	fiocmd=$(fio_common_cmdline $dev $filename "$testname" $cdl_dld $compare_latencies)
+
+	echo "Running fio:"
+	fiolog="${logdir}/$(test_num $filename)_fio.log"
+	echo "${fiocmd}"
+	eval ${fiocmd} | tee "${fiolog}" || exit_failed " --> FAILED"
+
+	analyze_log $fiolog $expect_error $compare_latencies $cdl_dld || \
+		exit_failed " --> FAILED (error during analyze log)"
 }
