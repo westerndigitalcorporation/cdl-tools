@@ -352,10 +352,24 @@ function test_setup()
 
 function fio_run_time()
 {
-	if [ "$quick_tests" == "1" ]; then
+	local expect_error="$1"
+
+	# If we expect error, we want to have a short run time. We should still get an
+	# error in this shorter run time. Having a longer test time when we expect an
+	# error is actually LESS reliable, as we might get the error first after e.g.
+	# 59 seconds (when the run time would be 60 seconds).
+	#
+	# When we don't expect error, we want to have a long run time, such that we can
+	# be more confident that we do not encounter an error when it is not expected.
+
+	if [ "$expect_error" == "1" ]; then
 		echo "10"
 	else
-		echo "60"
+		if [ "$quick_tests" == "1" ]; then
+			echo "10"
+		else
+			echo "60"
+		fi
 	fi
 }
 
@@ -365,7 +379,8 @@ function fio_common_cmdline()
 	local filename="$2"
 	local testname="$3"
 	local cdl_dld="$4"
-	local compare_latencies="$5"
+	local expect_error="$5"
+	local compare_latencies="$6"
 	local fiocmd=""
 
 	fiocmd+="fio --name=\"$testname\""
@@ -375,7 +390,7 @@ function fio_common_cmdline()
 	fiocmd+=" --log_prio=1 --per_job_logs=0"
 	fiocmd+=" --rw=randread --ioengine=libaio --iodepth=32"
 	fiocmd+=" --bs=512k --direct=1"
-	fiocmd+=" --runtime=$(fio_run_time)"
+	fiocmd+=" --runtime=$(fio_run_time $expect_error)"
 	fiocmd+=" --cmdprio_class=4 --cmdprio=$cdl_dld"
 
 	if [ "$compare_latencies" == "1" ]; then
@@ -446,7 +461,7 @@ function execute_test()
 		exit_failed " --> FAILED (error during setup)"
 
 	# fio command
-	fiocmd=$(fio_common_cmdline $dev $filename "$testname" $cdl_dld $compare_latencies)
+	fiocmd=$(fio_common_cmdline $dev $filename "$testname" $cdl_dld $expect_error $compare_latencies)
 
 	echo "Running fio:"
 	fiolog="${logdir}/$(test_num $filename)_fio.log"
