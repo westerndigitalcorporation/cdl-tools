@@ -312,6 +312,14 @@ function test_setup()
 	local dev="$1"
 	local original_T2A="$2"
 	local original_T2B="$3"
+	local expect_error="$4"
+	local compare_latencies="$5"
+
+	# It does not make sense to compare latencies when expecting an error, as such
+	# test cases are expected to exit before reaching the supplied fio runtime.
+	if [ "$expect_error" == "1" ] && [ "$compare_latencies" == "1" ]; then
+		exit_failed " --> FAILED (invalid test case configuration)"
+	fi
 
 	if [ "${no_ncq}" == "1" ]; then
 		disable_ncq "$dev"
@@ -434,7 +442,7 @@ function execute_test()
 		exit_failed " --> FAILED (incorrect number of arguments given)"
 	fi
 
-	test_setup $dev $T2A_file $T2B_file || \
+	test_setup $dev $T2A_file $T2B_file $expect_error $compare_latencies || \
 		exit_failed " --> FAILED (error during setup)"
 
 	# fio command
