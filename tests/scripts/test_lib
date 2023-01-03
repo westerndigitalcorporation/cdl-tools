@@ -171,16 +171,38 @@ function destroy_nullb()
 	rmmod null_blk >> /dev/null 2>&1
 }
 
-function set_scheduler()
+function get_desired_scheduler()
 {
 	local dev="$(realpath $1)"
 	local bdev="$(basename ${dev})"
 
 	if [ "$(devtype ${dev})" == "cmr" ]; then
-		sched="none"
+		echo "none"
 	else
-		sched="mq-deadline"
+		echo "mq-deadline"
 	fi
+}
+
+function dev_scheduler()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+	local sched_str="$(cat /sys/block/${bdev}/queue/scheduler)"
+
+	# No brackets if only a single scheduler is available
+	if [ "$sched_str" == "none" ]; then
+		echo "$sched_str"
+	else
+		echo "$sched_str" | sed -r 's/.*\[(.+)\].*/\1/'
+	fi
+}
+
+function set_scheduler()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+	local sched="$2"
+
 	echo "$sched" > /sys/block/${bdev}/queue/scheduler
 }
 

@@ -47,6 +47,7 @@ require_program "cdladm"
 require_program "fio"
 require_program "bc"
 require_program "time"
+require_program "sed"
 require_lib "libaio"
 
 #
@@ -181,10 +182,16 @@ total=0
 rc=0
 
 #
+# Save current IO scheduler
+#
+saved_sched=$(dev_scheduler "${targetdev}")
+
+#
 # Set IO scheduler:
 # none for CMR drives, mq-deadline for SMR drives
 #
-set_scheduler "${targetdev}"
+desired_sched=$(get_desired_scheduler "${targetdev}")
+set_scheduler "${targetdev}" "${desired_sched}"
 if [ $? != 0 ]; then
 	echo "$? Set block device scheduler failed."
 	exit 1
@@ -303,6 +310,11 @@ done
 if dev_is_ata "${targetdev}"; then
 	set_qd "${targetdev}" "${saved_qd}"
 fi
+
+#
+# Restore IO scheduler
+#
+set_scheduler "${targetdev}" "${saved_sched}"
 
 echo ""
 echo "$passed / $total tests passed"
