@@ -198,9 +198,11 @@ if [ $? != 0 ]; then
 fi
 
 #
-# Save current device queue depth
+# Save current device queue depth, if ATA
 #
-saved_qd=$(dev_qd "${targetdev}")
+if dev_is_ata "${targetdev}"; then
+	saved_qd=$(dev_qd "${targetdev}")
+fi
 
 export force_tests
 export quick_tests
@@ -309,9 +311,11 @@ for t in "${tests[@]}"; do
 done
 
 #
-# Restore device queue depth
+# Restore device queue depth, if ATA
 #
-set_qd "${targetdev}" "${saved_qd}"
+if dev_is_ata "${targetdev}"; then
+	set_qd "${targetdev}" "${saved_qd}"
+fi
 
 echo ""
 echo "$passed / $total tests passed"

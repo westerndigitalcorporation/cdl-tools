@@ -286,8 +286,9 @@ function set_qd()
 {
 	local rdev="$(realpath $1)"
 	local bdev="$(basename ${rdev})"
+	local qd="$2"
 
-	echo "$2" > /sys/block/${bdev}/device/queue_depth
+	echo "$qd" > /sys/block/${bdev}/device/queue_depth
 }
 
 function enable_ncq()
@@ -314,6 +315,7 @@ function test_setup()
 	local original_T2B="$3"
 	local expect_error="$4"
 	local compare_latencies="$5"
+	local ncq="$6"
 
 	# It does not make sense to compare latencies when expecting an error, as such
 	# test cases are expected to exit before reaching the supplied fio runtime.
@@ -321,10 +323,18 @@ function test_setup()
 		exit_failed " --> FAILED (invalid test case configuration)"
 	fi
 
-	if [ "${no_ncq}" == "1" ]; then
-		disable_ncq "$dev"
-	elif dev_is_ata "$dev"; then
-		enable_ncq "$dev"
+	# Skip non-NCQ tests on SCSI
+	if [ "$ncq" == "0" ] && ! dev_is_ata "$dev"; then
+		exit_skip
+	fi
+
+	# Only perform queue depth changes if ATA
+	if dev_is_ata "$dev"; then
+		if [ "$ncq" == "1" ]; then
+			enable_ncq "$dev"
+		else
+			disable_ncq "$dev"
+		fi
 	fi
 
 	# Only upload if page it differs from the existing page
@@ -491,12 +501,13 @@ function execute_test()
 	local compare_latencies="$6"
 	local filename="$7"
 	local dev="$8"
+	local ncq="$9"
 
-	if [ $# -ne 8 ]; then
+	if [ $# -ne 9 ]; then
 		exit_failed " --> FAILED (incorrect number of arguments given)"
 	fi
 
-	test_setup $dev $T2A_file $T2B_file $expect_error $compare_latencies || \
+	test_setup $dev $T2A_file $T2B_file $expect_error $compare_latencies $ncq || \
 		exit_failed " --> FAILED (error during setup)"
 
 	# fio command

@@ -13,6 +13,7 @@ T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
 cdl_dld=1
 expect_error=0
 compare_latencies=1
+ncq=1
 
 if [ $# == 0 ]; then
 	echo $testname
@@ -28,7 +29,7 @@ if [ "${have_dg}" == "0" ]; then
 	exit_skip
 fi
 
-execute_test "$testname" $T2A_file $T2B_file $cdl_dld $expect_error $compare_latencies $filename $dev || \
+execute_test "$testname" $T2A_file $T2B_file $cdl_dld $expect_error $compare_latencies $filename $dev $ncq || \
 	exit_failed " --> FAILED (error executing test)"
 
 exit 0
