@@ -782,8 +782,6 @@ Options:
                             an inadequate device fw being detected.
   --quick | -q            : Run quick tests with shorter fio runs.
                             This can result in less reliable test results.
-  --noncq | -n            : Disable NCQ/set device max QD to 1 during tests.
-                            Default: enable NCQ for ATA drives.
 ```
 
 The test cases can be listed using the option "--list".
@@ -817,7 +815,7 @@ Executing the test suite requires root access rights.
 ```
 $ sudo tests/cdl-tests.sh /dev/sda
 Running CDL tests on cmr /dev/sda:
-    NCQ: enabled, force all tests: disabled, quick tests: disabled
+    Force all tests: disabled, quick tests: disabled
   Test 0001:  cdladm (get device information)                      ... PASS
   Test 0002:  cdladm (bad devices)                                 ... PASS
   Test 0100:  cdladm (list CDL descriptors)                        ... PASS

@@ -38,8 +38,6 @@ function usage()
 	echo "                            an inadequate device fw being detected."
 	echo "  --quick | -q            : Run quick tests with shorter fio runs."
 	echo "                            This can result in less reliable test results."
-	echo "  --noncq | -n            : Disable NCQ/set device max QD to 1 during tests."
-	echo "                            Default: enable NCQ for ATA drives."
 }
 
 #
@@ -59,7 +57,6 @@ declare list=false
 logdir=""
 force_tests=0
 quick_tests=0
-no_ncq=0
 
 while [ "${1#-}" != "$1" ]; do
 	case "$1" in
@@ -93,10 +90,6 @@ while [ "${1#-}" != "$1" ]; do
 	-q | --quick)
 		shift
 		quick_tests=1
-		;;
-	-n | --noncq)
-		shift
-		no_ncq=1
 		;;
 	-*)
 		echo "unknown option $1"
@@ -206,7 +199,6 @@ fi
 
 export force_tests
 export quick_tests
-export no_ncq
 
 function kmsg_log()
 {
@@ -255,15 +247,10 @@ function run_test()
 
 type="$(devtype ${dev})"
 echo "Running CDL tests on ${type} ${dev}:"
-if [ "${no_ncq}" == "1" ]; then
-	echo -n "    NCQ: disabled"
-else
-	echo -n "    NCQ: enabled"
-fi
 if [ "${force_tests}" == "1" ]; then
-	echo -n ", force all tests: enabled"
+	echo -n "    Force all tests: enabled"
 else
-	echo -n ", force all tests: disabled"
+	echo -n "    Force all tests: disabled"
 fi
 if [ "${quick_tests}" == "1" ]; then
 	echo ", quick tests: enabled"
