@@ -23,7 +23,9 @@ fi
 filename=$0
 dev=$1
 
-if dev_has_bad_fw "$1"; then
+# While ACTIVE TIME LIMIT POLICY with value 0xE is valid for SCSI.
+# ACTIVE TIME LIMIT POLICY with value 0xE is reserved for ATA.
+if dev_is_ata "$dev"; then
 	exit_skip
 fi
 
