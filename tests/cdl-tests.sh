@@ -269,7 +269,7 @@ for t in "${tests[@]}"; do
 	tnum="$(test_num $t)"
 
 	echo -n "  Test ${tnum}:  "
-	printf "%-52s ... " "$( $t )"
+	printf "%-68s ... " "$( $t )"
 
 	run_test "$t" "$1" > "${logdir}/${tnum}.log" 2>&1
 	ret=$?

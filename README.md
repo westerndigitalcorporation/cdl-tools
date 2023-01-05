@@ -796,18 +796,54 @@ The test cases can be listed using the option "--list".
   Test 0103: cdladm (upload CDL descriptors)
   Test 0200: CDL sysfs (all attributes present)
   Test 0201: CDL (enable/disable)
-  Test 0300: CDL dur. guideline (0x0 complete-earliest policy)
-  Test 0301: CDL dur. guideline (0x1 continue-next-limit policy)
-  Test 0302: CDL dur. guideline (0x2 continue-no-limit policy)
-  Test 0303: CDL dur. guideline (0xd complete-unavailable policy)
-  Test 0304: CDL dur. guideline (0xf abort policy)
-  Test 0310: CDL active time (0x0 complete-earliest policy)
-  Test 0311: CDL active time (0xd complete-unavailable policy)
-  Test 0312: CDL active time (0xe abort-recovery policy)
-  Test 0313: CDL active time (0xf abort policy)
-  Test 0320: CDL inactive time (0x0 complete-earliest policy)
-  Test 0321: CDL inactive time (0xd complete-unavailable policy)
-  Test 0322: CDL inactive time (0xf abort policy)
+  Test 0300: CDL dur. guideline (0x0 complete-earliest policy) reads
+  Test 0301: CDL dur. guideline (0x1 continue-next-limit policy) reads
+  Test 0302: CDL dur. guideline (0x2 continue-no-limit policy) reads
+  Test 0303: CDL dur. guideline (0xd complete-unavailable policy) reads
+  Test 0304: CDL dur. guideline (0xf abort policy) reads
+  Test 0310: CDL active time (0x0 complete-earliest policy) reads
+  Test 0311: CDL active time (0xd complete-unavailable policy) reads
+  Test 0312: CDL active time (0xe abort-recovery policy) reads
+  Test 0313: CDL active time (0xf abort policy) reads
+  Test 0320: CDL inactive time (0x0 complete-earliest policy) reads
+  Test 0321: CDL inactive time (0xd complete-unavailable policy) reads
+  Test 0322: CDL inactive time (0xf abort policy) reads
+  Test 0400: CDL dur. guideline (0x0 complete-earliest policy) reads ncq=off
+  Test 0401: CDL dur. guideline (0x1 continue-next-limit policy) reads ncq=off
+  Test 0402: CDL dur. guideline (0x2 continue-no-limit policy) reads ncq=off
+  Test 0403: CDL dur. guideline (0xd complete-unavailable policy) reads ncq=off
+  Test 0404: CDL dur. guideline (0xf abort policy) reads ncq=off
+  Test 0410: CDL active time (0x0 complete-earliest policy) reads ncq=off
+  Test 0411: CDL active time (0xd complete-unavailable policy) reads ncq=off
+  Test 0412: CDL active time (0xe abort-recovery policy) reads ncq=off
+  Test 0413: CDL active time (0xf abort policy) reads ncq=off
+  Test 0420: CDL inactive time (0x0 complete-earliest policy) reads ncq=off
+  Test 0421: CDL inactive time (0xd complete-unavailable policy) reads ncq=off
+  Test 0422: CDL inactive time (0xf abort policy) reads ncq=off
+  Test 0500: CDL dur. guideline (0x0 complete-earliest policy) writes
+  Test 0501: CDL dur. guideline (0x1 continue-next-limit policy) writes
+  Test 0502: CDL dur. guideline (0x2 continue-no-limit policy) writes
+  Test 0503: CDL dur. guideline (0xd complete-unavailable policy) writes
+  Test 0504: CDL dur. guideline (0xf abort policy) writes
+  Test 0510: CDL active time (0x0 complete-earliest policy) writes
+  Test 0511: CDL active time (0xd complete-unavailable policy) writes
+  Test 0512: CDL active time (0xe abort-recovery policy) writes
+  Test 0513: CDL active time (0xf abort policy) writes
+  Test 0520: CDL inactive time (0x0 complete-earliest policy) writes
+  Test 0521: CDL inactive time (0xd complete-unavailable policy) writes
+  Test 0522: CDL inactive time (0xf abort policy) writes
+  Test 0600: CDL dur. guideline (0x0 complete-earliest policy) writes ncq=off
+  Test 0601: CDL dur. guideline (0x1 continue-next-limit policy) writes ncq=off
+  Test 0602: CDL dur. guideline (0x2 continue-no-limit policy) writes ncq=off
+  Test 0603: CDL dur. guideline (0xd complete-unavailable policy) writes ncq=off
+  Test 0604: CDL dur. guideline (0xf abort policy) writes ncq=off
+  Test 0610: CDL active time (0x0 complete-earliest policy) writes ncq=off
+  Test 0611: CDL active time (0xd complete-unavailable policy) writes ncq=off
+  Test 0612: CDL active time (0xe abort-recovery policy) writes ncq=off
+  Test 0613: CDL active time (0xf abort policy) writes ncq=off
+  Test 0620: CDL inactive time (0x0 complete-earliest policy) writes ncq=off
+  Test 0621: CDL inactive time (0xd complete-unavailable policy) writes ncq=off
+  Test 0622: CDL inactive time (0xf abort policy) writes ncq=off
 ```
 
 Executing the test suite requires root access rights.
@@ -816,12 +852,12 @@ Executing the test suite requires root access rights.
 $ sudo tests/cdl-tests.sh /dev/sda
 Running CDL tests on cmr /dev/sda:
     Force all tests: disabled, quick tests: disabled
-  Test 0001:  cdladm (get device information)                      ... PASS
-  Test 0002:  cdladm (bad devices)                                 ... PASS
-  Test 0100:  cdladm (list CDL descriptors)                        ... PASS
-  Test 0101:  cdladm (show CDL descriptors)                        ... PASS
-  Test 0102:  cdladm (save CDL descriptors)                        ... PASS
-  Test 0103:  cdladm (upload CDL descriptors)                      ...
+  Test 0001:  cdladm (get device information)                                      ... PASS
+  Test 0002:  cdladm (bad devices)                                                 ... PASS
+  Test 0100:  cdladm (list CDL descriptors)                                        ... PASS
+  Test 0101:  cdladm (show CDL descriptors)                                        ... PASS
+  Test 0102:  cdladm (save CDL descriptors)                                        ... PASS
+  Test 0103:  cdladm (upload CDL descriptors)                                      ...
   ...
 ```
 
