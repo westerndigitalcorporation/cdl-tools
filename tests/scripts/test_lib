@@ -338,10 +338,16 @@ function test_setup()
 	local expect_error="$4"
 	local compare_latencies="$5"
 	local ncq="$6"
+	local rw="$7"
 
 	# It does not make sense to compare latencies when expecting an error, as such
 	# test cases are expected to exit before reaching the supplied fio runtime.
 	if [ "$expect_error" == "1" ] && [ "$compare_latencies" == "1" ]; then
+		exit_failed " --> FAILED (invalid test case configuration)"
+	fi
+
+	# We only support rw=randread and rw=randwrite for now
+	if [ "$rw" != "randread" ] && [ "$rw" != "randwrite" ]; then
 		exit_failed " --> FAILED (invalid test case configuration)"
 	fi
 
@@ -421,6 +427,7 @@ function fio_common_cmdline()
 	local cdl_dld="$4"
 	local expect_error="$5"
 	local compare_latencies="$6"
+	local rw="$7"
 	local fiocmd=$(time_cmdline)
 
 	fiocmd+="fio --name=\"$testname\""
@@ -428,7 +435,7 @@ function fio_common_cmdline()
 	fiocmd+=" --random_generator=tausworthe64"
 	fiocmd+=" --write_lat_log=${logdir}/$(test_num $filename)_lat.log"
 	fiocmd+=" --log_prio=1 --per_job_logs=0"
-	fiocmd+=" --rw=randread --ioengine=libaio --iodepth=32"
+	fiocmd+=" --rw=$rw --ioengine=libaio --iodepth=32"
 	fiocmd+=" --bs=512k --direct=1"
 	fiocmd+=" --runtime=$(fio_run_time $expect_error)"
 	fiocmd+=" --cmdprio_class=4 --cmdprio=$cdl_dld"
@@ -524,16 +531,17 @@ function execute_test()
 	local filename="$7"
 	local dev="$8"
 	local ncq="$9"
+	local rw="${10}"
 
-	if [ $# -ne 9 ]; then
+	if [ $# -ne 10 ]; then
 		exit_failed " --> FAILED (incorrect number of arguments given)"
 	fi
 
-	test_setup $dev $T2A_file $T2B_file $expect_error $compare_latencies $ncq || \
+	test_setup $dev $T2A_file $T2B_file $expect_error $compare_latencies $ncq $rw || \
 		exit_failed " --> FAILED (error during setup)"
 
 	# fio command
-	fiocmd=$(fio_common_cmdline $dev $filename "$testname" $cdl_dld $expect_error $compare_latencies)
+	fiocmd=$(fio_common_cmdline $dev $filename "$testname" $cdl_dld $expect_error $compare_latencies $rw)
 
 	echo "Running fio:"
 	fiolog="${logdir}/$(test_num $filename)_fio.log"
