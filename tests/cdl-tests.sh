@@ -48,7 +48,6 @@ require_program "fio"
 require_program "bc"
 require_program "time"
 require_program "sed"
-require_lib "libaio"
 
 #
 # Parse command line
