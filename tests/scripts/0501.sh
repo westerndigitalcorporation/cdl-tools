@@ -7,14 +7,14 @@
 
 . "${scriptdir}/test_lib"
 
-testname="CDL dur. guideline (0x1 continue-next-limit policy) writes"
-T2A_file="${scriptdir}/cdl/T2A-empty.cdl"
-T2B_file="${scriptdir}/cdl/T2B-duration-guideline.cdl"
+testname="CDL dur. guideline (0x1 continue-next-limit policy) reads ncq=off"
+T2A_file="${scriptdir}/cdl/T2A-duration-guideline.cdl"
+T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
 cdl_dld=2
 expect_error=0
 compare_latencies=1
-ncq=1
-rw=randwrite
+ncq=0
+rw=randread
 
 if [ $# == 0 ]; then
 	echo $testname

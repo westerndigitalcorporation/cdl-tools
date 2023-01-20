@@ -7,14 +7,14 @@
 
 . "${scriptdir}/test_lib"
 
-testname="CDL active time (0xd complete-unavailable policy) reads ncq=off"
-T2A_file="${scriptdir}/cdl/T2A-active-time.cdl"
-T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
+testname="CDL active time (0xd complete-unavailable policy) writes"
+T2A_file="${scriptdir}/cdl/T2A-empty.cdl"
+T2B_file="${scriptdir}/cdl/T2B-active-time.cdl"
 cdl_dld=2
 expect_error=1
 compare_latencies=0
-ncq=0
-rw=randread
+ncq=1
+rw=randwrite
 
 if [ $# == 0 ]; then
 	echo $testname

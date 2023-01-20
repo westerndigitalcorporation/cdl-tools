@@ -808,30 +808,30 @@ The test cases can be listed using the option "--list".
   Test 0320: CDL inactive time (0x0 complete-earliest policy) reads
   Test 0321: CDL inactive time (0xd complete-unavailable policy) reads
   Test 0322: CDL inactive time (0xf abort policy) reads
-  Test 0400: CDL dur. guideline (0x0 complete-earliest policy) reads ncq=off
-  Test 0401: CDL dur. guideline (0x1 continue-next-limit policy) reads ncq=off
-  Test 0402: CDL dur. guideline (0x2 continue-no-limit policy) reads ncq=off
-  Test 0403: CDL dur. guideline (0xd complete-unavailable policy) reads ncq=off
-  Test 0404: CDL dur. guideline (0xf abort policy) reads ncq=off
-  Test 0410: CDL active time (0x0 complete-earliest policy) reads ncq=off
-  Test 0411: CDL active time (0xd complete-unavailable policy) reads ncq=off
-  Test 0412: CDL active time (0xe abort-recovery policy) reads ncq=off
-  Test 0413: CDL active time (0xf abort policy) reads ncq=off
-  Test 0420: CDL inactive time (0x0 complete-earliest policy) reads ncq=off
-  Test 0421: CDL inactive time (0xd complete-unavailable policy) reads ncq=off
-  Test 0422: CDL inactive time (0xf abort policy) reads ncq=off
-  Test 0500: CDL dur. guideline (0x0 complete-earliest policy) writes
-  Test 0501: CDL dur. guideline (0x1 continue-next-limit policy) writes
-  Test 0502: CDL dur. guideline (0x2 continue-no-limit policy) writes
-  Test 0503: CDL dur. guideline (0xd complete-unavailable policy) writes
-  Test 0504: CDL dur. guideline (0xf abort policy) writes
-  Test 0510: CDL active time (0x0 complete-earliest policy) writes
-  Test 0511: CDL active time (0xd complete-unavailable policy) writes
-  Test 0512: CDL active time (0xe abort-recovery policy) writes
-  Test 0513: CDL active time (0xf abort policy) writes
-  Test 0520: CDL inactive time (0x0 complete-earliest policy) writes
-  Test 0521: CDL inactive time (0xd complete-unavailable policy) writes
-  Test 0522: CDL inactive time (0xf abort policy) writes
+  Test 0400: CDL dur. guideline (0x0 complete-earliest policy) writes
+  Test 0401: CDL dur. guideline (0x1 continue-next-limit policy) writes
+  Test 0402: CDL dur. guideline (0x2 continue-no-limit policy) writes
+  Test 0403: CDL dur. guideline (0xd complete-unavailable policy) writes
+  Test 0404: CDL dur. guideline (0xf abort policy) writes
+  Test 0410: CDL active time (0x0 complete-earliest policy) writes
+  Test 0411: CDL active time (0xd complete-unavailable policy) writes
+  Test 0412: CDL active time (0xe abort-recovery policy) writes
+  Test 0413: CDL active time (0xf abort policy) writes
+  Test 0420: CDL inactive time (0x0 complete-earliest policy) writes
+  Test 0421: CDL inactive time (0xd complete-unavailable policy) writes
+  Test 0422: CDL inactive time (0xf abort policy) writes
+  Test 0500: CDL dur. guideline (0x0 complete-earliest policy) reads ncq=off
+  Test 0501: CDL dur. guideline (0x1 continue-next-limit policy) reads ncq=off
+  Test 0502: CDL dur. guideline (0x2 continue-no-limit policy) reads ncq=off
+  Test 0503: CDL dur. guideline (0xd complete-unavailable policy) reads ncq=off
+  Test 0504: CDL dur. guideline (0xf abort policy) reads ncq=off
+  Test 0510: CDL active time (0x0 complete-earliest policy) reads ncq=off
+  Test 0511: CDL active time (0xd complete-unavailable policy) reads ncq=off
+  Test 0512: CDL active time (0xe abort-recovery policy) reads ncq=off
+  Test 0513: CDL active time (0xf abort policy) reads ncq=off
+  Test 0520: CDL inactive time (0x0 complete-earliest policy) reads ncq=off
+  Test 0521: CDL inactive time (0xd complete-unavailable policy) reads ncq=off
+  Test 0522: CDL inactive time (0xf abort policy) reads ncq=off
   Test 0600: CDL dur. guideline (0x0 complete-earliest policy) writes ncq=off
   Test 0601: CDL dur. guideline (0x1 continue-next-limit policy) writes ncq=off
   Test 0602: CDL dur. guideline (0x2 continue-no-limit policy) writes ncq=off
