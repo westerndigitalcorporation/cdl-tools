@@ -36,7 +36,7 @@ duration-guideline-policy: 0x0
 t2cdlunits: 0xa
 max-inactive-time: 0
 max-inactive-time-policy: 0x0
-max-active-time: 1
+max-active-time: 2
 max-active-time-policy: 0xd
 duration-guideline: 0
 duration-guideline-policy: 0x0
@@ -54,7 +54,7 @@ duration-guideline-policy: 0x0
 t2cdlunits: 0xa
 max-inactive-time: 0
 max-inactive-time-policy: 0x0
-max-active-time: 1
+max-active-time: 2
 max-active-time-policy: 0xf
 duration-guideline: 0
 duration-guideline-policy: 0x0

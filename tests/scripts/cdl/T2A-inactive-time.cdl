@@ -50,7 +50,7 @@ duration-guideline-policy: 0x0
 
 == descriptor: 2
 t2cdlunits: 0xa
-max-inactive-time: 1
+max-inactive-time: 2
 max-inactive-time-policy: 0xd
 max-active-time: 0
 max-active-time-policy: 0x0
@@ -59,7 +59,7 @@ duration-guideline-policy: 0x0
 
 == descriptor: 3
 t2cdlunits: 0xa
-max-inactive-time: 1
+max-inactive-time: 2
 max-inactive-time-policy: 0xf
 max-active-time: 0
 max-active-time-policy: 0x0

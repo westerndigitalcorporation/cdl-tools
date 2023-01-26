@@ -54,7 +54,7 @@ max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
 max-active-time-policy: 0x0
-duration-guideline: 1
+duration-guideline: 2
 duration-guideline-policy: 0x1
 
 == descriptor: 3
@@ -72,7 +72,7 @@ max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
 max-active-time-policy: 0x0
-duration-guideline: 1
+duration-guideline: 2
 duration-guideline-policy: 0x2
 
 == descriptor: 5
@@ -81,7 +81,7 @@ max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
 max-active-time-policy: 0x0
-duration-guideline: 1
+duration-guideline: 2
 duration-guideline-policy: 0xd
 
 == descriptor: 6
@@ -90,7 +90,7 @@ max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
 max-active-time-policy: 0x0
-duration-guideline: 1
+duration-guideline: 2
 duration-guideline-policy: 0xf
 
 == descriptor: 7
