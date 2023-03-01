@@ -200,127 +200,31 @@ sde:
 ```
 
 When using a kernel patched to add support for command duration limits, the
-device support for this feature can be checked by inspecting the device sysfs
-attributes. Devices supporting the command duration limits feature will have the
-"duration_limits" sysfs attribute group present under the device attributes.
+sysfs attribute files cdl_supported and cdl_enable will be present for any
+ scsi device.
 
 ```
-# tree /sys/block/sdf/device/duration_limits/
-/sys/block/sdf/device/duration_limits/
-|-- enable
-|-- perf_vs_duration_guideline
-|-- read
-|   |-- 1
-|   |   |-- duration_guideline
-|   |   |-- duration_guideline_policy
-|   |   |-- max_active_time
-|   |   |-- max_active_time_policy
-|   |   |-- max_inactive_time
-|   |   `-- max_inactive_time_policy
-|   |-- 2
-|   |   |-- duration_guideline
-|   |   |-- duration_guideline_policy
-|   |   |-- max_active_time
-|   |   |-- max_active_time_policy
-|   |   |-- max_inactive_time
-|   |   `-- max_inactive_time_policy
-|   |-- 3
-|   |   |-- duration_guideline
-|   |   |-- duration_guideline_policy
-|   |   |-- max_active_time
-|   |   |-- max_active_time_policy
-|   |   |-- max_inactive_time
-|   |   `-- max_inactive_time_policy
-|   |-- 4
-|   |   |-- duration_guideline
-|   |   |-- duration_guideline_policy
-|   |   |-- max_active_time
-|   |   |-- max_active_time_policy
-|   |   |-- max_inactive_time
-|   |   `-- max_inactive_time_policy
-|   |-- 5
-|   |   |-- duration_guideline
-|   |   |-- duration_guideline_policy
-|   |   |-- max_active_time
-|   |   |-- max_active_time_policy
-|   |   |-- max_inactive_time
-|   |   `-- max_inactive_time_policy
-|   |-- 6
-|   |   |-- duration_guideline
-|   |   |-- duration_guideline_policy
-|   |   |-- max_active_time
-|   |   |-- max_active_time_policy
-|   |   |-- max_inactive_time
-|   |   `-- max_inactive_time_policy
-|   |-- 7
-|   |   |-- duration_guideline
-|   |   |-- duration_guideline_policy
-|   |   |-- max_active_time
-|   |   |-- max_active_time_policy
-|   |   |-- max_inactive_time
-|   |   `-- max_inactive_time_policy
-|   `-- page
-`-- write
-    |-- 1
-    |   |-- duration_guideline
-    |   |-- duration_guideline_policy
-    |   |-- max_active_time
-    |   |-- max_active_time_policy
-    |   |-- max_inactive_time
-    |   `-- max_inactive_time_policy
-    |-- 2
-    |   |-- duration_guideline
-    |   |-- duration_guideline_policy
-    |   |-- max_active_time
-    |   |-- max_active_time_policy
-    |   |-- max_inactive_time
-    |   `-- max_inactive_time_policy
-    |-- 3
-    |   |-- duration_guideline
-    |   |-- duration_guideline_policy
-    |   |-- max_active_time
-    |   |-- max_active_time_policy
-    |   |-- max_inactive_time
-    |   `-- max_inactive_time_policy
-    |-- 4
-    |   |-- duration_guideline
-    |   |-- duration_guideline_policy
-    |   |-- max_active_time
-    |   |-- max_active_time_policy
-    |   |-- max_inactive_time
-    |   `-- max_inactive_time_policy
-    |-- 5
-    |   |-- duration_guideline
-    |   |-- duration_guideline_policy
-    |   |-- max_active_time
-    |   |-- max_active_time_policy
-    |   |-- max_inactive_time
-    |   `-- max_inactive_time_policy
-    |-- 6
-    |   |-- duration_guideline
-    |   |-- duration_guideline_policy
-    |   |-- max_active_time
-    |   |-- max_active_time_policy
-    |   |-- max_inactive_time
-    |   `-- max_inactive_time_policy
-    |-- 7
-    |   |-- duration_guideline
-    |   |-- duration_guideline_policy
-    |   |-- max_active_time
-    |   |-- max_active_time_policy
-    |   |-- max_inactive_time
-    |   `-- max_inactive_time_policy
-    `-- page
+# tree -L 1 /sys/block/sda/device/
+/sys/block/sda/device/
+??? blacklist
+??? block
+??? bsg
+??? cdl_enable
+??? cdl_supported
+??? delete
+??? device_blocked
+??? device_busy
+??? driver -> ../../../../../../../bus/scsi/drivers/sd
+...
 
-16 directories, 88 files
 ```
 
-The sysfs duration limits attribute files expose to the user all the read and
-write descriptors time limits and their policies. The nanosecond unit is used by
-the kernel to display the values for all time limits of all descriptors.
+The cdl_supported attribute file indicates with a value of "1" if a device
+supports cdl. A value of "0" indicates that the device does not implement the
+CDL feature.
 
-These attributes are read-only. Modifications of the limit descriptors can only
-be done using the *cdladm* attributes.
+The cdl_enable attribute files allows enabling and disabling the CDL feature set
+for a device supporting it.
 
 ### Checking Duration Limits Descriptors
 
@@ -615,14 +519,6 @@ Uploading page T2A:
     duration guideline       : no limit
 ```
 
-The new descriptors values are reflected in the sysfs attribute files for the
-disk. E.g. the new descriptor 5 duration limit can be seen in sysfs:
-
-```
-# cat /sys/block/sdf/device/duration_limits/read/5/duration_guideline
-1000000
-```
-
 ## Using Command Duration Limits
 
 The Linux kernel support for command duration limits disable the feature by
@@ -632,7 +528,7 @@ enabled.
 This can be done using the "enable" sysfs attribute file:
 
 ```
-# echo 1 > /sys/block/sdf/device/duration_limits/enable
+# echo 1 > /sys/block/sdf/device/cdl_enable
 ```
 
 For convenience, *cdladm* can also be used:
@@ -657,14 +553,14 @@ System:
     Command duration limits: supported, disabled
 Command duration limits is enabled
 
-# cat /sys/block/sdf/device/duration_limits/enable
+# cat /sys/block/sdf/device/cdl_enable
 1
 ```
 
 Conversely, CDL can be disabled either using sysfs:
 
 ```
-# echo 0 > /sys/block/sdf/device/duration_limits/enable
+# echo 0 > /sys/block/sdf/device/cdl_enable
 ```
 
 Or using *cdladm*:
