@@ -72,5 +72,5 @@ libtool
 *.rpm
 
 # Test logs
-tests/log
-tests/log/*
+tests/cdl-tests-logs
+tests/cdl-tests-logs/*
