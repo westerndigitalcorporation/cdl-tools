@@ -246,14 +246,13 @@ static void cdladm_check_kernel_support(struct cdl_dev *dev)
 	       buf.sysname, buf.release, buf.version);
 	printf("    Architecture: %s\n", buf.machine);
 
-	supported = cdl_sysfs_exists(dev,
-				     "/sys/block/%s/device/duration_limits",
+	supported = cdl_sysfs_exists(dev, "/sys/block/%s/device/cdl_supported",
 				     dev->name);
 	if (supported) {
 		dev->flags |= CDL_SYS_SUPPORTED;
 		enabled = cdl_sysfs_get_ulong_attr(dev,
-				"/sys/block/%s/device/duration_limits/enable",
-				dev->name);
+					"/sys/block/%s/device/cdl_enable",
+					dev->name);
 		if (enabled)
 			dev->flags |= CDL_SYS_ENABLED;
 	}
@@ -275,9 +274,8 @@ static int cdladm_enable(struct cdl_dev *dev)
 	}
 
 	/* Enable system: this should enable the device too */
-	ret = cdl_sysfs_set_attr(dev, "1",
-			"/sys/block/%s/device/duration_limits/enable",
-			dev->name);
+	ret = cdl_sysfs_set_attr(dev, "1", "/sys/block/%s/device/cdl_enable",
+				 dev->name);
 	if (ret)
 		return 1;
 
@@ -303,7 +301,7 @@ static int cdladm_disable(struct cdl_dev *dev)
 
 	/* Enable system: this should enable the device too */
 	ret = cdl_sysfs_set_attr(dev, "0",
-			"/sys/block/%s/device/duration_limits/enable",
+			"/sys/block/%s/device/cdl_enable",
 			dev->name);
 	if (ret)
 		return 1;
