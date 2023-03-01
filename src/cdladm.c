@@ -229,10 +229,25 @@ static int cdladm_upload(struct cdl_dev *dev, char *path)
 	return 0;
 }
 
-static void cdladm_check_kernel_support(struct cdl_dev *dev)
+static void cdladm_get_kernel_support(struct cdl_dev *dev)
+{
+	bool supported, enabled = false;
+
+	supported = cdl_sysfs_exists(dev, "/sys/block/%s/device/cdl_supported",
+				     dev->name);
+	if (supported) {
+		dev->flags |= CDL_SYS_SUPPORTED;
+		enabled = cdl_sysfs_get_ulong_attr(dev,
+					"/sys/block/%s/device/cdl_enable",
+					dev->name);
+		if (enabled)
+			dev->flags |= CDL_SYS_ENABLED;
+	}
+}
+
+static void cdladm_show_kernel_support(struct cdl_dev *dev)
 {
 	struct utsname buf;
-	bool supported, enabled = false;
 
 	if (uname(&buf) != 0) {
 		fprintf(stderr, "uname failed %d (%s)\n",
@@ -245,21 +260,9 @@ static void cdladm_check_kernel_support(struct cdl_dev *dev)
 	printf("    Kernel: %s %s %s\n",
 	       buf.sysname, buf.release, buf.version);
 	printf("    Architecture: %s\n", buf.machine);
-
-	supported = cdl_sysfs_exists(dev, "/sys/block/%s/device/cdl_supported",
-				     dev->name);
-	if (supported) {
-		dev->flags |= CDL_SYS_SUPPORTED;
-		enabled = cdl_sysfs_get_ulong_attr(dev,
-					"/sys/block/%s/device/cdl_enable",
-					dev->name);
-		if (enabled)
-			dev->flags |= CDL_SYS_ENABLED;
-	}
-
 	printf("    Command duration limits: %ssupported, %s\n",
-	       supported ? "" : "not ",
-	       enabled ? "enabled" : "disabled");
+	       dev->flags & CDL_SYS_SUPPORTED ? "" : "not ",
+	       dev->flags & CDL_SYS_ENABLED ? "enabled" : "disabled");
 	printf("    Device %s command timeout: %llu s\n",
 	       dev->name, dev->cmd_timeout / 1000000000ULL);
 }
@@ -497,6 +500,30 @@ int main(int argc, char **argv)
 	if (cdl_open_dev(&dev) < 0)
 		return 1;
 
+	cdladm_get_kernel_support(&dev);
+
+	/* Execute enable/disable first to display updated information */
+	if (command == CDLADM_ENABLE || command == CDLADM_DISABLE) {
+		if (command == CDLADM_ENABLE) {
+			ret = cdladm_enable(&dev);
+			if (ret) {
+				fprintf(stderr, "Enabling CDL failed\n");
+				goto out;
+			}
+		} else {
+			ret = cdladm_disable(&dev);
+			if (ret) {
+				fprintf(stderr, "Disabling CDL failed\n");
+				goto out;
+			}
+		}
+
+		/* Close and re-open the device to get updated information */
+		cdl_close_dev(&dev);
+		if (cdl_open_dev(&dev) < 0)
+			return 1;
+	}
+
 	printf("Device: /dev/%s\n", dev.name);
 	printf("    Vendor: %s\n", dev.vendor);
 	printf("    Product: %s\n", dev.id);
@@ -533,7 +560,7 @@ int main(int argc, char **argv)
 	else
 		printf("    Duration maximum limit: %llu ns\n", dev.max_limit);
 
-	cdladm_check_kernel_support(&dev);
+	cdladm_show_kernel_support(&dev);
 
 	/* Some paranoia checks */
 	if (!(dev.flags & CDL_SYS_SUPPORTED))
@@ -573,10 +600,7 @@ int main(int argc, char **argv)
 		ret = cdladm_upload(&dev, path);
 		break;
 	case CDLADM_ENABLE:
-		ret = cdladm_enable(&dev);
-		break;
 	case CDLADM_DISABLE:
-		ret = cdladm_disable(&dev);
 		break;
 	case CDLADM_NONE:
 	default:
