@@ -227,7 +227,7 @@ function cdl_enabled()
 	local dev="$(realpath $1)"
 	local bdev="$(basename ${dev})"
 
-	cat /sys/block/${bdev}/device/duration_limits/enable
+	cat /sys/block/${bdev}/device/cdl_enable
 }
 
 function enable_cdl()
@@ -235,7 +235,7 @@ function enable_cdl()
 	local dev="$(realpath $1)"
 	local bdev="$(basename ${dev})"
 
-	echo "1" > /sys/block/${bdev}/device/duration_limits/enable
+	echo "1" > /sys/block/${bdev}/device/cdl_enable
 }
 
 function disable_cdl()
@@ -243,7 +243,7 @@ function disable_cdl()
 	local dev="$(realpath $1)"
 	local bdev="$(basename ${dev})"
 
-	echo "0" > /sys/block/${bdev}/device/duration_limits/enable
+	echo "0" > /sys/block/${bdev}/device/cdl_enable
 }
 
 function validate_page()
@@ -438,7 +438,7 @@ function fio_common_cmdline()
 	fiocmd+=" --rw=$rw --ioengine=io_uring --iodepth=32"
 	fiocmd+=" --bs=512k --direct=1"
 	fiocmd+=" --runtime=$(fio_run_time $expect_error)"
-	fiocmd+=" --cmdprio_class=4 --cmdprio=$cdl_dld"
+	fiocmd+=" --cmdprio_class=2 --cmdprio_hint=$cdl_dld"
 
 	if [ "$compare_latencies" == "1" ]; then
 		fiocmd+=" --cmdprio_percentage=10 --ramp_time=10"
@@ -508,8 +508,8 @@ function analyze_log()
 	if [ "$compare_latencies" == "1" ]; then
 		# Get IO completion average latencies and issue a warning if we do not
 		# detect sufficient difference between cdl vs no-cdl latencies
-		nocdl=$(fio_get_clat_avg "${fiolog}" "0/0")
-		cdl=$(fio_get_clat_avg "${fiolog}" "4/${cdl_dld}")
+		nocdl=$(fio_get_clat_avg "${fiolog}" "0/0/0")
+		cdl=$(fio_get_clat_avg "${fiolog}" "2/0/${cdl_dld}")
 
 		echo "Average latency: no-cdl=${nocdl}, cdl=${cdl}"
 
