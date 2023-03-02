@@ -226,14 +226,21 @@ function kmsg_log_end()
 function run_test()
 {
 	local tnum="$(test_num $1)"
+	local dev="$2"
 	local ret=0
+	local test_qd
 
 	kmsg_log_start ${tnum}
 
 	echo "==== Test ${tnum}: $( $1 )"
 	echo ""
 
-	"$1" "$2"
+	# Save current device queue depth, if ATA
+	if dev_is_ata "${dev}"; then
+		test_qd=$(dev_qd "${dev}")
+	fi
+
+	"$1" "${dev}"
 	ret=$?
 
 	echo ""
@@ -245,6 +252,11 @@ function run_test()
 		echo "==== Test ${tnum} -> FAILED"
 	fi
 	echo ""
+
+	# Restore device queue depth, if ATA
+	if dev_is_ata "${dev}"; then
+		set_qd "${dev}" "${test_qd}"
+	fi
 
 	kmsg_log_end ${tnum}
 

@@ -318,7 +318,9 @@ function set_qd()
 	local bdev="$(basename ${rdev})"
 	local qd="$2"
 
-	echo "$qd" > /sys/block/${bdev}/device/queue_depth
+	if [ "$(dev_qd ${rdev})" != "${qd}" ]; then
+		echo "$qd" > /sys/block/${bdev}/device/queue_depth
+	fi
 }
 
 function enable_ncq()
