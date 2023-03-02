@@ -537,17 +537,23 @@ function execute_test()
 		exit_failed " --> FAILED (incorrect number of arguments given)"
 	fi
 
-	test_setup $dev $T2A_file $T2B_file $expect_error $compare_latencies $ncq $rw || \
+	test_setup "${dev}" \
+		"${T2A_file}" "${T2B_file}" \
+		"${expect_error}" "${compare_latencies}" \
+		"${ncq}" "${rw}" || \
 		exit_failed " --> FAILED (error during setup)"
 
 	# fio command
-	fiocmd=$(fio_common_cmdline $dev $filename "$testname" $cdl_dld $expect_error $compare_latencies $rw)
+	fiocmd=$(fio_common_cmdline "${dev}" "${filename}" \
+		"${testname}" "${cdl_dld}" "${expect_error}" \
+		"${compare_latencies}" "${rw}")
 
 	echo "Running fio:"
 	fiolog="${logdir}/$(test_num $filename)_fio.log"
 	echo "${fiocmd}"
 	eval ${fiocmd} | tee "${fiolog}" || exit_failed " --> FAILED"
 
-	analyze_log $fiolog $expect_error $compare_latencies $cdl_dld || \
-		exit_failed " --> FAILED (error during analyze log)"
+	analyze_log "${fiolog}" "${expect_error}" \
+		"${compare_latencies}" "${cdl_dld}" || \
+		exit_failed " --> FAILED (error while analyzing fio log)"
 }
