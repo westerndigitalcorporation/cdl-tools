@@ -318,26 +318,26 @@ function set_qd()
 	local bdev="$(basename ${rdev})"
 	local qd="$2"
 
-	if [ "$(dev_qd ${rdev})" != "${qd}" ]; then
-		echo "$qd" > /sys/block/${bdev}/device/queue_depth
+	if [ "$(dev_qd ${rdev})" == "${qd}" ]; then
+		return 0
+	fi
+
+	if [ "$qd" != "1" ]; then
+		echo 1 > /sys/block/${bdev}/device/queue_depth
+		echo "${qd}" > /sys/block/${bdev}/device/queue_depth
+	else
+		echo 1 > /sys/block/${bdev}/device/queue_depth
 	fi
 }
 
 function enable_ncq()
 {
-	local rdev="$(realpath $1)"
-	local bdev="$(basename ${rdev})"
-
-	echo 1 > /sys/block/${bdev}/device/queue_depth
-	echo 32 > /sys/block/${bdev}/device/queue_depth
+	set_qd "$1" 32
 }
 
 function disable_ncq()
 {
-	local rdev="$(realpath $1)"
-	local bdev="$(basename ${rdev})"
-
-	echo 1 > /sys/block/${bdev}/device/queue_depth
+	set_qd "$1" 1
 }
 
 function test_setup()
@@ -370,8 +370,10 @@ function test_setup()
 	if dev_is_ata "$dev"; then
 		if [ "$ncq" == "1" ]; then
 			enable_ncq "$dev"
+			echo "NCQ Enabled (Max QD=$(dev_qd "${dev}"))"
 		else
 			disable_ncq "$dev"
+			echo "NCQ Disabled (Max QD=$(dev_qd "${dev}"))"
 		fi
 	fi
 
