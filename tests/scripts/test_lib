@@ -262,6 +262,14 @@ function validate_page()
 	return 0
 }
 
+function require_duration_guideline()
+{
+	have_dg="$(cdladm info "$1" | grep -c "Command duration guidelines: supported")"
+	if [ "${have_dg}" == "0" ]; then
+		exit_skip
+	fi
+}
+
 function fio_get_clat_avg()
 {
 	local line=$(grep "clat prio $2" "$1" | head -1)

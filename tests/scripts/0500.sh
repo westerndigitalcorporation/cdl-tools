@@ -8,13 +8,6 @@
 . "${scriptdir}/test_lib"
 
 testname="CDL dur. guideline (0x0 complete-earliest policy) reads ncq=off"
-T2A_file="${scriptdir}/cdl/T2A-duration-guideline.cdl"
-T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
-cdl_dld=1
-expect_error=0
-compare_latencies=1
-ncq=0
-rw=randread
 
 if [ $# == 0 ]; then
 	echo $testname
@@ -24,13 +17,21 @@ fi
 filename=$0
 dev=$1
 
-# Check if supported
-have_dg="$(cdladm info "$1" | grep -c "Command duration guidelines: supported")"
-if [ "${have_dg}" == "0" ]; then
-	exit_skip
-fi
+require_duration_guideline "${dev}"
 
-execute_test "$testname" $T2A_file $T2B_file $cdl_dld $expect_error $compare_latencies $filename $dev $ncq $rw || \
+T2A_file="${scriptdir}/cdl/T2A-duration-guideline.cdl"
+T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
+cdl_dld=1
+expect_error=0
+compare_latencies=1
+ncq=0
+rw="randread"
+
+execute_test "${testname}" \
+	"${T2A_file}" "${T2B_file}" \
+	"${cdl_dld}" "${expect_error}" \
+	"${compare_latencies}" "${filename}" \
+	"${dev}" "${ncq}" "${rw}" || \
 	exit_failed " --> FAILED (error executing test)"
 
 exit 0
