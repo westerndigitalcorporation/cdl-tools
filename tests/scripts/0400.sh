@@ -17,7 +17,6 @@ fi
 filename=$0
 dev=$1
 
-
 require_duration_guideline "${dev}"
 
 T2A_file="${scriptdir}/cdl/T2A-empty.cdl"
