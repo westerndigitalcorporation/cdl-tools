@@ -8,7 +8,7 @@
 . "${scriptdir}/test_lib"
 
 if [ $# == 0 ]; then
-	echo "cdladm (bad devices)"
+	echo "cdladm (unsupported devices)"
 	exit 0
 fi
 
