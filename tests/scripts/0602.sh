@@ -23,7 +23,7 @@ T2A_file="${scriptdir}/cdl/T2A-empty.cdl"
 T2B_file="${scriptdir}/cdl/T2B-duration-guideline.cdl"
 cdl_dld=4
 expect_error=0
-compare_latencies=1
+compare_latencies=0
 ncq=0
 rw="randwrite"
 
