@@ -449,13 +449,21 @@ function fio_common_cmdline()
 	fiocmd+=" --log_prio=1 --per_job_logs=0"
 	fiocmd+=" --rw=$rw --ioengine=io_uring --iodepth=32"
 	fiocmd+=" --bs=512k --direct=1"
-	fiocmd+=" --runtime=$(fio_run_time $expect_error)"
+	fiocmd+=" --runtime=$(fio_run_time $expect_error) --ramp_time=10"
 	fiocmd+=" --cmdprio_class=2 --cmdprio_hint=$cdl_dld"
 
-	if [ "$compare_latencies" == "1" ]; then
-		fiocmd+=" --cmdprio_percentage=10 --ramp_time=10"
+	#
+	# If we expect errors, increase the percentage of CDL commands to
+	# a high value to force the errors to happen. Otherwise, keep the
+	# percentage of CDL commands low so that we can observe latency
+	# differences. In all cases, always make sure we have a mix of
+	# CDL and non-CDL commands to fully exercise the kernel IO and
+	# error paths.
+	#
+	if [ "$expect_errors" == "0" ]; then
+		fiocmd+=" --cmdprio_percentage=10"
 	else
-		fiocmd+=" --cmdprio_percentage=100"
+		fiocmd+=" --cmdprio_percentage=90"
 	fi
 
 	fiocmd+=" 2>&1"
@@ -480,10 +488,9 @@ function analyze_log()
 	real_runtime=${real_runtime#CDL_REAL_RUNTIME: }
 
 	max_runtime=$(fio_run_time $expect_error)
-	# If comparing latencies, we also have a ramptime of 10 seconds
-	if [ "$compare_latencies" == "1" ]; then
-		max_runtime=$((max_runtime + 10))
-	fi
+
+	# Add 10s ramptime
+	max_runtime=$((max_runtime + 10))
 
 	# Add a 2 second buffer on top of the max time fio is supposed to run,
 	# to account for the time it takes to start and exit the binary.
@@ -517,14 +524,15 @@ function analyze_log()
 		fi
 	fi
 
+	# Get IO completion average latency
+	nocdl=$(fio_get_clat_avg "${fiolog}" "0/0/0")
+	cdl=$(fio_get_clat_avg "${fiolog}" "2/0/${cdl_dld}")
+
+	echo "Average latency: no-cdl=${nocdl}, cdl=${cdl}"
+
 	if [ "$compare_latencies" == "1" ]; then
-		# Get IO completion average latencies and issue a warning if we do not
-		# detect sufficient difference between cdl vs no-cdl latencies
-		nocdl=$(fio_get_clat_avg "${fiolog}" "0/0/0")
-		cdl=$(fio_get_clat_avg "${fiolog}" "2/0/${cdl_dld}")
-
-		echo "Average latency: no-cdl=${nocdl}, cdl=${cdl}"
-
+		# Issue a warning if we do not detect sufficient
+		# difference between cdl vs no-cdl latencies
 		thresh=$(( nocdl / 2 ))
 		if [ ${cdl} -gt ${thresh} ]; then
 			exit_warning " --> WARNING: bad average latency"
