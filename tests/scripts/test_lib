@@ -448,7 +448,7 @@ function fio_common_cmdline()
 	fiocmd+=" --write_lat_log=${logdir}/$(test_num $filename)_lat.log"
 	fiocmd+=" --log_prio=1 --per_job_logs=0"
 	fiocmd+=" --rw=$rw --ioengine=io_uring --iodepth=32"
-	fiocmd+=" --bs=512k --direct=1"
+	fiocmd+=" --bs=1024k --direct=1"
 	fiocmd+=" --runtime=$(fio_run_time $expect_error) --ramp_time=10"
 	fiocmd+=" --cmdprio_class=2 --cmdprio_hint=$cdl_dld"
 
