@@ -587,9 +587,9 @@ Command duration limits is disabled
 ```
 
 *fio* can be used to exercise a drive with a command duration limits enabled
-workload. The standard fio options *cmdprio*, *cmdprio_class* and
-*cmdprio_percentage* allow a job using the *libaio* IO engine to specify a
-command duration limit enabled workload.
+workload. The standard fio options *cmdprio_percentage* and *cmdprio_hint*
+allow a job using the *libaio* IO engine to specify a command duration limit
+enabled workload.
 
 For instance, the following fio script:
 
@@ -609,15 +609,14 @@ bs=128k
 ioengine=libaio
 iodepth=32
 cmdprio_percentage=20
-cmdprio_class=4
-cmdprio=2
+cmdprio_hint=2
 ```
 
-Will issue a random 128KB read commands at a queue depth of 32 with 20% of the
+Will issue random 128KB read commands at a queue depth of 32 with 20% of the
 commands using the read duration limits descriptor 2.
 
-Using the *cmdprio_split* option, different duration limits can be combined in
-the same workload for different percentage of commands. For instance, the
+Using the *cmdprio_bssplit* option, different duration limits can be combined
+in the same workload for different percentage of commands. For instance, the
 following fio job definition:
 
 ```
@@ -635,13 +634,11 @@ rw=randread
 bs=128k
 ioengine=libaio
 iodepth=32
-cmdprio_percentage=30
-cmdprio_class=4
-cmdprio_split=1/33:2/67
+cmdprio_bssplit=128k/10/1/1/1:128k/20/1/2/2
 ```
 
-will result in the IO job executing 33% of 30% of all IOs (10% overall) using 
-descriptor 1 and 67% of 30% of all IOs (20% overall) using descriptor 2.
+will result in the IO job executing 10% of all IOs using descriptor 1 and 20%
+of all IOs using descriptor 2.
 
 ## Testing a system Command Duration Limits Support
 
