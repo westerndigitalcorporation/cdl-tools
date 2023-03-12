@@ -36,11 +36,11 @@ static void cdladm_usage(void)
 	printf("  --count\n"
 	       "\tApply to the show command.\n"
 	       "\tOmit the descriptor details and only print the number of\n"
-	       "\tdescriptors valid in a page\n");
+	       "\tvalid descriptors in a page\n");
 	printf("  --page <name>\n"
 	       "\tApply to the show and save commands.\n"
-	       "\tSpecify the target page name. The page name can be:\n"
-	       "\t\"A\", \"B\", \"T2A\" or \"T2B\".\n");
+	       "\tSpecify the name of the page to show or save. The page name\n"
+	       "\tcan be: \"A\", \"B\", \"T2A\" or \"T2B\".\n");
 	printf("  --file <path>\n"
 	       "\tApply to the save and upload commands.\n"
 	       "\tSpecify the path of the page file to use.\n"
