@@ -15,7 +15,6 @@ AM_SILENT_RULES([yes])
 
 AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
-AC_USE_SYSTEM_EXTENSIONS
 
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 m4_pattern_allow([AM_PROG_AR])
@@ -24,7 +23,6 @@ LT_INIT
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
-AC_PROG_LN_S
 
 # Checks for header files.
 AC_CHECK_HEADER(scsi/scsi.h, [],
