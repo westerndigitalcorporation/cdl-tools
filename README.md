@@ -634,7 +634,7 @@ rw=randread
 bs=128k
 ioengine=libaio
 iodepth=32
-cmdprio_bssplit=128k/10/1/1/1:128k/20/1/2/2
+cmdprio_bssplit=128k/10/0/0/1:128k/20/0/0/2
 ```
 
 will result in the IO job executing 10% of all IOs using descriptor 1 and 20%
