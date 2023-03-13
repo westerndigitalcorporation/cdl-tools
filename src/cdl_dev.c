@@ -508,7 +508,7 @@ static int cdl_dev_init(struct cdl_dev *dev)
 /*
  * Open a device.
  */
-int cdl_open_dev(struct cdl_dev *dev)
+int cdl_open_dev(struct cdl_dev *dev, mode_t mode)
 {
 	struct stat st;
 	int ret = 0;
@@ -532,7 +532,7 @@ int cdl_open_dev(struct cdl_dev *dev)
 	}
 
 	/* Open device */
-	dev->fd = open(dev->path, O_RDWR | O_EXCL);
+	dev->fd = open(dev->path, mode | O_EXCL);
 	if (dev->fd < 0) {
 		fprintf(stderr,
 			"Open %s failed %d (%s)\n",

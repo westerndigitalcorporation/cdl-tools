@@ -162,7 +162,7 @@ struct cdl_sg_cmd {
  */
 
 /* In cdl_dev.c */
-int cdl_open_dev(struct cdl_dev *dev);
+int cdl_open_dev(struct cdl_dev *dev, mode_t mode);
 void cdl_close_dev(struct cdl_dev *dev);
 void cdl_revalidate_dev(struct cdl_dev *dev);
 void cdl_init_cmd(struct cdl_sg_cmd *cmd, int cdb_len,

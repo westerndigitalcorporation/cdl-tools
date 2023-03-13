@@ -10,6 +10,7 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#include <fcntl.h>
 #include <sys/utsname.h>
 
 /*
@@ -321,9 +322,9 @@ static int cdladm_disable(struct cdl_dev *dev)
 }
 
 /*
- * Possible commands.
+ * Possible command codes.
  */
-enum cdladm_cmd {
+enum cdladm_cmd_code {
 	CDLADM_NONE,
 	CDLADM_INFO,
 	CDLADM_LIST,
@@ -332,6 +333,26 @@ enum cdladm_cmd {
 	CDLADM_UPLOAD,
 	CDLADM_ENABLE,
 	CDLADM_DISABLE,
+
+	CDLADM_CMD_MAX,
+};
+
+/*
+ * Command codes and the device open mode needed.
+ */
+static struct {
+	enum cdladm_cmd_code code;
+	mode_t mode;
+} cdladm_cmd[CDLADM_CMD_MAX] =
+{
+	{ CDLADM_NONE,		0 },
+	{ CDLADM_INFO,		O_RDONLY },
+	{ CDLADM_LIST,		O_RDONLY },
+	{ CDLADM_SHOW,		O_RDONLY },
+	{ CDLADM_SAVE,		O_RDONLY },
+	{ CDLADM_UPLOAD,	O_RDWR	 },
+	{ CDLADM_ENABLE,	O_RDONLY },
+	{ CDLADM_DISABLE,	O_RDONLY },
 };
 
 /*
@@ -497,7 +518,8 @@ int main(int argc, char **argv)
 	}
 
 	/* Open the device and printf some information about it */
-	if (cdl_open_dev(&dev) < 0)
+	ret = cdl_open_dev(&dev, cdladm_cmd[command].mode);
+	if (ret)
 		return 1;
 
 	cdladm_get_kernel_support(&dev);
@@ -520,7 +542,8 @@ int main(int argc, char **argv)
 
 		/* Close and re-open the device to get updated information */
 		cdl_close_dev(&dev);
-		if (cdl_open_dev(&dev) < 0)
+		ret = cdl_open_dev(&dev, cdladm_cmd[command].mode);
+		if (ret)
 			return 1;
 	}
 
