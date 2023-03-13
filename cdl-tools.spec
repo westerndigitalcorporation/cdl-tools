@@ -8,7 +8,6 @@ URL:		https://github.com/westerndigitalcorporation/%{name}
 Source0:	%{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 
 BuildRequires:	autoconf
-BuildRequires:	autoconf-archive
 BuildRequires:	automake
 BuildRequires:	libtool
 BuildRequires:	make
