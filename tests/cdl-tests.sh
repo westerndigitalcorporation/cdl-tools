@@ -233,6 +233,8 @@ function parse_dmesg()
 	test_case_dmesg=$(dmesg | tac | sed -e "/${end_tag}/,/${start_tag}/!d" -e "/${start_tag}/q" | tac)
 	val=$(echo "$test_case_dmesg" | grep -c "hard resetting link")
 
+	echo "$test_case_dmesg" > "${logdir}/${tnum}_dmesg.log"
+
 	if [ "${val}" -gt 0 ]; then
 		echo " --> FAILED (detected hard reset in dmesg)"
 		return 1
