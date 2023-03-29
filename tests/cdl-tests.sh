@@ -223,6 +223,24 @@ function kmsg_log_end()
 	kmsg_log "#### cdl-tests case $1 end ####"
 }
 
+function parse_dmesg()
+{
+	local start_tag="#### cdl-tests case $1 start ####"
+	local end_tag="#### cdl-tests case $1 end ####"
+	local test_case_dmesg
+	local val
+
+	test_case_dmesg=$(dmesg | tac | sed -e "/${end_tag}/,/${start_tag}/!d" -e "/${start_tag}/q" | tac)
+	val=$(echo "$test_case_dmesg" | grep -c "hard resetting link")
+
+	if [ "${val}" -gt 0 ]; then
+		echo " --> FAILED (detected hard reset in dmesg)"
+		return 1
+	fi
+
+	return 0
+}
+
 function run_test()
 {
 	local tnum="$(test_num $1)"
@@ -243,6 +261,15 @@ function run_test()
 	"$1" "${dev}"
 	ret=$?
 
+	# Restore device queue depth, if ATA
+	if dev_is_ata "${dev}"; then
+		set_qd "${dev}" "${test_qd}"
+	fi
+
+	kmsg_log_end ${tnum}
+
+	parse_dmesg "${tnum}" || ret=1
+
 	echo ""
 	if [ "$ret" == 0 ]; then
 		echo "==== Test ${tnum} -> PASS"
@@ -252,13 +279,6 @@ function run_test()
 		echo "==== Test ${tnum} -> FAILED"
 	fi
 	echo ""
-
-	# Restore device queue depth, if ATA
-	if dev_is_ata "${dev}"; then
-		set_qd "${dev}" "${test_qd}"
-	fi
-
-	kmsg_log_end ${tnum}
 
 	return $ret
 }
