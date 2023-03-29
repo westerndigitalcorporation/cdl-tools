@@ -273,8 +273,16 @@ function require_duration_guideline()
 function fio_get_clat_avg()
 {
 	local line=$(grep "clat prio $2" "$1" | head -1)
-	local avg=$(echo "${line}" | cut -d'=' -f4 | cut -d',' -f1)
-	local unit=$(echo "${line}" | cut -d'(' -f2 | cut -d')' -f1)
+	local avg
+	local unit
+
+	if [ -z "${line}" ]; then
+		echo 0
+		return
+	fi
+
+	avg=$(echo "${line}" | cut -d'=' -f4 | cut -d',' -f1)
+	unit=$(echo "${line}" | cut -d'(' -f2 | cut -d')' -f1)
 
 	if [ "${unit}" == "msec" ]; then
 		scale=1000
@@ -534,7 +542,7 @@ function analyze_log()
 		# Issue a warning if we do not detect sufficient
 		# difference between cdl vs no-cdl latencies
 		thresh=$(( nocdl / 2 ))
-		if [ ${cdl} -gt ${thresh} ]; then
+		if [ ${cdl} -eq 0 ] || [ ${cdl} -gt ${thresh} ]; then
 			exit_warning " --> WARNING: bad average latency"
 		fi
 	fi
