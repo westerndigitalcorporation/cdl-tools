@@ -287,6 +287,7 @@ function run_test()
 
 type="$(devtype ${dev})"
 echo "Running CDL tests on ${type} ${dev}:"
+cdladm info ${dev} | grep -e Product -e Revision | grep -v SAT
 if [ "${force_tests}" == "1" ]; then
 	echo -n "    Force all tests: enabled"
 else
