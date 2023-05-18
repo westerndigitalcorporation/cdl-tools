@@ -8,6 +8,23 @@ SUBDIRS = src man
 
 EXTRA_DIST = autogen.sh README.md COPYING.GPL CONTRIBUTING
 
+TESTSDIR = $(DESTDIR)$(prefix)/local/cdl-tests
+
+install-tests:
+	install -d ${TESTSDIR}
+	install -d ${TESTSDIR}/scripts
+	install -m 755 $(top_srcdir)/tests/scripts/*.sh ${TESTSDIR}/scripts
+	install -m 644 $(top_srcdir)/tests/scripts/test_lib ${TESTSDIR}/scripts
+	install -d ${TESTSDIR}/scripts/cdl
+	install -m 644 $(top_srcdir)/tests/scripts/cdl/* ${TESTSDIR}/scripts/cdl
+	install -m 755 $(top_srcdir)/tests/cdl-tests.sh ${TESTSDIR}
+
+uninstall-tests:
+	rm -rf ${TESTSDIR}
+
+uninstall-hook:
+	rm -rf ${TESTSDIR}
+
 if BUILD_RPM
 
 rpmdir = $(abs_top_builddir)/rpmbuild
