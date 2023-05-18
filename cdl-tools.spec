@@ -17,6 +17,16 @@ BuildRequires:	gcc
 This package provides the cdladm user utility to inspect and modify
 command duration limits of SCSI and ATA disks supporting this feature.
 
+# Tests package
+%package tests
+Summary: CDL test scripts
+Requires: %{name}%{?_isa} = %{version}-%{release}
+BuildArch: noarch
+
+%description tests
+This package provides scripts to test command duration limits of SCSI and ATA
+disks supporting this feature.
+
 %prep
 %autosetup
 
@@ -27,13 +37,16 @@ sh autogen.sh
 
 %install
 %make_install
+%make_install install-tests
 
 %files
 %{_bindir}/*
 %{_mandir}/man8/*
-
 %license COPYING.GPL
 %doc README.md CONTRIBUTING
+
+%files tests
+%{_prefix}/local/cdl-tests/*
 
 %changelog
 * Thu Aug 26 2021 Damien Le Moal <damien.lemoal@wdc.com> 0.0.2-1

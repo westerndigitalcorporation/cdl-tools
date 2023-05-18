@@ -29,7 +29,7 @@ if BUILD_RPM
 
 rpmdir = $(abs_top_builddir)/rpmbuild
 
-EXTRA_DIST += cdl-tools.spec
+EXTRA_DIST += cdl-tools.spec tests
 RPMARCH=`$(RPM) --eval %_target_cpu`
 
 rpm: dist
@@ -37,6 +37,7 @@ rpm: dist
 	@mkdir -p $(rpmdir)
 	$(RPMBUILD) -ta --clean -D "_topdir $(rpmdir)" cdl-tools-$(PACKAGE_VERSION).tar.gz
 	@mv -f $(rpmdir)/RPMS/$(RPMARCH)/*.rpm $(abs_top_builddir)
+	@mv -f $(rpmdir)/RPMS/noarch/*.rpm $(abs_top_builddir)
 	@mv -f $(rpmdir)/SRPMS/*.rpm $(abs_top_builddir)
 	@rm -rf $(rpmdir)
 	@rm -f cdl-tools-$(PACKAGE_VERSION).tar.gz
