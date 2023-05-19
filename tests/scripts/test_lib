@@ -385,7 +385,7 @@ function test_setup()
 		fi
 	fi
 
-	# Only upload if page it differs from the existing page
+	# Only upload cdl page if it differs from the existing page
 	validate_page $dev T2A $original_T2A || {
 		echo "Uploading T2A page"
 		cdladm upload --file $original_T2A $dev || \
@@ -395,7 +395,7 @@ function test_setup()
 			exit_failed " --> FAILED to validate uploaded T2A page"
 	}
 
-	# Only upload if page it differs from the existing page
+	# Only upload cdl page if it differs from the existing page
 	validate_page $dev T2B $original_T2B || {
 		echo "Uploading T2B page"
 		cdladm upload --file $original_T2B $dev || \
@@ -412,12 +412,12 @@ function fio_run_time()
 {
 	local expect_error="$1"
 
-	# If we expect error, we want to have a short run time. We should still get an
+	# If we expect errors, we want to have a short run time. We should still get an
 	# error in this shorter run time. Having a longer test time when we expect an
 	# error is actually LESS reliable, as we might get the error first after e.g.
 	# 59 seconds (when the run time would be 60 seconds).
 	#
-	# When we don't expect error, we want to have a long run time, such that we can
+	# When we don't expect errors, we want to have a long run time, such that we can
 	# be more confident that we do not encounter an error when it is not expected.
 
 	if [ "$expect_error" == "1" ]; then
@@ -485,6 +485,7 @@ function analyze_log()
 	local expect_error="$2"
 	local compare_latencies="$3"
 	local cdl_dld="$4"
+	local rw="$5"
 	local real_runtime
 	local max_runtime
 
@@ -515,9 +516,15 @@ function analyze_log()
 	fi
 
 	if [ "$expect_error" == "1" ]; then
-		# We should have IO errors
+		# We should have IO errors. However, for write workloads, the
+		# drive internal caching may significantly speed up commands,
+		# leading to no IO errors. For such case, only warn.
 		if ! fio_has_io_error "${fiolog}"; then
-			exit_failed " --> FAILED (fio did not see any IO error)"
+			if [ "$rw" == "randwrite" ]; then
+				exit_warning " --> WARNING: fio did not see any IO error"
+			else
+				exit_failed " --> FAILED (fio did not see any IO error)"
+			fi
 		fi
 
 		# IO errors should be 62 (ETIME)
@@ -582,6 +589,6 @@ function execute_test()
 	eval ${fiocmd} | tee "${fiolog}" || exit_failed " --> FAILED"
 
 	analyze_log "${fiolog}" "${expect_error}" \
-		"${compare_latencies}" "${cdl_dld}" || \
+		"${compare_latencies}" "${cdl_dld}" "${rw}" || \
 		exit_failed " --> FAILED (error while analyzing fio log)"
 }
