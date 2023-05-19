@@ -225,12 +225,15 @@ function kmsg_log_end()
 
 function parse_dmesg()
 {
-	local start_tag="#### cdl-tests case $1 start ####"
-	local end_tag="#### cdl-tests case $1 end ####"
+	local tnum="$1"
+	local logdir="$2"
+	local start_tag="#### cdl-tests case ${tnum} start ####"
+	local end_tag="#### cdl-tests case ${tnum} end ####"
 	local test_case_dmesg
 	local val
 
-	test_case_dmesg=$(dmesg | tac | sed -e "/${end_tag}/,/${start_tag}/!d" -e "/${start_tag}/q" | tac)
+	test_case_dmesg=$(dmesg | tac | \
+		sed -e "/${end_tag}/,/${start_tag}/!d" -e "/${start_tag}/q" | tac)
 	val=$(echo "$test_case_dmesg" | grep -c "hard resetting link")
 
 	echo "$test_case_dmesg" > "${logdir}/${tnum}_dmesg.log"
@@ -243,10 +246,80 @@ function parse_dmesg()
 	return 0
 }
 
+function finalize_log()
+{
+	local tnum="$1"
+	local logdir="$2"
+	local log="${logdir}/${tnum}.log"
+
+	# Include fio full log if we have one
+	if [ -f "${logdir}/${tnum}_fio.log" ]; then
+		echo "" >> "${log}"
+		echo "fio full log:" >> "${log}"
+		echo "-------------" >> "${log}"
+		echo "" >> "${log}"
+		cat "${logdir}/${tnum}_fio.log" >> "${log}"
+		rm -f "${logdir}/${tnum}_fio.log" > /dev/null 2>&1
+	fi
+
+	# Include kernel messages
+	if [ -f "${logdir}/${tnum}_dmesg.log" ]; then
+		echo "" >> "${log}"
+		echo "Kernel messages:" >> "${log}"
+		echo "----------------" >> "${log}"
+		echo "" >> "${log}"
+		cat "${logdir}/${tnum}_dmesg.log" >> "${log}"
+		rm -f "${logdir}/${tnum}_dmesg.log" > /dev/null 2>&1
+	fi
+
+	# Include fio latency logs if they are not empty
+	lat_log="${logdir}/${tnum}_lat.log_clat.log"
+	if [ -f "${lat_log}" ]; then
+		if [ -s "${lat_log}" ]; then
+			echo "" >> "${log}"
+			echo "fio completion latency log:" >> "${log}"
+			echo "---------------------------" >> "${log}"
+			echo "" >> "${log}"
+			cat "${lat_log}" >> "${log}"
+		fi
+		rm -f "${lat_log}" > /dev/null 2>&1
+	fi
+
+	lat_log="${logdir}/${tnum}_lat.log_lat.log"
+	if [ -f "${lat_log}" ]; then
+		if [ -s "${lat_log}" ]; then
+			echo "" >> "${log}"
+			echo "fio latency log:" >> "${log}"
+			echo "----------------" >> "${log}"
+			echo "" >> "${log}"
+			cat "${lat_log}" >> "${log}"
+		fi
+		rm -f "${lat_log}" > /dev/null 2>&1
+	fi
+
+	lat_log="${logdir}/${tnum}_lat.log_slat.log"
+	if [ -f "${lat_log}" ]; then
+		if [ -s "${lat_log}" ]; then
+			echo "" >> "${log}"
+			echo "fio submission latency log:" >> "${log}"
+			echo "---------------------------" >> "${log}"
+			echo "" >> "${log}"
+			cat "${lat_log}" >> "${log}"
+		fi
+		rm -f "${lat_log}" > /dev/null 2>&1
+	fi
+
+	# Remove saved CDL pages
+	if [ -f "${logdir}/saved_page.cdl" ]; then
+		rm -f "${logdir}/saved_page.cdl" > /dev/null 2>&1
+	fi
+}
+
 function run_test()
 {
 	local tnum="$(test_num $1)"
 	local dev="$2"
+	local logdir="$3"
 	local ret=0
 	local test_qd
 
@@ -270,7 +343,7 @@ function run_test()
 
 	kmsg_log_end ${tnum}
 
-	parse_dmesg "${tnum}" || ret=1
+	parse_dmesg "${tnum}" "${logdir}" || ret=1
 
 	echo ""
 	if [ "$ret" == 0 ]; then
@@ -305,8 +378,11 @@ for t in "${tests[@]}"; do
 	echo -n "  Test ${tnum}:  "
 	printf "%-68s ... " "$( $t )"
 
-	run_test "$t" "$1" > "${logdir}/${tnum}.log" 2>&1
+	run_test "$t" "$1" "${logdir}" > "${logdir}/${tnum}.log" 2>&1
 	ret=$?
+
+	finalize_log "${tnum}" "${logdir}"
+
 	if [ "$ret" == 0 ]; then
 		# Test result OK
 		status="\e[92mPASS\e[0m"
