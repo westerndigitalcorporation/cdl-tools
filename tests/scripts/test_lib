@@ -7,7 +7,7 @@
 
 function test_num()
 {
-        basename "$1" .sh
+	basename "$1" .sh
 }
 
 function exit_skip()
@@ -163,7 +163,7 @@ function create_nullb()
 
 function destroy_nullb()
 {
-        local n=$1
+	local n=$1
 
 	echo 0 > /sys/kernel/config/nullb/nullb$n/power
 	rmdir /sys/kernel/config/nullb/nullb$n
@@ -216,7 +216,7 @@ function dev_cdl_supported()
 
 function kernel_cdl_supported()
 {
-        local dev="$(realpath $1)"
+	local dev="$(realpath $1)"
 
 	info="$(cdladm info ${dev} | grep "Command duration limits" | tail -1)"
 	echo "${info}" | grep -c supported

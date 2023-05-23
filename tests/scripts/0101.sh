@@ -30,21 +30,21 @@ if dev_is_ata "$1"; then
 		exit_failed " --> FAILED"
 
 	diff -q  /tmp/cdl-show /tmp/cdl-show-ata || \
-                exit_failed " --> FAILED (ata show differs from SAT show)"
+		exit_failed " --> FAILED (ata show differs from SAT show)"
 
 	echo "# cdladm show --force-ata --page T2A $1"
 	cdladm show --force-ata --page T2A "$1" | tee /tmp/cdl-show-t2a-ata || \
 		exit_failed " --> FAILED"
 
 	diff -q  /tmp/cdl-show-t2a /tmp/cdl-show-t2a-ata || \
-                exit_failed " --> FAILED (T2A ata show differs from SAT show)"
+		exit_failed " --> FAILED (T2A ata show differs from SAT show)"
 
 	echo "# cdladm show --force-ata --page T2B $1"
 	cdladm show --force-ata --page T2B "$1" | tee /tmp/cdl-show-t2b-ata || \
 		exit_failed " --> FAILED"
 
 	diff -q  /tmp/cdl-show-t2b /tmp/cdl-show-t2b-ata || \
-                exit_failed " --> FAILED (T2B ata show differs from SAT show)"
+		exit_failed " --> FAILED (T2B ata show differs from SAT show)"
 fi
 
 exit 0

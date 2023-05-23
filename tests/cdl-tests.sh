@@ -152,8 +152,8 @@ major=$((0x$(stat -L -c '%t' "$realdev")))
 minor=$((0x$(stat -L -c '%T' "$realdev")))
 
 if [[ -r "/sys/dev/block/$major:$minor/partition" ]]; then
-        realsysfs=$(readlink "/sys/dev/block/$major:$minor")
-        bdev=$(basename "${realsysfs%/*}")
+	realsysfs=$(readlink "/sys/dev/block/$major:$minor")
+	bdev=$(basename "${realsysfs%/*}")
 fi
 
 targetdev="/dev/${bdev}"

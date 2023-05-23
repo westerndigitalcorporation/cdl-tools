@@ -22,7 +22,7 @@ if dev_is_ata "$1"; then
 		exit_failed " --> FAILED"
 	
 	diff -q /tmp/cdl-list /tmp/cdl-list-ata || \
-                exit_failed " --> FAILED (ata list differs from SAT list)"
+		exit_failed " --> FAILED (ata list differs from SAT list)"
 fi
 
 exit 0
