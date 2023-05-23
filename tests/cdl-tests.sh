@@ -349,7 +349,7 @@ function run_test()
 	if [ "$ret" == 0 ]; then
 		echo "==== Test ${tnum} -> PASS"
 	elif [ "$ret" == 2 ]; then
-		echo "==== Test ${tnum} -> skip"
+		echo "==== Test ${tnum} -> SKIP"
 	else
 		echo "==== Test ${tnum} -> FAILED"
 	fi
@@ -394,7 +394,7 @@ for t in "${tests[@]}"; do
 		rc=0
 	elif [ "$ret" == 2 ]; then
 		# Test was not applicable
-		status="skip"
+		status="SKIP"
 		rc=0
 	elif [ "$ret" == 3 ]; then
 		# Test passed but warning issued
