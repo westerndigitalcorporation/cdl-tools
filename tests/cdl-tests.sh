@@ -350,6 +350,8 @@ function run_test()
 		echo "==== Test ${tnum} -> PASS"
 	elif [ "$ret" == 2 ]; then
 		echo "==== Test ${tnum} -> SKIP"
+	elif [ "$ret" == 3 ]; then
+		echo "==== Test ${tnum} -> WARNING"
 	else
 		echo "==== Test ${tnum} -> FAILED"
 	fi
