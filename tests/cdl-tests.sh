@@ -239,7 +239,7 @@ function parse_dmesg()
 	echo "$test_case_dmesg" > "${logdir}/${tnum}_dmesg.log"
 
 	if [ "${val}" -gt 0 ]; then
-		echo " --> FAILED (detected hard reset in dmesg)"
+		echo " --> failed: detected hard reset in dmesg"
 		return 1
 	fi
 

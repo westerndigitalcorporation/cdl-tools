@@ -18,7 +18,7 @@ enable_cdl "$1"
 
 enabled=$(cdl_enabled "$1")
 if [ "${enabled}" != "1" ]; then
-	exit_failed " --> enable CDL FAILED"
+	exit_failed "enable CDL failed"
 fi
 
 echo "Enable CDL (again)..."
@@ -26,13 +26,13 @@ enable_cdl "$1"
 
 enabled=$(cdl_enabled "$1")
 if [ "${enabled}" != "1" ]; then
-	exit_failed " --> Enable CDL FAILED"
+	exit_failed "enable CDL failed"
 fi
 
 # Check with cdladm
 count="$(cdladm info "$1" | grep -c "Command duration limits: supported, enabled")"
 if [ "${count}" != 2 ]; then
-	exit_failed " --> cdladm FAILED to detect CDL enabled state"
+	exit_failed "cdladm failed to detect CDL enabled state"
 fi
 
 # Disable CDL (do it twice)
@@ -41,7 +41,7 @@ disable_cdl "$1"
 
 enabled=$(cdl_enabled "$1")
 if [ "${enabled}" != "0" ]; then
-	exit_failed " --> Disable CDL FAILED"
+	exit_failed "disable CDL failed"
 fi
 
 echo "Disable CDL..."
@@ -49,13 +49,13 @@ disable_cdl "$1"
 
 enabled=$(cdl_enabled "$1")
 if [ "${enabled}" != "0" ]; then
-	exit_failed " --> Disable CDL FAILED"
+	exit_failed "disable CDL failed"
 fi
 
 # Check with cdladm
 count="$(cdladm info "$1" | grep -c "Command duration limits: supported, disabled")"
 if [ "${count}" != 2 ]; then
-	exit_failed " --> cdladm FAILED to detect CDL disabled state"
+	exit_failed "cdladm failed to detect CDL disabled state"
 fi
 
 exit 0

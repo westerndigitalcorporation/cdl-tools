@@ -21,13 +21,13 @@ sysfsdir="/sys/block/${bdev}/device"
 echo "Checking ${sysfsdir}/cdl_supported"
 
 if [ ! -f "${sysfsdir}/cdl_supported" ]; then
-	exit_failed " --> FAILED (missing cdl_supported attribute)"
+	exit_failed "missing cdl_supported attribute"
 fi
 
 echo "Checking ${sysfsdir}/cdl_enable"
 
 if [ ! -f "${sysfsdir}/cdl_enable" ]; then
-	exit_failed " --> FAILED (missing cdl_enable attribute)"
+	exit_failed "missing cdl_enable attribute"
 fi
 
 exit 0

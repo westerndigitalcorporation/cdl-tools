@@ -30,6 +30,6 @@ execute_test "${testname}" \
 	"${cdl_dld}" "${expect_error}" \
 	"${compare_latencies}" "${filename}" \
 	"${dev}" "${ncq}" "${rw}" || \
-	exit_failed " --> FAILED (error executing test)"
+	exit_failed "error executing fio test"
 
 exit 0

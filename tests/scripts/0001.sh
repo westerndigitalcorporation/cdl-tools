@@ -13,6 +13,6 @@ if [ $# == 0 ]; then
 fi
 
 echo "# cdladm info $1"
-cdladm info $1 || exit_failed " --> FAILED"
+cdladm info $1 || exit_failed
 
 exit 0
