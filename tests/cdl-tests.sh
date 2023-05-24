@@ -38,6 +38,8 @@ function usage()
 	echo "                            an inadequate device fw being detected."
 	echo "  --quick | -q            : Run quick tests with shorter fio runs."
 	echo "                            This can result in less reliable test results."
+	echo "  --repeat | -r <num>     : Repeat the execution of the selected test cases"
+	echo "                            <num> times (default: tests are executed once)."
 }
 
 #
@@ -57,6 +59,7 @@ declare list=false
 logdir=""
 force_tests=0
 quick_tests=0
+repeat=1
 
 while [ "${1#-}" != "$1" ]; do
 	case "$1" in
@@ -90,6 +93,11 @@ while [ "${1#-}" != "$1" ]; do
 	-q | --quick)
 		shift
 		quick_tests=1
+		;;
+	-r | --repeat)
+		shift
+		repeat="$1"
+		shift
 		;;
 	-*)
 		echo "unknown option $1"
@@ -379,46 +387,62 @@ else
 	echo ", quick tests: disabled"
 fi
 
-for t in "${tests[@]}"; do
-	tnum="$(test_num $t)"
+for ((iter=1; iter<=repeat; iter++)); do
 
-	echo -n "  Test ${tnum}:  "
-	printf "%-68s ... " "$( $t )"
-
-	run_test "$t" "$1" "${logdir}" > "${logdir}/${tnum}.log" 2>&1
-	ret=$?
-
-	finalize_log "${tnum}" "${logdir}"
-
-	if [ "$ret" == 0 ]; then
-		# Test result OK
-		status="\e[92mPASS\e[0m"
-		rc=0
-	elif [ "$ret" == 2 ]; then
-		# Test was not applicable
-		status="SKIP"
-		rc=0
-	elif [ "$ret" == 3 ]; then
-		# Test passed but warning issued
-		status="\e[93mPASS\e[0m"
-		rc=0
+	if [ ${repeat} -ne 1 ]; then
+		echo "Iteration ${iter} / ${repeat}:"
+		ldir="${logdir}/run-${iter}"
+		mkdir -p "${ldir}"
 	else
-		# Test failed
-		status="\e[31mFAIL\e[0m"
-		rc=1
+		ldir="${logdir}"
 	fi
 
-	if [ "$rc" == 0 ]; then
-		((passed++))
-	fi
-	((total++))
-	echo -e "$status"
+	for t in "${tests[@]}"; do
+		tnum="$(test_num $t)"
+
+		echo -n "  Test ${tnum}:  "
+		printf "%-68s ... " "$( $t )"
+
+		run_test "$t" "$1" "${ldir}" > \
+			"${ldir}/${tnum}.log" 2>&1
+		ret=$?
+
+		finalize_log "${tnum}" "${ldir}"
+
+		if [ "$ret" == 0 ]; then
+			# Test result OK
+			status="\e[92mPASS\e[0m"
+			rc=0
+		elif [ "$ret" == 2 ]; then
+			# Test was not applicable
+			status="SKIP"
+			rc=0
+		elif [ "$ret" == 3 ]; then
+			# Test passed but warning issued
+			status="\e[93mPASS\e[0m"
+			rc=0
+		else
+			# Test failed
+			status="\e[31mFAIL\e[0m"
+			rc=1
+		fi
+
+		if [ "$rc" == 0 ]; then
+			((passed++))
+		fi
+		((total++))
+		echo -e "$status"
+
+		if [ "$aborted" == 1 ]; then
+			break
+		fi
+
+		na=0
+	done
 
 	if [ "$aborted" == 1 ]; then
 		break
 	fi
-
-	na=0
 done
 
 #
