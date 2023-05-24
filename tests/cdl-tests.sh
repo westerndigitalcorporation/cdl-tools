@@ -461,6 +461,10 @@ echo ""
 echo "$passed / $total tests passed"
 
 rm -f local-* >> /dev/null 2>&1
+unset logdir
+unset force_tests
+unset quick_tests
+unset scriptdir
 
 if [ "$passed" != "$total" ]; then
 	exit 1
