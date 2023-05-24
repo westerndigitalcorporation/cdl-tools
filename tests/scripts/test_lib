@@ -504,7 +504,7 @@ function analyze_log()
 
 	real_runtime="$(grep "CDL_REAL_RUNTIME: " $fiolog)"
 	if [ -z "$real_runtime" ]; then
-		exit_failed " -->real runtime not seen in fio log"
+		exit_failed "real runtime not seen in fio log"
 	fi
 
 	real_runtime=${real_runtime#CDL_REAL_RUNTIME: }
