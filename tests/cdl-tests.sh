@@ -31,7 +31,7 @@ function usage()
 	echo "  --help | -h             : This help message"
 	echo "  --list | -l             : List all tests"
 	echo "  --logdir | -g <log dir> : Use this directory to store test log files."
-	echo "                            default: cdl-tests-logs/<bdev name>"
+	echo "                            default: logs/<bdev name>"
 	echo "  --test | -t <test num>  : Execute only the specified test case. Can be"
 	echo "                            specified multiple times."
 	echo "  --force | -f            : Run all tests, even the ones skipped due to"
@@ -178,7 +178,7 @@ fi
 # Prepare log file
 #
 if [ "${logdir}" == "" ]; then
-	logdir="cdl-tests-logs/${bdev}"
+	logdir="logs/${bdev}"
 fi
 rm -rf "${logdir}" > /dev/null 2>&1
 mkdir -p "${logdir}"
