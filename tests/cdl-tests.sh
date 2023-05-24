@@ -184,6 +184,8 @@ rm -rf "${logdir}" > /dev/null 2>&1
 mkdir -p "${logdir}"
 export logdir
 
+runlog="logs/${bdev}/cdl-tests.log"
+
 passed=0
 total=0
 rc=0
@@ -368,6 +370,9 @@ function run_test()
 	return $ret
 }
 
+# Start logging the run
+{
+
 type="$(devtype ${dev})"
 echo "Running CDL tests on ${type} ${dev}:"
 
@@ -459,6 +464,9 @@ set_scheduler "${targetdev}" "${saved_sched}"
 
 echo ""
 echo "$passed / $total tests passed"
+
+# End logging the run
+} | tee -i "${runlog}" 2>&1
 
 rm -f local-* >> /dev/null 2>&1
 unset logdir
