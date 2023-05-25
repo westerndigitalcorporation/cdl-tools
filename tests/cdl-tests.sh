@@ -46,7 +46,7 @@ function usage()
 # Check existence of required programs
 #
 require_program "cdladm"
-require_program "fio"
+require_fio_cmdprio_hint
 require_program "bc"
 require_program "time"
 require_program "sed"
