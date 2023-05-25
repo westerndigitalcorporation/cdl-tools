@@ -425,22 +425,10 @@ function fio_run_time()
 {
 	local expect_error="$1"
 
-	# If we expect errors, we want to have a short run time. We should still get an
-	# error in this shorter run time. Having a longer test time when we expect an
-	# error is actually LESS reliable, as we might get the error first after e.g.
-	# 59 seconds (when the run time would be 60 seconds).
-	#
-	# When we don't expect errors, we want to have a long run time, such that we can
-	# be more confident that we do not encounter an error when it is not expected.
-
-	if [ "$expect_error" == "1" ]; then
-		echo "10"
+	if [ "$quick_tests" == "1" ]; then
+		echo "20"
 	else
-		if [ "$quick_tests" == "1" ]; then
-			echo "10"
-		else
-			echo "60"
-		fi
+		echo "60"
 	fi
 }
 
@@ -461,7 +449,7 @@ function fio_common_cmdline()
 	local expect_error="$5"
 	local compare_latencies="$6"
 	local rw="$7"
-	local fiocmd=$(time_cmdline)
+	local fiocmd="$(time_cmdline)"
 
 	fiocmd+="fio --name=\"$testname\""
 	fiocmd+=" --filename=$dev"
@@ -470,7 +458,7 @@ function fio_common_cmdline()
 	fiocmd+=" --log_prio=1 --per_job_logs=0"
 	fiocmd+=" --rw=$rw --ioengine=io_uring --iodepth=32"
 	fiocmd+=" --bs=1280k --direct=1"
-	fiocmd+=" --runtime=$(fio_run_time $expect_error) --ramp_time=10"
+	fiocmd+=" --runtime=$(fio_run_time $expect_error)"
 	fiocmd+=" --cmdprio_class=2 --cmdprio_hint=$cdl_dld"
 
 	#
@@ -483,8 +471,25 @@ function fio_common_cmdline()
 	#
 	if [ "$expect_errors" == "0" ]; then
 		fiocmd+=" --cmdprio_percentage=10"
+		fiocmd+=" --ramp_time=10"
 	else
 		fiocmd+=" --cmdprio_percentage=90"
+	fi
+
+	#
+	# Always request fio to stop on any error, unless we are actually
+	# expecting I/O errors to happen, in which case we keep going. If
+	# we are doing quick tests and we expect errors, request to stop
+	# on any error encountered.
+	#
+	if [ "$expect_errors" == "0" ]; then
+		fiocmd+=" --continue_on_error=none"
+	else
+		if [ "$quick_tests" == "1" ]; then
+			fiocmd+=" --continue_on_error=none"
+		else
+			fiocmd+=" --continue_on_error=io"
+		fi
 	fi
 
 	fiocmd+=" 2>&1"
