@@ -22,8 +22,8 @@ dev=$1
 # no inactive time at all for any read command. This test should thus
 # never generate any ETIME error.
 #
-T2A_file="${scriptdir}/cdl/T2A-inactive-time.cdl"
-T2B_file="${scriptdir}/cdl/T2B-empty.cdl"
+read_limits="inactive-time"
+write_limits=""
 cdl_dld=2
 expect_error=0
 compare_latencies=0
@@ -35,7 +35,7 @@ if dev_has_bad_fw "$1"; then
 fi
 
 execute_test "${testname}" \
-	"${T2A_file}" "${T2B_file}" \
+	"${read_limits}" "${write_limits}" \
 	"${cdl_dld}" "${expect_error}" \
 	"${compare_latencies}" "${filename}" \
 	"${dev}" "${ncq}" "${rw}" || \

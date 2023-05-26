@@ -375,11 +375,37 @@ function disable_ncq()
 	set_qd "$1" 1
 }
 
+function get_limits_page_type()
+{
+	local dev="$1"
+	local type="$2" # read or write
+
+	page="$(cdladm show ${dev} | grep ${type} | cut -f2 -d' ' | cut -f1 -d':')"
+	if [ "${page}" != "T2A" ] && [ "${page}" != "T2B" ]; then
+		exit_failed "Could not determine the CDL page for ${type} commands"
+	fi
+
+	echo "${page}"
+}
+
+function get_limits_page_file()
+{
+	local dev="$1"
+	local page="$2" # T2A or T2B
+	local limits_file="$3"
+
+	if [ "${limits_file}" == "" ]; then
+		echo "${scriptdir}/cdl/${page}-empty.cdl"
+	else
+		echo "${scriptdir}/cdl/${page}-${limits_file}.cdl"
+	fi
+}
+
 function test_setup()
 {
 	local dev="$1"
-	local original_T2A="$2"
-	local original_T2B="$3"
+	local read_limits="$2"
+	local write_limits="$3"
 	local expect_error="$4"
 	local compare_latencies="$5"
 	local ncq="$6"
@@ -412,27 +438,37 @@ function test_setup()
 		fi
 	fi
 
-	# Only upload cdl page if it differs from the existing page
-	validate_page $dev T2A $original_T2A || {
-		echo "Uploading T2A page"
-		cdladm upload --file $original_T2A $dev || \
-			exit_failed "failed to upload T2A page"
+	#
+	# Only upload the cdl page for reads and writes if they
+	# differ from the existing one
+	#
+	page_type="$(get_limits_page_type ${dev} read)"
+	page_file="$(get_limits_page_file ${dev} ${page_type} ${read_limits})"
+	echo "Using CDL file ${page_file} for read commands"
 
-		validate_page $dev T2A $original_T2A || \
-			exit_failed "failed to validate uploaded T2A page"
+	validate_page "${dev}" "${page_type}" "${page_file}" || {
+		echo "Uploading ${page_type} page"
+		cdladm upload --file "${page_file}" "${dev}" || \
+			exit_failed "failed to upload read ${page_type} page"
+
+		validate_page "${dev}" "${page_type}" "${page_file}" || \
+			exit_failed "failed to validate read ${page_type} page"
 	}
 
-	# Only upload cdl page if it differs from the existing page
-	validate_page $dev T2B $original_T2B || {
-		echo "Uploading T2B page"
-		cdladm upload --file $original_T2B $dev || \
-			exit_failed "failed to upload T2B page"
+	page_type="$(get_limits_page_type ${dev} write)"
+	page_file="$(get_limits_page_file ${dev} ${page_type} ${write_limits})"
+	echo "Using CDL file ${page_file} for write commands"
 
-		validate_page $dev T2B $original_T2B || \
-			exit_failed "failed to validate uploaded T2B page"
+	validate_page "${dev}" "${page_type}" "${page_file}" || {
+		echo "Uploading ${page_type} page"
+		cdladm upload --file "${page_file}" "${dev}" || \
+			exit_failed "failed to upload write ${page_type} page"
+
+		validate_page "${dev}" "${page_type}" "${page_file}" || \
+			exit_failed "failed to validate write ${page_type} page"
 	}
 
-	enable_cdl $dev || exit_failed "failed to enable CDL"
+	enable_cdl "${dev}" || exit_failed "failed to enable CDL"
 }
 
 function fio_run_time()
@@ -590,8 +626,8 @@ function analyze_log()
 function execute_test()
 {
 	local testname="$1"
-	local T2A_file="$2"
-	local T2B_file="$3"
+	local read_limits="$2"
+	local write_limits="$3"
 	local cdl_dld="$4"
 	local expect_error="$5"
 	local compare_latencies="$6"
@@ -605,7 +641,7 @@ function execute_test()
 	fi
 
 	test_setup "${dev}" \
-		"${T2A_file}" "${T2B_file}" \
+		"${read_limits}" "${write_limits}" \
 		"${expect_error}" "${compare_latencies}" \
 		"${ncq}" "${rw}" || \
 		exit_failed "error during setup"

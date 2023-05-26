@@ -17,8 +17,8 @@ fi
 filename=$0
 dev=$1
 
-T2A_file="${scriptdir}/cdl/T2A-empty.cdl"
-T2B_file="${scriptdir}/cdl/T2B-active-time.cdl"
+read_limits=""
+write_limits="active-time"
 cdl_dld=4
 expect_error=1
 compare_latencies=0
@@ -26,7 +26,7 @@ ncq=0
 rw="randwrite"
 
 execute_test "${testname}" \
-	"${T2A_file}" "${T2B_file}" \
+	"${read_limits}" "${write_limits}" \
 	"${cdl_dld}" "${expect_error}" \
 	"${compare_latencies}" "${filename}" \
 	"${dev}" "${ncq}" "${rw}" || \

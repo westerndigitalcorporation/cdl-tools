@@ -23,8 +23,8 @@ fi
 
 require_duration_guideline "${dev}"
 
-T2A_file="${scriptdir}/cdl/T2A-empty.cdl"
-T2B_file="${scriptdir}/cdl/T2B-duration-guideline.cdl"
+read_limits=""
+read_limits="duration-guideline"
 cdl_dld=5
 expect_error=1
 compare_latencies=0
@@ -32,7 +32,7 @@ ncq=0
 rw="randwrite"
 
 execute_test "${testname}" \
-	"${T2A_file}" "${T2B_file}" \
+	"${read_limits}" "${write_limits}" \
 	"${cdl_dld}" "${expect_error}" \
 	"${compare_latencies}" "${filename}" \
 	"${dev}" "${ncq}" "${rw}" || \
