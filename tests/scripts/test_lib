@@ -490,6 +490,18 @@ function time_cmdline()
 	echo "$time_bin -f 'CDL_REAL_RUNTIME: %e' -- "
 }
 
+function get_nr_dlds()
+{
+	local nr_sep=$(echo "$1" | grep -c "+")
+
+	echo $(( nr_sep + 1 ))
+}
+
+function get_dld()
+{
+	echo "$1" | cut -f$2 -d'+'
+}
+
 function fio_common_cmdline()
 {
 	local dev="$1"
@@ -500,6 +512,7 @@ function fio_common_cmdline()
 	local compare_latencies="$6"
 	local rw="$7"
 	local fiocmd="$(time_cmdline)"
+	local cdl_perc
 
 	fiocmd+="fio --name=\"$testname\""
 	fiocmd+=" --filename=$dev"
@@ -509,7 +522,6 @@ function fio_common_cmdline()
 	fiocmd+=" --rw=$rw --ioengine=libaio --iodepth=32"
 	fiocmd+=" --bs=1280k --direct=1"
 	fiocmd+=" --runtime=$(fio_run_time $expect_error)"
-	fiocmd+=" --cmdprio_class=2 --cmdprio_hint=$cdl_dld"
 
 	#
 	# If we expect errors, increase the percentage of CDL commands to
@@ -520,10 +532,10 @@ function fio_common_cmdline()
 	# error paths.
 	#
 	if [ "$expect_errors" == "0" ]; then
-		fiocmd+=" --cmdprio_percentage=10"
 		fiocmd+=" --ramp_time=10"
+		cdl_perc="10"
 	else
-		fiocmd+=" --cmdprio_percentage=90"
+		cdl_perc="90"
 	fi
 
 	#
@@ -540,6 +552,30 @@ function fio_common_cmdline()
 		else
 			fiocmd+=" --continue_on_error=io"
 		fi
+	fi
+
+	nr_dlds=$(get_nr_dlds "${cdl_dld}")
+	if [ "${nr_dlds}" == "1" ]; then
+
+		# Single DLD used
+		fiocmd+=" --cmdprio_class=2 --cmdprio_hint=${cdl_dld}"
+		fiocmd+=" --cmdprio_percentage=${cdl_perc}"
+
+	elif [ "${nr_dlds}" == "2" ]; then
+
+		# 2 DLDs used
+		dld1=$(get_dld "${cdl_dld}" 1)
+		dld2=$(get_dld "${cdl_dld}" 2)
+		dld_perc=$(( cdl_perc / 2 ))
+
+		fiocmd+=" --cmdprio_bssplit="
+		fiocmd+="1280k/${dld_perc}/2/0/${dld1}:"
+		fiocmd+="1280k/${dld_perc}/2/0/${dld2}"
+
+	else
+
+		exit_failed "invalid cdl_dld argument ${cdl_dld}"
+
 	fi
 
 	fiocmd+=" 2>&1"
