@@ -237,7 +237,7 @@ function dev_cdl_supported()
 {
 	local dev="$(realpath $1)"
 
-	info="$(cdladm info ${dev} | grep "Command duration limits" | head -1)"
+	info="$(cdladm info ${dev} | grep "Command duration limits:" | head -1)"
 	echo "${info}" | grep -c supported
 }
 
@@ -245,7 +245,7 @@ function kernel_cdl_supported()
 {
 	local dev="$(realpath $1)"
 
-	info="$(cdladm info ${dev} | grep "Command duration limits" | tail -1)"
+	info="$(cdladm info ${dev} | grep "Command duration limits:" | tail -1)"
 	echo "${info}" | grep -c supported
 }
 
