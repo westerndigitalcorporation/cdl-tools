@@ -227,7 +227,7 @@ int cdl_scsi_init(struct cdl_dev *dev)
 	 * So align to the system setting.
 	 */
 	enabled = cdl_sysfs_get_ulong_attr(dev,
-				"/sys/block/%s/device/duration_limits/enable",
+				"/sys/block/%s/device/cdl_enable",
 				dev->name);
 	if (enabled)
 		dev->flags |= CDL_DEV_ENABLED;
