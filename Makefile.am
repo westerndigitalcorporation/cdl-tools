@@ -35,7 +35,11 @@ RPMARCH=`$(RPM) --eval %_target_cpu`
 rpm: dist
 	@echo "Building RPM package..."
 	@mkdir -p $(rpmdir)
-	$(RPMBUILD) -ta --clean -D "_topdir $(rpmdir)" cdl-tools-$(PACKAGE_VERSION).tar.gz
+	$(RPMBUILD) -ta --clean \
+		-D "_topdir $(rpmdir)" \
+		-D "pkg_name cdl-tools" \
+		-D "pkg_version $(PACKAGE_VERSION)" \
+		cdl-tools-$(PACKAGE_VERSION).tar.gz
 	@mv -f $(rpmdir)/RPMS/$(RPMARCH)/*.rpm $(abs_top_builddir)
 	@mv -f $(rpmdir)/RPMS/noarch/*.rpm $(abs_top_builddir)
 	@mv -f $(rpmdir)/SRPMS/*.rpm $(abs_top_builddir)
