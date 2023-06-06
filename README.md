@@ -108,7 +108,7 @@ of SAS and SATA hard-disks supporting this feature.
 *cdladm* provide many functions. The usage is as follows:
 
 ```
-# cdladm --help
+$ cdladm --help
 Usage:
   cdladm --help | -h
   cdladm --version
@@ -128,11 +128,11 @@ Command options:
   --count
 	Apply to the show command.
 	Omit the descriptor details and only print the number of
-	descriptors valid in a page
+	valid descriptors in a page
   --page <name>
 	Apply to the show and save commands.
-	Specify the target page name. The page name can be:
-	"A", "B", "T2A" or "T2B".
+	Specify the name of the page to show or save. The page name
+	can be: "A", "B", "T2A" or "T2B".
   --file <path>
 	Apply to the save and upload commands.
 	Specify the path of the page file to use.
@@ -157,27 +157,27 @@ To check if a disk supports command duration limits, the "info" command can be
 used:
 
 ```
-# cdladm info /dev/sda
-Device: /dev/sda
+$ cdladm info /dev/sda
+Device: /dev/sdg
     Vendor: ATA
-    Product: WDC  WUH722222AL
-    Revision: WTC0
+    Product: xxx  xxxxxxxxxxx
+    Revision: xxxx
     42970644480 512-byte sectors (22.000 TB)
     Device interface: ATA
       SAT Vendor: linux
       SAT Product: libata
       SAT revision: 3.00
-    Command duration limits: supported, enabled
+    Command duration limits: supported, disabled
     Command duration guidelines: supported
     High priority enhancement: supported, disabled
-    Duration minimum limit: 1000000 ns
+    Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
-    Node name: xyz.domain.com
-    Kernel: Linux 5.10.158+ #1635 SMP Tue Dec 20 13:53:45 JST 2022
+    Node name: washi1.fujisawa.hgst.com
+    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
     Architecture: x86_64
-    Command duration limits: supported, enabled
-    Device sda command timeout: 30 s
+    Command duration limits: supported, disabled
+    Device sdg command timeout: 30 s
 ```
 
 In the above example, the SATA drive tested supports command duration limits.
@@ -189,13 +189,16 @@ When applied to a disk that does not support command duration limits, *cdladm*
 displays the following output.
 
 ```
-# cdladm info /dev/sde
-sde:
+$ cdladm info /dev/sde
+Device: /dev/sdh
     Vendor: ATA
-    Product: WDC  WSH722020AL
-    Revision: W421
+    Product: xxx  xxxxxxxxxxx
+    Revision: xxxx
     39063650304 512-byte sectors (20.000 TB)
     Device interface: ATA
+      SAT Vendor: linux
+      SAT Product: libata
+      SAT revision: 3.00
     Command duration limits: not supported, disabled
 ```
 
@@ -204,19 +207,20 @@ sysfs attribute files cdl_supported and cdl_enable will be present for any
  scsi device.
 
 ```
-# tree -L 1 /sys/block/sda/device/
+$ tree -L 1 /sys/block/sda/device/
 /sys/block/sda/device/
-??? blacklist
-??? block
-??? bsg
-??? cdl_enable
-??? cdl_supported
-??? delete
-??? device_blocked
-??? device_busy
-??? driver -> ../../../../../../../bus/scsi/drivers/sd
+|-- access_state
+|-- blacklist
+|-- block
+|-- bsg
+|-- cdl_enable
+|-- cdl_supported
+|-- delete
+|-- device_blocked
+|-- device_busy
+|-- dh_state
+|-- driver -> ../../../../../../../bus/scsi/drivers/sd
 ...
-
 ```
 
 The cdl_supported attribute file indicates with a value of "1" if a device
@@ -234,23 +238,27 @@ read and write limit descriptors values.
 Using the *cdladm* show command, the drive can also be checked directly.
 
 ```
-# cdladm show /dev/sdf
-sdf:
+$ cdladm show /dev/sdg
+Device: /dev/sdg
     Vendor: ATA
-    Product: WDC  WUH721818AL
-    Revision: WTW2
-    35156656128 512-byte sectors (18.000 TB)
+    Product: xxx  xxxxxxxxxxx
+    Revision: xxxx
+    42970644480 512-byte sectors (22.000 TB)
     Device interface: ATA
-    Command duration limits: supported, enabled
+      SAT Vendor: linux
+      SAT Product: libata
+      SAT revision: 3.00
+    Command duration limits: supported, disabled
     Command duration guidelines: supported
-    High priority enhancement: not supported, disabled
-    Minimum limit: 1000000 ns
-    Maximum limit: 10000000000 ns
+    High priority enhancement: supported, disabled
+    Duration minimum limit: 20000000 ns
+    Duration maximum limit: 4294967295000 ns
 System:
-    Node name: xyz.domain.com
-    Kernel: Linux 5.10.75+ #82 SMP PREEMPT Thu Oct 21 17:50:25 JST 2021
+    Node name: washi1.fujisawa.hgst.com
+    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
     Architecture: x86_64
     Command duration limits: supported, disabled
+    Device sdg command timeout: 30 s
 Page T2A:
   perf_vs_duration_guideline : 20%
   Descriptor 1:
@@ -316,8 +324,8 @@ Page T2B:
     duration guideline       : no limit
 ```
 
-In the above example, the disk sdf has the read descriptors 1 to 4 configured
-with a duration guideline limit of 30ms, 50ms, 100ms and 500ms.
+In the above example, the disk ```/dev/sdg``` has the read descriptors 1 to 4
+configured with a duration guideline limit of 30ms, 50ms, 100ms and 500ms.
 
 ### Modifying Duration Limits Descriptors
 
@@ -330,30 +338,34 @@ The "save" command will save the current duration limit descriptors of the disk
 to a file.
 
 ```
-# cdladm save --page T2A /dev/sdf
-sdf:
+$ cdladm save --page T2A /dev/sdg
+Device: /dev/sdg
     Vendor: ATA
-    Product: WDC  WUH721818AL
-    Revision: WTW2
-    35156656128 512-byte sectors (18.000 TB)
+    Product: xxx  xxxxxxxxxxx
+    Revision: xxxx
+    42970644480 512-byte sectors (22.000 TB)
     Device interface: ATA
-    Command duration limits: supported, enabled
+      SAT Vendor: linux
+      SAT Product: libata
+      SAT revision: 3.00
+    Command duration limits: supported, disabled
     Command duration guidelines: supported
-    High priority enhancement: not supported, disabled
-    Minimum limit: 1000000 ns
-    Maximum limit: 10000000000 ns
+    High priority enhancement: supported, disabled
+    Duration minimum limit: 20000000 ns
+    Duration maximum limit: 4294967295000 ns
 System:
-    Node name: xyz.domain.com
-    Kernel: Linux 5.10.75+ #82 SMP PREEMPT Thu Oct 21 17:50:25 JST 2021
+    Node name: washi1.fujisawa.hgst.com
+    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
     Architecture: x86_64
     Command duration limits: supported, disabled
-Saving page T2A to file sdf-T2A.cdl
+    Device sdg command timeout: 30 s
+Saving page T2A to file sdg-T2A.cdl
 ```
 
 The file can then be edited to modify the duration limit descriptors fields.
 
 ```
-# less sdf-T2A.cdl
+$ less sdg-T2A.cdl
 # T2A page format:
 # perf-vs-duration-guideline can be one of:
 #   - 0%    : 0x0
@@ -464,55 +476,60 @@ descriptors. In the example below, descriptor 5 is enabled to define a 1s
 duration limit.
 
 ```
-# cdladm upload --file sdf-T2A.cdl /dev/sdf
-sdf:
+$ cdladm upload --file sdg-T2A.cdl /dev/sdg
+Device: /dev/sdg
     Vendor: ATA
-    Product: WDC  WUH721818AL
-    Revision: WTW2
-    35156656128 512-byte sectors (18.000 TB)
+    Product: xxx  xxxxxxxxxxx
+    Revision: xxxx
+    42970644480 512-byte sectors (22.000 TB)
     Device interface: ATA
-    Command duration limits: supported, enabled
+      SAT Vendor: linux
+      SAT Product: libata
+      SAT revision: 3.00
+    Command duration limits: supported, disabled
     Command duration guidelines: supported
-    High priority enhancement: not supported, disabled
-    Minimum limit: 1000000 ns
-    Maximum limit: 10000000000 ns
+    High priority enhancement: supported, disabled
+    Duration minimum limit: 20000000 ns
+    Duration maximum limit: 4294967295000 ns
 System:
-    Node name: xyz.domain.com
-    Kernel: Linux 5.10.75+ #82 SMP PREEMPT Thu Oct 21 17:50:25 JST 2021
+    Node name: washi1.fujisawa.hgst.com
+    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
     Architecture: x86_64
     Command duration limits: supported, disabled
-Parsing file sdf-T2A.cdl...
+    Device sdg command timeout: 30 s
+Parsing file sdg-T2A.cdl...
 Uploading page T2A:
   perf_vs_duration_guideline : 20%
   Descriptor 1:
     max inactive time        : no limit
     max active time          : no limit
-    duration guideline       : 30 ms
+    duration guideline       : 50 ms
     duration guideline policy: complete-earliest
   Descriptor 2:
     max inactive time        : no limit
     max active time          : no limit
-    duration guideline       : 50 ms
-    duration guideline policy: complete-earliest
+    duration guideline       : 20 ms
+    duration guideline policy: continue-next-limit
   Descriptor 3:
     max inactive time        : no limit
     max active time          : no limit
-    duration guideline       : 100 ms
+    duration guideline       : 50 ms
     duration guideline policy: complete-earliest
   Descriptor 4:
     max inactive time        : no limit
     max active time          : no limit
-    duration guideline       : 500 ms
-    duration guideline policy: complete-earliest
+    duration guideline       : 20 ms
+    duration guideline policy: continue-no-limit
   Descriptor 5:
     max inactive time        : no limit
     max active time          : no limit
-    duration guideline       : 1000 ms
-    duration guideline policy: complete-earliest
+    duration guideline       : 20 ms
+    duration guideline policy: complete-unavailable
   Descriptor 6:
     max inactive time        : no limit
     max active time          : no limit
-    duration guideline       : no limit
+    duration guideline       : 20 ms
+    duration guideline policy: abort
   Descriptor 7:
     max inactive time        : no limit
     max active time          : no limit
@@ -528,73 +545,82 @@ enabled.
 This can be done using the "enable" sysfs attribute file:
 
 ```
-# echo 1 > /sys/block/sdf/device/cdl_enable
+$ echo 1 > /sys/block/sdg/device/cdl_enable
 ```
 
 For convenience, *cdladm* can also be used:
 
 ```
-# cdladm enable /dev/sdf
-sdf:
+$ cdladm enable /dev/sdg
+Command duration limits is enabled
+Device: /dev/sdg
     Vendor: ATA
-    Product: WDC  WUH721818AL
-    Revision: WTW2
-    35156656128 512-byte sectors (18.000 TB)
+    Product: xxx  xxxxxxxxxxx
+    Revision: xxxx
+    42970644480 512-byte sectors (22.000 TB)
     Device interface: ATA
+      SAT Vendor: linux
+      SAT Product: libata
+      SAT revision: 3.00
     Command duration limits: supported, enabled
     Command duration guidelines: supported
-    High priority enhancement: not supported, disabled
-    Minimum limit: 1000000 ns
-    Maximum limit: 10000000000 ns
+    High priority enhancement: supported, disabled
+    Duration minimum limit: 20000000 ns
+    Duration maximum limit: 4294967295000 ns
 System:
-    Node name: xyz.domain.com
-    Kernel: Linux 5.10.75+ #82 SMP PREEMPT Thu Oct 21 17:50:25 JST 2021
+    Node name: washi1.fujisawa.hgst.com
+    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
     Architecture: x86_64
-    Command duration limits: supported, disabled
-Command duration limits is enabled
+    Command duration limits: supported, enabled
+    Device sdg command timeout: 30 s
 
-# cat /sys/block/sdf/device/cdl_enable
+$ cat /sys/block/sdg/device/cdl_enable
 1
 ```
 
 Conversely, CDL can be disabled either using sysfs:
 
 ```
-# echo 0 > /sys/block/sdf/device/cdl_enable
+$ echo 0 > /sys/block/sdg/device/cdl_enable
 ```
 
 Or using *cdladm*:
 
 ```
-# cdladm disable /dev/sdf
-sdf:
-    Vendor: ATA
-    Product: WDC  WUH721818AL
-    Revision: WTW2
-    35156656128 512-byte sectors (18.000 TB)
-    Device interface: ATA
-    Command duration limits: supported, enabled
-    Command duration guidelines: supported
-    High priority enhancement: not supported, disabled
-    Minimum limit: 1000000 ns
-    Maximum limit: 10000000000 ns
-System:
-    Node name: xyz.domain.com
-    Kernel: Linux 5.10.75+ #82 SMP PREEMPT Thu Oct 21 17:50:25 JST 2021
-    Architecture: x86_64
-    Command duration limits: supported, enabled
+$ cdladm disable /dev/sdg
 Command duration limits is disabled
+Device: /dev/sdg
+    Vendor: ATA
+    Product: xxx  xxxxxxxxxxx
+    Revision: xxxx
+    42970644480 512-byte sectors (22.000 TB)
+    Device interface: ATA
+      SAT Vendor: linux
+      SAT Product: libata
+      SAT revision: 3.00
+    Command duration limits: supported, disabled
+    Command duration guidelines: supported
+    High priority enhancement: supported, disabled
+    Duration minimum limit: 20000000 ns
+    Duration maximum limit: 4294967295000 ns
+System:
+    Node name: washi1.fujisawa.hgst.com
+    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
+    Architecture: x86_64
+    Command duration limits: supported, disabled
+    Device sdg command timeout: 30 s
 ```
 
 *fio* can be used to exercise a drive with a command duration limits enabled
-workload. The standard fio options *cmdprio_percentage* and *cmdprio_hint*
-allow a job using the *libaio* IO engine to specify a command duration limit
-enabled workload.
+workload. The standard fio options *cmdprio_class*, *cmdprio_percentage* and
+*cmdprio_hint* allow a job using the *libaio* IO engine to specify a command
+duration limit enabled workload.
 
 For instance, the following fio script:
 
 ```
 [global]
+filename=/dev/sdg
 random_generator=tausworthe64
 continue_on_error=none
 ioscheduler=none
@@ -608,12 +634,13 @@ rw=randread
 bs=128k
 ioengine=libaio
 iodepth=32
-cmdprio_percentage=20
+cmdprio_class=2
 cmdprio_hint=2
+cmdprio_percentage=20
 ```
 
 Will issue random 128KB read commands at a queue depth of 32 with 20% of the
-commands using the read duration limits descriptor 2.
+commands using the best effort priority class with duration limits descriptor 2.
 
 Using the *cmdprio_bssplit* option, different duration limits can be combined
 in the same workload for different percentage of commands. For instance, the
@@ -621,6 +648,7 @@ following fio job definition:
 
 ```
 [global]
+filename=/dev/sdg
 random_generator=tausworthe64
 continue_on_error=none
 ioscheduler=none
@@ -634,17 +662,18 @@ rw=randread
 bs=128k
 ioengine=libaio
 iodepth=32
-cmdprio_bssplit=128k/10/0/0/1:128k/20/0/0/2
+cmdprio_bssplit=128k/10/2/0/1:128k/20/2/0/2
 ```
 
-will result in the IO job executing 10% of all IOs using descriptor 1 and 20%
-of all IOs using descriptor 2.
+will result in the IO job executing 10% of all IOs using the best effor priority
+class with CDL descriptor 1 and 20% of all IOs using again the best effort
+priority class but with CDL descriptor 2.
 
 ## Testing a system Command Duration Limits Support
 
 The *cdl-tools* project includes a test suite to exercise a device supporting
-command duration limits. Executing the test suite results also in the
-host-bus-adapter and kernel being tested.
+command duration limits. Executing the test suite also allows testing the
+host-bus-adapter and kernel being used on the test system.
 
 > **Warning**: cdl-tools test suite is destructive. This means that it will
 > overwrite the CDL descriptors in the T2A and T2B pages.
@@ -654,35 +683,48 @@ host-bus-adapter and kernel being tested.
 > manually, before running the test suite using:
 >
 > ```
-> # cdladm save --page T2A --file original_T2A.cdl /dev/sda
-> # cdladm save --page T2B --file original_T2B.cdl /dev/sda
+> $ cdladm save --page T2A --file original_T2A.cdl /dev/sda
+> $ cdladm save --page T2B --file original_T2B.cdl /dev/sda
 > ```
 
-*cdl-tools* test suite is written as a collection of bash scripts. The top
-script to use for executing tests is ```tests/cdl-tests.sh```
+*cdl-tools* test suite is written as a collection of bash scripts and can be
+installed as follows as root.
 
 ```
-# tests/cdl-tests.sh --help
+$ make install-tests
+```
+
+The default installation path is ```/usr/local/cdl-tests```. This installation
+path can be changed using the ```--prefix``` option of the configure script.
+
+The top script to use for executing tests is ```cdl-tests.sh```
+
+```
+$ cd /usr/local/cdl-tests
+$ ./cdl-tests.sh --help
 Usage: cdl-tests.sh [Options] <block device file>
 Options:
   --help | -h             : This help message
   --list | -l             : List all tests
   --logdir | -g <log dir> : Use this directory to store test log files.
-                            default: cdl-tests-logs/<bdev name>
+                            default: logs/<bdev name>
   --test | -t <test num>  : Execute only the specified test case. Can be
                             specified multiple times.
   --force | -f            : Run all tests, even the ones skipped due to
                             an inadequate device fw being detected.
   --quick | -q            : Run quick tests with shorter fio runs.
                             This can result in less reliable test results.
+  --repeat | -r <num>     : Repeat the execution of the selected test cases
+                            <num> times (default: tests are executed once).
 ```
 
 The test cases can be listed using the option "--list".
 
 ```
-# tests/cdl-tests.sh --list
+$ cd /usr/local/cdl-tests
+$ ./cdl-tests.sh --list
   Test 0001: cdladm (get device information)
-  Test 0002: cdladm (bad devices)
+  Test 0002: cdladm (unsupported devices)
   Test 0100: cdladm (list CDL descriptors)
   Test 0101: cdladm (show CDL descriptors)
   Test 0102: cdladm (save CDL descriptors)
@@ -701,6 +743,18 @@ The test cases can be listed using the option "--list".
   Test 0320: CDL inactive time (0x0 complete-earliest policy) reads
   Test 0321: CDL inactive time (0xd complete-unavailable policy) reads
   Test 0322: CDL inactive time (0xf abort policy) reads
+  Test 0330: CDL active (0x0 policy) + inactive (0x0 policy) reads
+  Test 0331: CDL active (0xd policy) + inactive (0xd policy) reads
+  Test 0332: CDL active (0xd policy) + inactive (0xf policy) reads
+  Test 0333: CDL active (0xf policy) + inactive (0xd policy) reads
+  Test 0334: CDL active (0xf policy) + inactive (0xf policy) reads
+  Test 0340: CDL active (0x0 policy) + CDL inactive (0x0 policy) reads
+  Test 0341: CDL active (0xd policy) + CDL active (0xf policy) reads
+  Test 0342: CDL active (0xd policy) + CDL inactive (0xd policy) reads
+  Test 0343: CDL active (0xd policy) + CDL inactive (0xf policy) reads
+  Test 0344: CDL active (0xf policy) + CDL inactive (0xd policy) reads
+  Test 0345: CDL active (0xf policy) + CDL inactive (0xf policy) reads
+  Test 0346: CDL inactive (0xd policy) + CDL inactive (0xf policy) reads
   Test 0400: CDL dur. guideline (0x0 complete-earliest policy) writes
   Test 0401: CDL dur. guideline (0x1 continue-next-limit policy) writes
   Test 0402: CDL dur. guideline (0x2 continue-no-limit policy) writes
@@ -742,17 +796,24 @@ The test cases can be listed using the option "--list".
 Executing the test suite requires root access rights.
 
 ```
-$ sudo tests/cdl-tests.sh /dev/sda
-Running CDL tests on cmr /dev/sda:
+$ cd /usr/local/cdl-tests
+$ sudo ./cdl-tests.sh /dev/sdg
+Running CDL tests on cmr /dev/sdg:
+    Product: xxx  xxxxxxxxxxx
+    Revision: WXYZ
+    Using cdl-tools version 0.4.0
     Force all tests: disabled, quick tests: disabled
   Test 0001:  cdladm (get device information)                                      ... PASS
-  Test 0002:  cdladm (bad devices)                                                 ... PASS
+  Test 0002:  cdladm (unsupported devices)                                         ... PASS
   Test 0100:  cdladm (list CDL descriptors)                                        ... PASS
   Test 0101:  cdladm (show CDL descriptors)                                        ... PASS
   Test 0102:  cdladm (save CDL descriptors)                                        ... PASS
-  Test 0103:  cdladm (upload CDL descriptors)                                      ...
+  Test 0103:  cdladm (upload CDL descriptors)                                      ... PASS
+  Test 0200:  CDL sysfs (all attributes present)                                   ... PASS
+  Test 0201:  CDL (enable/disable)                                                 ... PASS
+  Test 0300:  CDL dur. guideline (0x0 complete-earliest policy) reads              ...
   ...
 ```
 
-Log files for each test case are written by default in the "cdl-tests-logs"
+Log files for each test case are written by default in the "logs"
 directory in the current working directory.
