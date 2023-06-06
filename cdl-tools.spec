@@ -1,5 +1,5 @@
 Name:		cdl-tools
-Version:	0.4.0
+Version:	0.4.1
 Release:	1%{?dist}
 Summary:	Provides user utilities for block devices supporting command duration limits
 
