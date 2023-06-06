@@ -473,8 +473,6 @@ function test_setup()
 
 function fio_run_time()
 {
-	local expect_error="$1"
-
 	if [ "$quick_tests" == "1" ]; then
 		echo "20"
 	else
@@ -531,7 +529,7 @@ function fio_common_cmdline()
 	# CDL and non-CDL commands to fully exercise the kernel IO and
 	# error paths.
 	#
-	if [ "$expect_errors" == "0" ]; then
+	if [ "$expect_error" == "0" ]; then
 		fiocmd+=" --ramp_time=10"
 		cdl_perc="10"
 	else
@@ -544,7 +542,7 @@ function fio_common_cmdline()
 	# we are doing quick tests and we expect errors, request to stop
 	# on any error encountered.
 	#
-	if [ "$expect_errors" == "0" ]; then
+	if [ "$expect_error" == "0" ]; then
 		fiocmd+=" --continue_on_error=none"
 	else
 		if [ "$quick_tests" == "1" ]; then
