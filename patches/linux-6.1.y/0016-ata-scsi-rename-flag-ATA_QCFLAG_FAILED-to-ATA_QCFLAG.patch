@@ -1,7 +1,7 @@
-From d5d7f109287b4e76ac602476e1e339f2cc277f95 Mon Sep 17 00:00:00 2001
+From e9c15d4d0849947714e28a5911b5ca8d62f5f2a9 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Mon, 12 Dec 2022 16:38:34 +0900
-Subject: [PATCH 16/40] ata: scsi: rename flag ATA_QCFLAG_FAILED to
+Subject: [PATCH 16/50] ata: scsi: rename flag ATA_QCFLAG_FAILED to
  ATA_QCFLAG_EH
 
 The name ATA_QCFLAG_FAILED is misleading since it does not mean that a
@@ -33,7 +33,7 @@ Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
  drivers/ata/acard-ahci.c      |  2 +-
  drivers/ata/libahci.c         |  4 ++--
  drivers/ata/libata-core.c     | 12 ++++++------
- drivers/ata/libata-eh.c       | 22 +++++++++++-----------
+ drivers/ata/libata-eh.c       | 20 ++++++++++----------
  drivers/ata/libata-sata.c     |  4 ++--
  drivers/ata/libata-sff.c      |  4 ++--
  drivers/ata/libata-trace.c    |  2 +-
@@ -45,7 +45,7 @@ Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
  drivers/scsi/ipr.c            |  4 ++--
  drivers/scsi/libsas/sas_ata.c |  8 ++++----
  include/linux/libata.h        |  4 ++--
- 15 files changed, 38 insertions(+), 38 deletions(-)
+ 15 files changed, 37 insertions(+), 37 deletions(-)
 
 diff --git a/drivers/ata/acard-ahci.c b/drivers/ata/acard-ahci.c
 index 7654a40c12b4..da74a86b70ba 100644
@@ -83,7 +83,7 @@ index 29acc35bf4a6..03aa9eb415d3 100644
  }
  
 diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
-index 884ae73b11ea..6b03bebcde50 100644
+index c4c89d24f84c..ce5021acc24f 100644
 --- a/drivers/ata/libata-core.c
 +++ b/drivers/ata/libata-core.c
 @@ -1590,7 +1590,7 @@ static unsigned ata_exec_internal_sg(struct ata_device *dev,
@@ -95,7 +95,7 @@ index 884ae73b11ea..6b03bebcde50 100644
  		if (qc->result_tf.status & (ATA_ERR | ATA_DF))
  			qc->err_mask |= AC_ERR_DEV;
  
-@@ -4683,10 +4683,10 @@ void ata_qc_complete(struct ata_queued_cmd *qc)
+@@ -4686,10 +4686,10 @@ void ata_qc_complete(struct ata_queued_cmd *qc)
  	/* XXX: New EH and old EH use different mechanisms to
  	 * synchronize EH with regular execution path.
  	 *
@@ -109,7 +109,7 @@ index 884ae73b11ea..6b03bebcde50 100644
  	 *
  	 * Old EH depends on ata_qc_complete() nullifying completion
  	 * requests if ATA_QCFLAG_EH_SCHEDULED is set.  Old EH does
-@@ -4698,7 +4698,7 @@ void ata_qc_complete(struct ata_queued_cmd *qc)
+@@ -4701,7 +4701,7 @@ void ata_qc_complete(struct ata_queued_cmd *qc)
  		struct ata_eh_info *ehi = &dev->link->eh_info;
  
  		if (unlikely(qc->err_mask))
@@ -118,7 +118,7 @@ index 884ae73b11ea..6b03bebcde50 100644
  
  		/*
  		 * Finish internal commands without any further processing
-@@ -4715,7 +4715,7 @@ void ata_qc_complete(struct ata_queued_cmd *qc)
+@@ -4718,7 +4718,7 @@ void ata_qc_complete(struct ata_queued_cmd *qc)
  		 * Non-internal qc has failed.  Fill the result TF and
  		 * summon EH.
  		 */
@@ -128,10 +128,10 @@ index 884ae73b11ea..6b03bebcde50 100644
  			trace_ata_qc_complete_failed(qc);
  			ata_qc_schedule_eh(qc);
 diff --git a/drivers/ata/libata-eh.c b/drivers/ata/libata-eh.c
-index 34303ce67c14..8cb250930c48 100644
+index 0143e2f585b5..9a24e6b8294d 100644
 --- a/drivers/ata/libata-eh.c
 +++ b/drivers/ata/libata-eh.c
-@@ -575,7 +575,7 @@ void ata_scsi_cmd_error_handler(struct Scsi_Host *host, struct ata_port *ap,
+@@ -581,7 +581,7 @@ void ata_scsi_cmd_error_handler(struct Scsi_Host *host, struct ata_port *ap,
  	 * normal completion, error completion, and SCSI timeout.
  	 * Both completions can race against SCSI timeout.  When normal
  	 * completion wins, the qc never reaches EH.  When error
@@ -140,29 +140,20 @@ index 34303ce67c14..8cb250930c48 100644
  	 *
  	 * When SCSI timeout wins, things are a bit more complex.
  	 * Normal or error completion can occur after the timeout but
-@@ -611,10 +611,10 @@ void ata_scsi_cmd_error_handler(struct Scsi_Host *host, struct ata_port *ap,
+@@ -615,10 +615,10 @@ void ata_scsi_cmd_error_handler(struct Scsi_Host *host, struct ata_port *ap,
  
- 			if (i < ATA_MAX_QUEUE) {
- 				/* the scmd has an associated qc */
--				if (!(qc->flags & ATA_QCFLAG_FAILED)) {
-+				if (!(qc->flags & ATA_QCFLAG_EH)) {
- 					/* which hasn't failed yet, timeout */
- 					qc->err_mask |= AC_ERR_TIMEOUT;
--					qc->flags |= ATA_QCFLAG_FAILED;
-+					qc->flags |= ATA_QCFLAG_EH;
- 					nr_timedout++;
- 				}
- 			} else {
-@@ -631,7 +631,7 @@ void ata_scsi_cmd_error_handler(struct Scsi_Host *host, struct ata_port *ap,
- 		 * this point but the state of the controller is
- 		 * unknown.  Freeze the port to make sure the IRQ
- 		 * handler doesn't diddle with those qcs.  This must
--		 * be done atomically w.r.t. setting QCFLAG_FAILED.
-+		 * be done atomically w.r.t. setting ATA_QCFLAG_EH.
- 		 */
- 		if (nr_timedout)
- 			__ata_port_freeze(ap);
-@@ -911,12 +911,12 @@ void ata_qc_schedule_eh(struct ata_queued_cmd *qc)
+ 		if (i < ATA_MAX_QUEUE) {
+ 			/* the scmd has an associated qc */
+-			if (!(qc->flags & ATA_QCFLAG_FAILED)) {
++			if (!(qc->flags & ATA_QCFLAG_EH)) {
+ 				/* which hasn't failed yet, timeout */
+ 				qc->err_mask |= AC_ERR_TIMEOUT;
+-				qc->flags |= ATA_QCFLAG_FAILED;
++				qc->flags |= ATA_QCFLAG_EH;
+ 				nr_timedout++;
+ 			}
+ 		} else {
+@@ -915,12 +915,12 @@ void ata_qc_schedule_eh(struct ata_queued_cmd *qc)
  
  	WARN_ON(!ap->ops->error_handler);
  
@@ -177,7 +168,7 @@ index 34303ce67c14..8cb250930c48 100644
  	 * this function completes.
  	 */
  	blk_abort_request(scsi_cmd_to_rq(qc->scsicmd));
-@@ -994,7 +994,7 @@ static int ata_do_link_abort(struct ata_port *ap, struct ata_link *link)
+@@ -998,7 +998,7 @@ static int ata_do_link_abort(struct ata_port *ap, struct ata_link *link)
  	/* include internal tag in iteration */
  	ata_qc_for_each_with_internal(ap, qc, tag) {
  		if (qc && (!link || qc->dev->link == link)) {
@@ -186,7 +177,7 @@ index 34303ce67c14..8cb250930c48 100644
  			ata_qc_complete(qc);
  			nr_aborted++;
  		}
-@@ -1954,7 +1954,7 @@ static void ata_eh_link_autopsy(struct ata_link *link)
+@@ -1958,7 +1958,7 @@ static void ata_eh_link_autopsy(struct ata_link *link)
  	all_err_mask |= ehc->i.err_mask;
  
  	ata_qc_for_each_raw(ap, qc, tag) {
@@ -195,7 +186,7 @@ index 34303ce67c14..8cb250930c48 100644
  		    qc->flags & ATA_QCFLAG_RETRY ||
  		    ata_dev_phys_link(qc->dev) != link)
  			continue;
-@@ -2232,7 +2232,7 @@ static void ata_eh_link_report(struct ata_link *link)
+@@ -2236,7 +2236,7 @@ static void ata_eh_link_report(struct ata_link *link)
  		desc = ehc->i.desc;
  
  	ata_qc_for_each_raw(ap, qc, tag) {
@@ -204,7 +195,7 @@ index 34303ce67c14..8cb250930c48 100644
  		    ata_dev_phys_link(qc->dev) != link ||
  		    ((qc->flags & ATA_QCFLAG_QUIET) &&
  		     qc->err_mask == AC_ERR_DEV))
-@@ -2298,7 +2298,7 @@ static void ata_eh_link_report(struct ata_link *link)
+@@ -2302,7 +2302,7 @@ static void ata_eh_link_report(struct ata_link *link)
  		char data_buf[20] = "";
  		char cdb_buf[70] = "";
  
@@ -213,7 +204,7 @@ index 34303ce67c14..8cb250930c48 100644
  		    ata_dev_phys_link(qc->dev) != link || !qc->err_mask)
  			continue;
  
-@@ -3802,7 +3802,7 @@ void ata_eh_finish(struct ata_port *ap)
+@@ -3806,7 +3806,7 @@ void ata_eh_finish(struct ata_port *ap)
  
  	/* retry or finish qcs */
  	ata_qc_for_each_raw(ap, qc, tag) {
@@ -345,10 +336,10 @@ index ab70cbc78f96..a92c60455b1d 100644
  }
  
 diff --git a/drivers/scsi/ipr.c b/drivers/scsi/ipr.c
-index 9d01a3e3c26a..290e13df4943 100644
+index 8c062afb2918..74541df85e05 100644
 --- a/drivers/scsi/ipr.c
 +++ b/drivers/scsi/ipr.c
-@@ -5370,9 +5370,9 @@ static int __ipr_eh_dev_reset(struct scsi_cmnd *scsi_cmd)
+@@ -5371,9 +5371,9 @@ static int __ipr_eh_dev_reset(struct scsi_cmnd *scsi_cmd)
  					continue;
  
  				ipr_cmd->done = ipr_sata_eh_done;
@@ -361,7 +352,7 @@ index 9d01a3e3c26a..290e13df4943 100644
  			}
  		}
 diff --git a/drivers/scsi/libsas/sas_ata.c b/drivers/scsi/libsas/sas_ata.c
-index 5692577f82e3..709e0017d3fd 100644
+index 291dabd3b63a..5a383b1b2896 100644
 --- a/drivers/scsi/libsas/sas_ata.c
 +++ b/drivers/scsi/libsas/sas_ata.c
 @@ -125,7 +125,7 @@ static void sas_ata_task_done(struct sas_task *task)
@@ -382,7 +373,7 @@ index 5692577f82e3..709e0017d3fd 100644
  			}
  
  			dev->sata_dev.fis[3] = 0x04; /* status err */
-@@ -452,7 +452,7 @@ static void sas_ata_internal_abort(struct sas_task *task)
+@@ -477,7 +477,7 @@ static void sas_ata_internal_abort(struct sas_task *task)
  
  static void sas_ata_post_internal(struct ata_queued_cmd *qc)
  {
@@ -391,7 +382,7 @@ index 5692577f82e3..709e0017d3fd 100644
  		qc->err_mask |= AC_ERR_OTHER;
  
  	if (qc->err_mask) {
-@@ -607,7 +607,7 @@ void sas_ata_task_abort(struct sas_task *task)
+@@ -632,7 +632,7 @@ void sas_ata_task_abort(struct sas_task *task)
  
  	/* Internal command, fake a timeout and complete. */
  	qc->flags &= ~ATA_QCFLAG_ACTIVE;
@@ -423,5 +414,5 @@ index c9149ebe7423..7985e6e2ae0e 100644
  
  	return NULL;
 -- 
-2.38.1
+2.40.1
 

@@ -1,0 +1,32 @@
+From e323b7e7f45c9fc0df2dd8cb9e4333a92cff04be Mon Sep 17 00:00:00 2001
+From: Niklas Cassel <niklas.cassel@wdc.com>
+Date: Fri, 7 Oct 2022 15:23:39 +0200
+Subject: [PATCH 08/50] scsi: libsas: make use of ata_port_is_frozen() helper
+
+Clean up the code by making use of the newly introduced
+ata_port_is_frozen() helper function.
+
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
+Reviewed-by: John Garry <john.garry@huawei.com>
+Acked-by: Martin K. Petersen <martin.petersen@oracle.com>
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+---
+ drivers/scsi/libsas/sas_ata.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/scsi/libsas/sas_ata.c b/drivers/scsi/libsas/sas_ata.c
+index 6b045be947b1..291dabd3b63a 100644
+--- a/drivers/scsi/libsas/sas_ata.c
++++ b/drivers/scsi/libsas/sas_ata.c
+@@ -101,7 +101,7 @@ static void sas_ata_task_done(struct sas_task *task)
+ 
+ 	spin_lock_irqsave(ap->lock, flags);
+ 	/* check if we lost the race with libata/sas_ata_post_internal() */
+-	if (unlikely(ap->pflags & ATA_PFLAG_FROZEN)) {
++	if (unlikely(ata_port_is_frozen(ap))) {
+ 		spin_unlock_irqrestore(ap->lock, flags);
+ 		if (qc->scsicmd)
+ 			goto qc_already_gone;
+-- 
+2.40.1
+

@@ -1,0 +1,69 @@
+From e4d0e5a68769c2cd7e76af9b7d19c8fc5297195c Mon Sep 17 00:00:00 2001
+From: Niklas Cassel <niklas.cassel@wdc.com>
+Date: Thu, 6 Apr 2023 13:32:34 +0200
+Subject: [PATCH 34/50] scsi: rename and move get_scsi_ml_byte()
+
+SCSI has two different getters:
+- get_XXX_byte() (in scsi_cmnd.h) which takes a struct scsi_cmnd *, and
+- XXX_byte() (in scsi.h) which takes a scmd->result.
+The proper name for get_scsi_ml_byte() should thus be without the get_
+prefix, as it takes a scmd->result. Rename the function to rectify this.
+(This change was suggested by Mike Christie.)
+
+Additionally, move get_scsi_ml_byte() to scsi_priv.h since both scsi_lib.c
+and scsi_error.c will need to use this helper in a follow-up patch.
+
+Cc: Mike Christie <michael.christie@oracle.com>
+Reviewed-by: Hannes Reinecke <hare@suse.de>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Bart Van Assche <bvanassche@acm.org>
+Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
+---
+ drivers/scsi/scsi_lib.c  | 7 +------
+ drivers/scsi/scsi_priv.h | 5 +++++
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/scsi/scsi_lib.c b/drivers/scsi/scsi_lib.c
+index 8b89fab7c420..7349a6b929b9 100644
+--- a/drivers/scsi/scsi_lib.c
++++ b/drivers/scsi/scsi_lib.c
+@@ -581,11 +581,6 @@ static bool scsi_end_request(struct request *req, blk_status_t error,
+ 	return false;
+ }
+ 
+-static inline u8 get_scsi_ml_byte(int result)
+-{
+-	return (result >> 8) & 0xff;
+-}
+-
+ /**
+  * scsi_result_to_blk_status - translate a SCSI result code into blk_status_t
+  * @result:	scsi error code
+@@ -598,7 +593,7 @@ static blk_status_t scsi_result_to_blk_status(int result)
+ 	 * Check the scsi-ml byte first in case we converted a host or status
+ 	 * byte.
+ 	 */
+-	switch (get_scsi_ml_byte(result)) {
++	switch (scsi_ml_byte(result)) {
+ 	case SCSIML_STAT_OK:
+ 		break;
+ 	case SCSIML_STAT_RESV_CONFLICT:
+diff --git a/drivers/scsi/scsi_priv.h b/drivers/scsi/scsi_priv.h
+index c52de9a973e4..4a0965f18b39 100644
+--- a/drivers/scsi/scsi_priv.h
++++ b/drivers/scsi/scsi_priv.h
+@@ -29,6 +29,11 @@ enum scsi_ml_status {
+ 	SCSIML_STAT_TGT_FAILURE		= 0x04,	/* Permanent target failure */
+ };
+ 
++static inline u8 scsi_ml_byte(int result)
++{
++	return (result >> 8) & 0xff;
++}
++
+ /*
+  * Scsi Error Handler Flags
+  */
+-- 
+2.40.1
+

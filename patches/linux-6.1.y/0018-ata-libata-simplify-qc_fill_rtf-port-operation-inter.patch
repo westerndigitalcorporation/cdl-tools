@@ -1,7 +1,7 @@
-From 74a724bce98009720bdbcbe34af74430f8a752b2 Mon Sep 17 00:00:00 2001
+From 34da10bfe87c09c88971d3442f9c911a0ac1e074 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Thu, 8 Dec 2022 18:41:03 +0900
-Subject: [PATCH 18/40] ata: libata: simplify qc_fill_rtf port operation
+Subject: [PATCH 18/50] ata: libata: simplify qc_fill_rtf port operation
  interface
 
 The boolean return value of the qc_fill_rtf operation is used nowhere.
@@ -180,10 +180,10 @@ index 0a01518a8d97..22cc9e9789dd 100644
  
  static void sil24_pmp_attach(struct ata_port *ap)
 diff --git a/drivers/scsi/ipr.c b/drivers/scsi/ipr.c
-index 290e13df4943..bb77ea60d63d 100644
+index 74541df85e05..6d0ddaf48519 100644
 --- a/drivers/scsi/ipr.c
 +++ b/drivers/scsi/ipr.c
-@@ -7142,11 +7142,8 @@ static unsigned int ipr_qc_issue(struct ata_queued_cmd *qc)
+@@ -7143,11 +7143,8 @@ static unsigned int ipr_qc_issue(struct ata_queued_cmd *qc)
  /**
   * ipr_qc_fill_rtf - Read result TF
   * @qc: ATA queued command
@@ -196,7 +196,7 @@ index 290e13df4943..bb77ea60d63d 100644
  {
  	struct ipr_sata_port *sata_port = qc->ap->private_data;
  	struct ipr_ioasa_gata *g = &sata_port->ioasa;
-@@ -7163,8 +7160,6 @@ static bool ipr_qc_fill_rtf(struct ata_queued_cmd *qc)
+@@ -7164,8 +7161,6 @@ static bool ipr_qc_fill_rtf(struct ata_queued_cmd *qc)
  	tf->hob_lbal = g->hob_lbal;
  	tf->hob_lbam = g->hob_lbam;
  	tf->hob_lbah = g->hob_lbah;
@@ -206,7 +206,7 @@ index 290e13df4943..bb77ea60d63d 100644
  
  static struct ata_port_operations ipr_sata_ops = {
 diff --git a/drivers/scsi/libsas/sas_ata.c b/drivers/scsi/libsas/sas_ata.c
-index 709e0017d3fd..36cd81a52bac 100644
+index 5a383b1b2896..8f2a856914f5 100644
 --- a/drivers/scsi/libsas/sas_ata.c
 +++ b/drivers/scsi/libsas/sas_ata.c
 @@ -226,12 +226,11 @@ static unsigned int sas_ata_qc_issue(struct ata_queued_cmd *qc)
@@ -246,5 +246,5 @@ index 9bba56f6d793..31f4eaf515e1 100644
  				      struct ata_queued_cmd *qc);
  extern irqreturn_t ata_sff_interrupt(int irq, void *dev_instance);
 -- 
-2.38.1
+2.40.1
 

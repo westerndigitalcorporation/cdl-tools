@@ -1,7 +1,7 @@
-From 395ba55857b3b47e46b7f8c99aecb5b74ff45741 Mon Sep 17 00:00:00 2001
+From 495de9e1e2875056c2f031511992c14defc67bf0 Mon Sep 17 00:00:00 2001
 From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
 Date: Mon, 26 Sep 2022 20:53:05 +0000
-Subject: [PATCH 01/40] scsi: Define the COMPLETED sense key
+Subject: [PATCH 01/50] scsi: Define the COMPLETED sense key
 
 Add the definition for the COMPLETED sense key in scsi_proto.h. While at
 it, cleanup the white lines around the sense keys macro definitions.
@@ -39,5 +39,5 @@ index c03e35fc382c..919ed4137f9a 100644
  /*
   *  DEVICE TYPES
 -- 
-2.38.1
+2.40.1
 

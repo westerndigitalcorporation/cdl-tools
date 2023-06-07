@@ -1,0 +1,66 @@
+From 7edcc78d9d6610028c9ddce43b0e60e5151cc7c6 Mon Sep 17 00:00:00 2001
+From: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Date: Thu, 27 Oct 2022 14:08:01 +0900
+Subject: [PATCH 28/50] ata: libata: Fix FUA handling in ata_build_rw_tf()
+
+If a user issues a write command with the FUA bit set for a device with
+NCQ support disabled (that is, the device queue depth was set to 1), the
+LBA 48 command WRITE DMA FUA EXT must be used. However,
+ata_build_rw_tf() ignores this and first tests if LBA 28 can be used
+based on the write command sector and number of blocks. That is, for
+small FUA writes at low LBAs, ata_rwcmd_protocol() will cause the write
+to fail.
+
+Fix this by preventing the use of LBA 28 for any FUA write request.
+
+Given that the WRITE MULTI FUA EXT command is marked as obsolete in the
+ATA specification since ACS-3 (published in 2013), remove the
+ATA_CMD_WRITE_MULTI_FUA_EXT command from the ata_rw_cmds array.
+
+Signed-off-by: Damien Le Moal <damien.lemoal@opensource.wdc.com>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Johannes Thumshirn <johannes.thumshirn@wdc.com>
+Reviewed-by: Niklas Cassel <niklas.cassel@wdc.com>
+Reviewed-by: Hannes Reinecke <hare@suse.de>
+---
+ drivers/ata/libata-core.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
+index b0960d76ccca..53f1c4f1b7ef 100644
+--- a/drivers/ata/libata-core.c
++++ b/drivers/ata/libata-core.c
+@@ -552,7 +552,7 @@ static const u8 ata_rw_cmds[] = {
+ 	0,
+ 	0,
+ 	0,
+-	ATA_CMD_WRITE_MULTI_FUA_EXT,
++	0,
+ 	/* pio */
+ 	ATA_CMD_PIO_READ,
+ 	ATA_CMD_PIO_WRITE,
+@@ -727,7 +727,8 @@ int ata_build_rw_tf(struct ata_queued_cmd *qc, u64 block, u32 n_block,
+ 	} else if (dev->flags & ATA_DFLAG_LBA) {
+ 		tf->flags |= ATA_TFLAG_LBA;
+ 
+-		if (lba_28_ok(block, n_block)) {
++		/* We need LBA48 for FUA writes */
++		if (!(tf->flags & ATA_TFLAG_FUA) && lba_28_ok(block, n_block)) {
+ 			/* use LBA28 */
+ 			tf->device |= (block >> 24) & 0xf;
+ 		} else if (lba_48_ok(block, n_block)) {
+@@ -742,9 +743,10 @@ int ata_build_rw_tf(struct ata_queued_cmd *qc, u64 block, u32 n_block,
+ 			tf->hob_lbah = (block >> 40) & 0xff;
+ 			tf->hob_lbam = (block >> 32) & 0xff;
+ 			tf->hob_lbal = (block >> 24) & 0xff;
+-		} else
++		} else {
+ 			/* request too large even for LBA48 */
+ 			return -ERANGE;
++		}
+ 
+ 		if (unlikely(!ata_set_rwcmd_protocol(dev, tf)))
+ 			return -EINVAL;
+-- 
+2.40.1
+

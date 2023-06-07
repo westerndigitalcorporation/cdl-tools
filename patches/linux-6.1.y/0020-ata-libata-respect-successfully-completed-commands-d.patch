@@ -1,7 +1,7 @@
-From 538586f3758c1da53b874826b5aed2f9321f4df0 Mon Sep 17 00:00:00 2001
+From e977bf6e159951718e7bc062ae23a90fa6ab5f49 Mon Sep 17 00:00:00 2001
 From: Niklas Cassel <niklas.cassel@wdc.com>
 Date: Mon, 5 Dec 2022 17:14:05 +0100
-Subject: [PATCH 20/40] ata: libata: respect successfully completed commands
+Subject: [PATCH 20/50] ata: libata: respect successfully completed commands
  during errors
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -77,7 +77,7 @@ Signed-off-by: Niklas Cassel <niklas.cassel@wdc.com>
  1 file changed, 42 insertions(+), 31 deletions(-)
 
 diff --git a/drivers/ata/libahci.c b/drivers/ata/libahci.c
-index 019d74d6eb7d..db5ecc386657 100644
+index e5d67eb46f3c..8f216de76648 100644
 --- a/drivers/ata/libahci.c
 +++ b/drivers/ata/libahci.c
 @@ -1849,18 +1849,47 @@ static void ahci_error_intr(struct ata_port *ap, u32 irq_stat)
@@ -182,5 +182,5 @@ index 019d74d6eb7d..db5ecc386657 100644
  
  static void ahci_port_intr(struct ata_port *ap)
 -- 
-2.38.1
+2.40.1
 
