@@ -519,7 +519,7 @@ function fio_common_cmdline()
 	fiocmd+=" --log_prio=1 --per_job_logs=0"
 	fiocmd+=" --rw=$rw --ioengine=libaio --iodepth=32"
 	fiocmd+=" --bs=1280k --direct=1"
-	fiocmd+=" --runtime=$(fio_run_time $expect_error)"
+	fiocmd+=" --runtime=$(fio_run_time)"
 
 	#
 	# If we expect errors, increase the percentage of CDL commands to
@@ -598,7 +598,7 @@ function analyze_log()
 
 	real_runtime=${real_runtime#CDL_REAL_RUNTIME: }
 
-	max_runtime=$(fio_run_time $expect_error)
+	max_runtime=$(fio_run_time)
 
 	# Add 10s ramptime
 	max_runtime=$((max_runtime + 10))
