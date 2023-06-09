@@ -311,12 +311,22 @@ function fio_get_io_error()
 {
 	local err="$(grep ", err=" $1)"
 
-	if [ -z "${err}" ]; then
-		echo "0"
+	if [ ! -z "${err}" ]; then
+		echo "${err}" | cut -d'=' -f3 | cut -d'/' -f1
 		exit 0
 	fi
 
-	echo "${err}" | cut -d'=' -f3 | cut -d'/' -f1
+	# When continuing on error (ignoring ETIME), errors are
+	# still logged but not reported as fatal with "err=".
+	# Check this here.
+	err="$(grep ": Timer expired:" $1)"
+	if [ ! -z "${err}" ]; then
+		echo "62"
+		exit 0
+	fi
+
+	# No errors seen
+	echo "0"
 }
 
 function dev_qd()
@@ -453,15 +463,6 @@ function test_setup()
 	enable_cdl "${dev}" || exit_failed "failed to enable CDL"
 }
 
-function fio_run_time()
-{
-	if [ "$quick_tests" == "1" ]; then
-		echo "20"
-	else
-		echo "60"
-	fi
-}
-
 function time_cmdline()
 {
 	# format is not supported in the built-in time command
@@ -501,7 +502,7 @@ function fio_common_cmdline()
 	fiocmd+=" --log_prio=1 --per_job_logs=0"
 	fiocmd+=" --ioengine=libaio --iodepth=32"
 	fiocmd+=" --bs=1280k --direct=1"
-	fiocmd+=" --runtime=$(fio_run_time)"
+	fiocmd+=" --runtime=${fio_run_time}"
 
 	fiocmd+=" --rw=${rw}"
 	if [ "$rw" == "randrw" ]; then
@@ -526,17 +527,19 @@ function fio_common_cmdline()
 
 	#
 	# Always request fio to stop on any error, unless we are actually
-	# expecting I/O errors to happen, in which case we keep going. If
-	# we are doing quick tests and we expect errors, request to stop
-	# on any error encountered.
+	# expecting I/O errors to happen, in which case we keep going,
+	# unless the user explicitly told us to stop.
 	#
 	if [ "$expect_error" == "0" ]; then
 		fiocmd+=" --continue_on_error=none"
 	else
-		if [ "$quick_tests" == "1" ]; then
-			fiocmd+=" --continue_on_error=none"
-		else
+		if [ "${fio_stop_on_error}" == "0" ]; then
+			# Ignore ETIME errors
 			fiocmd+=" --continue_on_error=io"
+			fiocmd+=" --ignore_error=62,62"
+			fiocmd+=" --error_dump=1"
+		else
+			fiocmd+=" --continue_on_error=none"
 		fi
 	fi
 
@@ -596,7 +599,7 @@ function analyze_log()
 
 	real_runtime=${real_runtime#CDL_REAL_RUNTIME: }
 
-	max_runtime=$(fio_run_time)
+	max_runtime=${fio_run_time}
 
 	# Add 10s ramptime
 	max_runtime=$((max_runtime + 10))

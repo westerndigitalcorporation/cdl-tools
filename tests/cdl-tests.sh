@@ -34,10 +34,15 @@ function usage()
 	echo "                            default: logs/<bdev name>"
 	echo "  --test | -t <test num>  : Execute only the specified test case. Can be"
 	echo "                            specified multiple times."
-	echo "  --quick | -q            : Run quick tests with shorter fio runs."
-	echo "                            This can result in less reliable test results."
 	echo "  --repeat | -r <num>     : Repeat the execution of the selected test cases"
 	echo "                            <num> times (default: tests are executed once)."
+	echo "  --run-time <seconds>    : Specify fio run time in seconds. Short run"
+	echo "                            times can result in less reliable test results."
+	echo "                            Default: 60 seconds"
+	echo "  --stop-on-error         : For test cases that expect an error, tell"
+	echo "                            fio to stop immediately when an IO error"
+	echo "                            is detected. Default: continue running"
+	echo "  --quick | -q            : Same as \"--run-time 20 --stop-on-error\""
 }
 
 #
@@ -55,8 +60,10 @@ require_program "sed"
 declare -a tests
 declare list=false
 logdir=""
-quick_tests=0
 repeat=1
+
+export fio_run_time="60"
+export fio_stop_on_error="0"
 
 while [ "${1#-}" != "$1" ]; do
 	case "$1" in
@@ -85,9 +92,15 @@ while [ "${1#-}" != "$1" ]; do
 		logdir="$1"
 		shift
 		;;
+	--run-time)
+		shift
+		run_time="$1"
+		shift
+		;;
 	-q | --quick)
 		shift
-		quick_tests=1
+		run_time="20"
+		fio_stop_on_error="1"
 		;;
 	-r | --repeat)
 		shift
@@ -207,8 +220,6 @@ fi
 if dev_is_ata "${targetdev}"; then
 	saved_qd=$(dev_qd "${targetdev}")
 fi
-
-export quick_tests
 
 function kmsg_log()
 {
@@ -375,11 +386,13 @@ cdladm info ${dev} | grep -e Product -e Revision | grep -v SAT
 ver="$(cdladm --version | head -1 | cut -f3 -d ' ')"
 echo "    Using cdl-tools version ${ver}"
 
-if [ "${quick_tests}" == "1" ]; then
-	echo "Quick tests: enabled"
+echo -n "fio: ${fio_run_time}s run time, stop on error "
+if [ "${fio_stop_on_error}" == "1" ]; then
+	echo "enabled"
 else
-	echo "Quick tests: disabled"
+	echo "disabled"
 fi
+echo ""
 
 for ((iter=1; iter<=repeat; iter++)); do
 
@@ -459,8 +472,9 @@ echo "$passed / $total tests passed"
 
 rm -f local-* >> /dev/null 2>&1
 unset logdir
-unset quick_tests
 unset scriptdir
+unset fio_run_time
+unset fio_stop_on_error
 
 if [ "$passed" != "$total" ]; then
 	exit 1
