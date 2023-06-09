@@ -24,7 +24,7 @@
 cdlp: T2B
 
 == descriptor: 1
-t2cdlunits: 0x0
+t2cdlunits: 0xa
 max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
@@ -33,7 +33,7 @@ duration-guideline: 0
 duration-guideline-policy: 0x0
 
 == descriptor: 2
-t2cdlunits: 0x0
+t2cdlunits: 0xa
 max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
@@ -42,7 +42,7 @@ duration-guideline: 0
 duration-guideline-policy: 0x0
 
 == descriptor: 3
-t2cdlunits: 0x0
+t2cdlunits: 0xa
 max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
@@ -51,7 +51,7 @@ duration-guideline: 0
 duration-guideline-policy: 0x0
 
 == descriptor: 4
-t2cdlunits: 0x0
+t2cdlunits: 0xa
 max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
@@ -60,7 +60,7 @@ duration-guideline: 0
 duration-guideline-policy: 0x0
 
 == descriptor: 5
-t2cdlunits: 0x0
+t2cdlunits: 0xa
 max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
@@ -69,7 +69,7 @@ duration-guideline: 0
 duration-guideline-policy: 0x0
 
 == descriptor: 6
-t2cdlunits: 0x0
+t2cdlunits: 0xa
 max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
@@ -78,7 +78,7 @@ duration-guideline: 0
 duration-guideline-policy: 0x0
 
 == descriptor: 7
-t2cdlunits: 0x0
+t2cdlunits: 0xa
 max-inactive-time: 0
 max-inactive-time-policy: 0x0
 max-active-time: 0
