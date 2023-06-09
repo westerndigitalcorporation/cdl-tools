@@ -70,7 +70,9 @@ while [ "${1#-}" != "$1" ]; do
 			echo "Invalid test number $2"
 			exit 1;
 		fi
-		tests+=("$t")
+		if [[ ! " ${tests[*]} " =~ " ${t} " ]]; then
+			tests+=("$t")
+		fi
 		shift
 		shift
 		;;
