@@ -398,7 +398,9 @@ function test_setup()
 	fi
 
 	# We only support rw=randread and rw=randwrite for now
-	if [ "$rw" != "randread" ] && [ "$rw" != "randwrite" ]; then
+	if [ "$rw" != "randread" ] && \
+	   [ "$rw" != "randwrite" ] && \
+	   [ "$rw" != "randrw" ]; then
 		exit_failed "invalid test case configuration"
 	fi
 
@@ -497,9 +499,15 @@ function fio_common_cmdline()
 	fiocmd+=" --random_generator=tausworthe64"
 	fiocmd+=" --write_lat_log=${logdir}/$(test_num $filename)_lat.log"
 	fiocmd+=" --log_prio=1 --per_job_logs=0"
-	fiocmd+=" --rw=$rw --ioengine=libaio --iodepth=32"
+	fiocmd+=" --ioengine=libaio --iodepth=32"
 	fiocmd+=" --bs=1280k --direct=1"
 	fiocmd+=" --runtime=$(fio_run_time)"
+
+	fiocmd+=" --rw=${rw}"
+	if [ "$rw" == "randrw" ]; then
+		fiocmd+=" --rwmixread=70"
+		fiocmd+=" --rwmixwrite=30"
+	fi
 
 	#
 	# If we expect errors, increase the percentage of CDL commands to
@@ -537,7 +545,12 @@ function fio_common_cmdline()
 
 		# Single DLD used
 		fiocmd+=" --cmdprio_class=2 --cmdprio_hint=${cdl_dld}"
-		fiocmd+=" --cmdprio_percentage=${cdl_perc}"
+		if [ "$rw" == "randrw" ]; then
+			# Use CDL only for reads
+			fiocmd+=" --cmdprio_percentage=${cdl_perc},0"
+		else
+			fiocmd+=" --cmdprio_percentage=${cdl_perc}"
+		fi
 
 	elif [ "${nr_dlds}" == "2" ]; then
 
@@ -549,6 +562,11 @@ function fio_common_cmdline()
 		fiocmd+=" --cmdprio_bssplit="
 		fiocmd+="1280k/${dld_perc}/2/0/${dld1}:"
 		fiocmd+="1280k/${dld_perc}/2/0/${dld2}"
+
+		if [ "$rw" == "randrw" ]; then
+			# Use CDL only for reads
+			fiocmd+=",1280k/100/0/0/0"
+		fi
 
 	else
 
