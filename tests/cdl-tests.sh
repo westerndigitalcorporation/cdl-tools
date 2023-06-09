@@ -30,9 +30,10 @@ function usage()
 	echo "Options:"
 	echo "  --help | -h             : This help message"
 	echo "  --list | -l             : List all tests"
-	echo "  --logdir | -g <log dir> : Use this directory to store test log files."
-	echo "                            default: logs/<bdev name>"
-	echo "  --test | -t <test num>  : Execute only the specified test case. Can be"
+	echo "  --test | -t <test num>  : Execute only the specified test case. This"
+	echo "                            option can be specified multiple times."
+	echo "  --group | -g <group num>: Execute only the tests belonging to the"
+	echo "                            specified test group. This option can be"
 	echo "                            specified multiple times."
 	echo "  --repeat | -r <num>     : Repeat the execution of the selected test cases"
 	echo "                            <num> times (default: tests are executed once)."
@@ -43,6 +44,8 @@ function usage()
 	echo "                            fio to stop immediately when an IO error"
 	echo "                            is detected. Default: continue running"
 	echo "  --quick | -q            : Same as \"--run-time 20 --stop-on-error\""
+	echo "  --logdir <log dir>      : Use this directory to store test log files."
+	echo "                            default: logs/<bdev name>"
 }
 
 #
@@ -57,6 +60,7 @@ require_program "sed"
 #
 # Parse command line
 #
+declare -a groups
 declare -a tests
 declare list=false
 logdir=""
@@ -72,7 +76,7 @@ while [ "${1#-}" != "$1" ]; do
 		exit 0
 		;;
 	-t | --test)
-		t="${scriptdir}/$2.sh"
+		t="$(test_file_from_num "$2")"
 		if [ ! -e "$t" ]; then
 			echo "Invalid test number $2"
 			exit 1;
@@ -83,13 +87,19 @@ while [ "${1#-}" != "$1" ]; do
 		shift
 		shift
 		;;
-	-l | --list)
-		list=true
+	-g | --group)
+		if (( $2 < 0 )) || (( $2 >= $(nr_groups) )); then
+			echo "Invalid group number $2"
+			exit 1;
+		fi
+		if [[ ! " ${groups[*]} " =~ " $2 " ]]; then
+			groups+=("$2")
+		fi
+		shift
 		shift
 		;;
-	-g | --logdir)
-		shift
-		logdir="$1"
+	-l | --list)
+		list=true
 		shift
 		;;
 	--run-time)
@@ -98,13 +108,18 @@ while [ "${1#-}" != "$1" ]; do
 		shift
 		;;
 	-q | --quick)
-		shift
 		run_time="20"
 		fio_stop_on_error="1"
+		shift
 		;;
 	-r | --repeat)
 		shift
 		repeat="$1"
+		shift
+		;;
+	--logdir)
+		shift
+		logdir="$1"
 		shift
 		;;
 	-*)
@@ -122,18 +137,43 @@ fi
 #
 # Get list of tests
 #
-if [ "${#tests[@]}" = 0 ]; then
-	for f in  ${scriptdir}/*.sh; do
-		tests+=("$f")
+
+# If no group was specified, add all groups
+if [ "${#groups[@]}" = 0 ]; then
+	for gdir in ${scriptdir}/0?_*; do
+		groups+=("$(group_num_from_dir ${gdir})")
 	done
 fi
+
+# Add test cases from the selected groups to the test list
+for g in "${groups[@]}"; do
+	gdir="$(group_dir_from_num ${g})"
+	if [ ! -d "${gdir}" ]; then
+		echo "Unknown group \"${g}\""
+		exit 1
+	fi
+
+	for t in ${gdir}/*.sh; do
+		if [[ ! " ${tests[*]} " =~ " ${t} " ]]; then
+			tests+=("$t")
+		fi
+	done
+done
 
 #
 # Handle -l option (list tests)
 #
 if $list; then
+	gnum="XX"
+
 	for t in "${tests[@]}"; do
-		echo "  Test $(test_num "$t"): $( $t )"
+		tnum="$(test_num "$t")"
+		gn="$(test_group_num "${tnum}")"
+		if [ "${gn}" != "${gnum}" ]; then
+			echo "Group ${gn}: $(group_name ${gn}) tests"
+			gnum="${gn}"
+		fi
+		echo "  Test ${tnum}: $( $t )"
 	done
 	exit 0
 fi
@@ -404,8 +444,16 @@ for ((iter=1; iter<=repeat; iter++)); do
 		ldir="${logdir}"
 	fi
 
+	gnum="XX"
+
 	for t in "${tests[@]}"; do
 		tnum="$(test_num $t)"
+
+		gn="$(test_group_num "${tnum}")"
+		if [ "${gn}" != "${gnum}" ]; then
+			echo "Group ${gn}: $(group_name ${gn})"
+			gnum="${gn}"
+		fi
 
 		echo -n "  Test ${tnum}:  "
 		printf "%-68s ... " "$( $t )"

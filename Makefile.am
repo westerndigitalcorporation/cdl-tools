@@ -10,21 +10,29 @@ EXTRA_DIST = autogen.sh README.md COPYING.GPL CONTRIBUTING
 
 TESTSDIR = $(DESTDIR)$(prefix)/local/cdl-tests
 
+TESTGROUPS=`cd ${top_srcdir}/tests/scripts/; ls -d 0?_*`
+
 install-tests:
-	rm -rf ${TESTSDIR}
-	install -m 755 -d ${TESTSDIR}
-	install -m 755 -d ${TESTSDIR}/scripts
-	install -m 755 $(top_srcdir)/tests/scripts/*.sh ${TESTSDIR}/scripts
-	install -m 644 $(top_srcdir)/tests/scripts/test_lib ${TESTSDIR}/scripts
-	install -m 755 -d ${TESTSDIR}/scripts/cdl
-	install -m 644 $(top_srcdir)/tests/scripts/cdl/* ${TESTSDIR}/scripts/cdl
-	install -m 755 $(top_srcdir)/tests/cdl-tests.sh ${TESTSDIR}
+	@echo "Installing test suite in ${TESTSDIR}..."
+	@rm -rf ${TESTSDIR}
+	@install -m 755 -d ${TESTSDIR}
+	@install -m 755 -d ${TESTSDIR}/scripts
+	@for g in $(TESTGROUPS) ; do \
+		install -m 755 -d ${TESTSDIR}/scripts/$${g}; \
+		install -m 755 $(top_srcdir)/tests/scripts/$${g}/*.sh \
+			${TESTSDIR}/scripts/$${g}; \
+	done
+	@install -m 644 $(top_srcdir)/tests/scripts/test_lib ${TESTSDIR}/scripts
+	@install -m 755 -d ${TESTSDIR}/scripts/cdl
+	@install -m 644 $(top_srcdir)/tests//scripts/cdl/* ${TESTSDIR}/scripts/cdl
+	@install -m 755 $(top_srcdir)/tests/cdl-tests.sh ${TESTSDIR}
 
 uninstall-tests:
-	rm -rf ${TESTSDIR}
+	@echo "Uninstalling test suite in ${TESTSDIR}..."
+	@rm -rf ${TESTSDIR}
 
 uninstall-hook:
-	rm -rf ${TESTSDIR}
+	@rm -rf ${TESTSDIR}
 
 if BUILD_RPM
 

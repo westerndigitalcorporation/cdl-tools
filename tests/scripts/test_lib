@@ -5,9 +5,54 @@
 # Copyright (C) 2022 Western Digital Corporation or its affiliates.
 #
 
+#
+# Test groups
+# Entry format: group name, first test case num, last test case num
+#
+
+function nr_groups()
+{
+	echo "$(ls -d ${scriptdir}/0?_* | wc -l)"
+}
+
+function group_num_from_dir()
+{
+	local g="$(basename "$1")"
+
+	echo "$g" | cut -d'_' -f1
+}
+
+function group_dir_from_num()
+{
+	echo "$(find ${scriptdir} -name "$1_*" -print)"
+}
+
+function group_name()
+{
+	local gdir="$(ls -d ${scriptdir}/$1_*)"
+	local g="$(basename "${gdir}")"
+
+	echo "$g" | cut -d'_' -f2- | sed 's/_/ /g'
+}
+
 function test_num()
 {
 	basename "$1" .sh
+}
+
+function test_group_num()
+{
+	local tnum="$1"
+
+	echo "${tnum:0:2}"
+}
+
+function test_file_from_num()
+{
+	local tgnum="$(test_group_num "$1")"
+	local tgdir="$(group_dir_from_num "${tgnum}")"
+
+	echo "${tgdir}/$1.sh"
 }
 
 function exit_skip()
