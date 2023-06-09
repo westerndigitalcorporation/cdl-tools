@@ -30,10 +30,6 @@ compare_latencies=0
 ncq=0
 rw="randread"
 
-if dev_has_bad_fw "$1"; then
-	exit_skip
-fi
-
 execute_test "${testname}" \
 	"${read_limits}" "${write_limits}" \
 	"${cdl_dld}" "${expect_error}" \

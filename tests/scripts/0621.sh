@@ -17,10 +17,6 @@ fi
 filename=$0
 dev=$1
 
-if dev_has_bad_fw "$dev"; then
-	exit_skip
-fi
-
 read_limits=""
 write_limits="inactive-time"
 cdl_dld=2

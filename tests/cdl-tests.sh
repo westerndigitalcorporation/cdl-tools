@@ -34,8 +34,6 @@ function usage()
 	echo "                            default: logs/<bdev name>"
 	echo "  --test | -t <test num>  : Execute only the specified test case. Can be"
 	echo "                            specified multiple times."
-	echo "  --force | -f            : Run all tests, even the ones skipped due to"
-	echo "                            an inadequate device fw being detected."
 	echo "  --quick | -q            : Run quick tests with shorter fio runs."
 	echo "                            This can result in less reliable test results."
 	echo "  --repeat | -r <num>     : Repeat the execution of the selected test cases"
@@ -57,7 +55,6 @@ require_program "sed"
 declare -a tests
 declare list=false
 logdir=""
-force_tests=0
 quick_tests=0
 repeat=1
 
@@ -85,10 +82,6 @@ while [ "${1#-}" != "$1" ]; do
 		shift
 		logdir="$1"
 		shift
-		;;
-	-f | --force)
-		shift
-		force_tests=1
 		;;
 	-q | --quick)
 		shift
@@ -213,7 +206,6 @@ if dev_is_ata "${targetdev}"; then
 	saved_qd=$(dev_qd "${targetdev}")
 fi
 
-export force_tests
 export quick_tests
 
 function kmsg_log()
@@ -381,15 +373,10 @@ cdladm info ${dev} | grep -e Product -e Revision | grep -v SAT
 ver="$(cdladm --version | head -1 | cut -f3 -d ' ')"
 echo "    Using cdl-tools version ${ver}"
 
-if [ "${force_tests}" == "1" ]; then
-	echo -n "    Force all tests: enabled"
-else
-	echo -n "    Force all tests: disabled"
-fi
 if [ "${quick_tests}" == "1" ]; then
-	echo ", quick tests: enabled"
+	echo "Quick tests: enabled"
 else
-	echo ", quick tests: disabled"
+	echo "Quick tests: disabled"
 fi
 
 for ((iter=1; iter<=repeat; iter++)); do
@@ -470,7 +457,6 @@ echo "$passed / $total tests passed"
 
 rm -f local-* >> /dev/null 2>&1
 unset logdir
-unset force_tests
 unset quick_tests
 unset scriptdir
 
