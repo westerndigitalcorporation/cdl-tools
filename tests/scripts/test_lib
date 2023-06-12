@@ -110,7 +110,7 @@ function require_fio_cmdprio_hint()
 
 	# Check that the version of fio installed has the ioprio_hint option
 	fio --name="test" --filename=/dev/null \
-		--ioengine=libaio --cmdprio_hint=2 --size=1M > /dev/null 2>&1
+		--ioengine=io_uring --cmdprio_hint=2 --size=1M > /dev/null 2>&1
 	if [ $? -eq 1 ]; then
 		echo "The installed version of fio does not seem to have CDL support"
 		echo "(--cmdprio_hint option not supported)"
