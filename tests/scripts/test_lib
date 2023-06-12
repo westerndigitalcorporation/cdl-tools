@@ -545,7 +545,7 @@ function fio_common_cmdline()
 	fiocmd+=" --random_generator=tausworthe64"
 	fiocmd+=" --write_lat_log=${logdir}/$(test_num $filename)_lat.log"
 	fiocmd+=" --log_prio=1 --per_job_logs=0"
-	fiocmd+=" --ioengine=libaio --iodepth=32"
+	fiocmd+=" --ioengine=io_uring --iodepth=32"
 	fiocmd+=" --bs=1280k --direct=1"
 	fiocmd+=" --runtime=${fio_run_time}"
 
