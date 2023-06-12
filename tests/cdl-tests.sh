@@ -138,8 +138,8 @@ fi
 # Get list of tests
 #
 
-# If no group was specified, add all groups
-if [ "${#groups[@]}" = 0 ]; then
+# If no group was specified, and -t option was not used, add all groups
+if [ "${#groups[@]}" = 0 ] && [ "${#tests[@]}" = 0 ]; then
 	for gdir in ${scriptdir}/0?_*; do
 		groups+=("$(group_num_from_dir ${gdir})")
 	done
