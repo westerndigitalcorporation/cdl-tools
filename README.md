@@ -706,16 +706,22 @@ Usage: cdl-tests.sh [Options] <block device file>
 Options:
   --help | -h             : This help message
   --list | -l             : List all tests
-  --logdir | -g <log dir> : Use this directory to store test log files.
-                            default: logs/<bdev name>
-  --test | -t <test num>  : Execute only the specified test case. Can be
+  --test | -t <test num>  : Execute only the specified test case. This
+                            option can be specified multiple times.
+  --group | -g <group num>: Execute only the tests belonging to the
+                            specified test group. This option can be
                             specified multiple times.
-  --force | -f            : Run all tests, even the ones skipped due to
-                            an inadequate device fw being detected.
-  --quick | -q            : Run quick tests with shorter fio runs.
-                            This can result in less reliable test results.
   --repeat | -r <num>     : Repeat the execution of the selected test cases
                             <num> times (default: tests are executed once).
+  --run-time <seconds>    : Specify fio run time in seconds. Short run
+                            times can result in less reliable test results.
+                            Default: 60 seconds
+  --stop-on-error         : For test cases that expect an error, tell
+                            fio to stop immediately when an IO error
+                            is detected. Default: continue running
+  --quick | -q            : Same as "--run-time 20 --stop-on-error"
+  --logdir <log dir>      : Use this directory to store test log files.
+                            default: logs/<bdev name>
 ```
 
 The test cases can be listed using the option "--list".
