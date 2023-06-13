@@ -280,12 +280,11 @@ int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		desc->max_inactive_time = cdl_ata_a2s_limit(&buf[8]);
 		desc->duration = cdl_ata_a2s_limit(&buf[16]);
 
-		if (desc->max_inactive_time ||
-		    desc->max_active_time ||
-		    desc->duration)
-			desc->cdltunit = 0x0a; /* 10ms */
-		else
-			desc->cdltunit = 0;
+		/*
+		 * SATL defines t2cdlunits as fixed to 0xa, even for an empty
+		 * descriptor, so do the same here.
+		 */
+		desc->cdltunit = 0x0a; /* 10ms */
 	}
 
 	return 0;
