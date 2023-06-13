@@ -104,11 +104,11 @@ while [ "${1#-}" != "$1" ]; do
 		;;
 	--run-time)
 		shift
-		run_time="$1"
+		fio_run_time="$1"
 		shift
 		;;
 	-q | --quick)
-		run_time="20"
+		fio_run_time="20"
 		fio_stop_on_error="1"
 		shift
 		;;
