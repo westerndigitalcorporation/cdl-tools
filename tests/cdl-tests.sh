@@ -227,12 +227,12 @@ fi
 #
 if [ "${logdir}" == "" ]; then
 	logdir="logs/${bdev}"
+	rm -rf "${logdir}" > /dev/null 2>&1
 fi
-rm -rf "${logdir}" > /dev/null 2>&1
 mkdir -p "${logdir}"
 export logdir
 
-runlog="logs/${bdev}/cdl-tests.log"
+runlog="${logdir}/cdl-tests.log"
 
 passed=0
 total=0
