@@ -219,7 +219,8 @@ if [ "$(dev_cdl_supported ${targetdev})" != "1" ]; then
 fi
 
 if [ "$(kernel_cdl_supported ${targetdev})" != "1" ]; then
-	echo "WARNING: System kernel does not support command duration limits."
+	echo "System kernel does not support command duration limits."
+	exit 1
 fi
 
 #
