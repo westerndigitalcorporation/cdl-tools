@@ -141,6 +141,40 @@ int cdl_ata_write_log(struct cdl_dev *dev, uint8_t log,
 	return cdl_exec_cmd(dev, &cmd);
 }
 
+int cdl_ata_get_limits(struct cdl_dev *dev, struct cdl_sg_cmd *cmd)
+{
+	struct cdl_sg_cmd _cmd;
+	uint64_t qword;
+	int ret;
+
+	if (!cmd) {
+		cmd = &_cmd;
+		ret = cdl_ata_read_log(dev, 0x30, 0x03, cmd, 512);
+		if (ret) {
+			cdl_dev_err(dev,
+				    "Read supported capabilities log page failed\n");
+			return ret;
+		}
+	}
+
+	/* Get the minimum and maximum limits */
+	qword = cdl_sg_get_le64(&cmd->buf[176]);
+	if (qword & (1ULL << 63))
+		dev->min_limit = (qword & 0xffffffff) * 1000;
+	qword = cdl_sg_get_le64(&cmd->buf[184]);
+	if (qword & (1ULL << 63))
+		dev->max_limit = (qword & 0xffffffff) * 1000;
+	if (!dev->max_limit) {
+		/*
+		 * The natural maximum limit is imposed by the time unit
+		 * (microseconds) and the time limit fields size (32-bits).
+		 */
+		dev->max_limit = (unsigned long long)UINT_MAX * 1000;
+	}
+
+	return 0;
+}
+
 /*
  * Initialize handling of ATA device.
  */
@@ -178,19 +212,9 @@ int cdl_ata_init(struct cdl_dev *dev)
 		return 0;
 
 	/* Get the minimum and maximum limits */
-	qword = cdl_sg_get_le64(&cmd.buf[176]);
-	if (qword & (1ULL << 63))
-		dev->min_limit = (qword & 0xffffffff) * 1000;
-	qword = cdl_sg_get_le64(&cmd.buf[184]);
-	if (qword & (1ULL << 63))
-		dev->max_limit = (qword & 0xffffffff) * 1000;
-	if (!dev->max_limit) {
-		/*
-		 * The natural maximum limit is imposed by the time unit
-		 * (microseconds) and the time limit fields size (32-bits).
-		 */
-		dev->max_limit = (unsigned long long)UINT_MAX * 1000;
-	}
+	ret = cdl_ata_get_limits(dev, &cmd);
+	if (ret)
+		return ret;
 
 	/* Set the CDL page type used for a command */
 	dev->cmd_cdlp[CDL_READ_16] = CDLP_T2A;

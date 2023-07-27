@@ -195,7 +195,7 @@ static int cdl_scsi_get_cmd_cdlp(struct cdl_dev *dev, enum cdl_cmd c)
 int cdl_scsi_init(struct cdl_dev *dev)
 {
 	bool enabled = false;
-	int i;
+	int i, ret;
 
 	/*
 	 * Command duration limits is supported only with READ 16, WRITE 16,
@@ -216,11 +216,14 @@ int cdl_scsi_init(struct cdl_dev *dev)
 		return 0;
 
 	/* Set the minimum and maximum limits */
-	dev->min_limit = 500;
-	if (cdl_dev_is_ata(dev))
-		dev->max_limit = (unsigned long long)UINT_MAX * 1000;
-	else
+	if (cdl_dev_is_ata(dev)) {
+		ret = cdl_ata_get_limits(dev, NULL);
+		if (ret)
+			return ret;
+	} else {
+		dev->min_limit = 500;
 		dev->max_limit = 65535ULL * 500000000ULL;
+	}
 
 	/*
 	 * There is no device level CDL feature enable/disable control.

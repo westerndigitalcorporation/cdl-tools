@@ -216,6 +216,7 @@ int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page);
 int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled);
 void cdl_ata_revalidate(struct cdl_dev *dev);
+int cdl_ata_get_limits(struct cdl_dev *dev, struct cdl_sg_cmd *cmd);
 
 /* In cdl_scsi.c */
 void cdl_scsi_get_ata_information(struct cdl_dev *dev);
