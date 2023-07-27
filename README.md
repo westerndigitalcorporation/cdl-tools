@@ -121,6 +121,7 @@ Commands:
   info    : Show device and system support information
   list    : List supported pages
   show    : Display one or all supported pages
+  clear   : Clear one or all supported pages
   save    : Save one or all pages to a file
   upload  : Upload a page to the device
   enable  : Enable command duration limits
@@ -131,9 +132,9 @@ Command options:
 	Omit the descriptor details and only print the number of
 	valid descriptors in a page
   --page <name>
-	Apply to the show and save commands.
-	Specify the name of the page to show or save. The page name
-	can be: "A", "B", "T2A" or "T2B".
+	Apply to the show, clear and save commands.
+	Specify the name of the page to show,clear or save. The
+	page name tcan be: "A", "B", "T2A" or "T2B".
   --file <path>
 	Apply to the save and upload commands.
 	Specify the path of the page file to use.
