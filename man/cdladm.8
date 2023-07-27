@@ -50,6 +50,13 @@ pages of the target device. The option \fB\-\-page\fR can be used to specify a
 single page to display.
 
 .TP
+\fBclear\fR
+Clear (reset) the command duration limits descriptors of one or all supported
+pages of the target device. The option \fB\-\-page\fR can be used to specify a
+single page to clear.
+
+
+.TP
 \fBsave\fR
 Save to a file one or all command duration limits page of the target device.
 The option \fB\-\-page\fR must be used to specify the target page to save. If
@@ -94,7 +101,8 @@ Verbose output (for debugging).
 .TP
 .BI \-\-page " page_name"
 Specify the name of a page to operate on. \fIpage_name\fR can be "A", "B", "T2A"
-or "T2B". This option can be used with the commands \fBshow\fR and \fBsave\fR.
+or "T2B". This option can be used with the commands \fBshow\fR, \fBclear\fR and
+\fBsave\fR.
 
 .TP
 .BI \-\-file " page_file"

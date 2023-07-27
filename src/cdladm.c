@@ -29,6 +29,7 @@ static void cdladm_usage(void)
 	       "  info    : Show device and system support information\n"
 	       "  list    : List supported pages\n"
 	       "  show    : Display one or all supported pages\n"
+	       "  clear   : Clear one or all supported pages\n"
 	       "  save    : Save one or all pages to a file\n"
 	       "  upload  : Upload a page to the device\n"
 	       "  enable  : Enable command duration limits\n"
@@ -39,9 +40,9 @@ static void cdladm_usage(void)
 	       "\tOmit the descriptor details and only print the number of\n"
 	       "\tvalid descriptors in a page\n");
 	printf("  --page <name>\n"
-	       "\tApply to the show and save commands.\n"
-	       "\tSpecify the name of the page to show or save. The page name\n"
-	       "\tcan be: \"A\", \"B\", \"T2A\" or \"T2B\".\n");
+	       "\tApply to the show, clear and save commands.\n"
+	       "\tSpecify the name of the page to show,clear or save. The\n"
+	       "\tpage name tcan be: \"A\", \"B\", \"T2A\" or \"T2B\".\n");
 	printf("  --file <path>\n"
 	       "\tApply to the save and upload commands.\n"
 	       "\tSpecify the path of the page file to use.\n"
@@ -121,6 +122,47 @@ static int cdladm_show(struct cdl_dev *dev, char *page)
 		if (page && i == cdlp)
 			break;
 
+	}
+
+	return 0;
+}
+
+static int cdladm_clear(struct cdl_dev *dev, char *page_name)
+{
+	struct cdl_page page;
+	int cdlp = -1, i, ret;
+
+	if (page_name) {
+		/* Clear only the specified page */
+		cdlp = cdl_page_name2cdlp(page_name);
+		if (cdlp < 0)
+			return 1;
+	}
+
+	/* Clear all supported pages or only the requested page */
+	for (i = 0; i < CDL_MAX_PAGES; i++) {
+		if (!cdl_page_supported(dev, i)) {
+			if (page_name && i == cdlp) {
+				printf("Page %s is not supported\n", page_name);
+				return 1;
+			}
+			continue;
+		}
+
+		if (page_name && i != cdlp)
+			continue;
+
+		printf("Clearing page %s: %s descriptors\n",
+		       cdl_page_name(i),
+		       dev->cdl_pages[i].rw == CDL_READ ? "read" : "write");
+		memset(&page, 0, sizeof(page));
+		page.cdlp = i;
+		ret = cdl_write_page(dev, &page);
+		if (ret)
+			return 1;
+
+		if (page_name && i == cdlp)
+			break;
 	}
 
 	return 0;
@@ -329,6 +371,7 @@ enum cdladm_cmd_code {
 	CDLADM_INFO,
 	CDLADM_LIST,
 	CDLADM_SHOW,
+	CDLADM_CLEAR,
 	CDLADM_SAVE,
 	CDLADM_UPLOAD,
 	CDLADM_ENABLE,
@@ -349,6 +392,7 @@ static struct {
 	{ CDLADM_INFO,		O_RDONLY },
 	{ CDLADM_LIST,		O_RDONLY },
 	{ CDLADM_SHOW,		O_RDONLY },
+	{ CDLADM_CLEAR,		O_RDWR	 },
 	{ CDLADM_SAVE,		O_RDONLY },
 	{ CDLADM_UPLOAD,	O_RDWR	 },
 	{ CDLADM_ENABLE,	O_RDONLY },
@@ -413,6 +457,13 @@ int main(int argc, char **argv)
 			continue;
 		}
 
+		if (strcmp(argv[i], "clear") == 0) {
+			if (command != CDLADM_NONE)
+				goto err_cmd_line;
+			command = CDLADM_CLEAR;
+			continue;
+		}
+
 		if (strcmp(argv[i], "save") == 0) {
 			if (command != CDLADM_NONE)
 				goto err_cmd_line;
@@ -463,6 +514,7 @@ int main(int argc, char **argv)
 
 		if (strcmp(argv[i], "--page") == 0) {
 			if (command != CDLADM_SHOW &&
+			    command != CDLADM_CLEAR &&
 			    command != CDLADM_SAVE)
 				goto err_cmd_line;
 			i++;
@@ -615,6 +667,9 @@ int main(int argc, char **argv)
 		break;
 	case CDLADM_SHOW:
 		ret = cdladm_show(&dev, page);
+		break;
+	case CDLADM_CLEAR:
+		ret = cdladm_clear(&dev, page);
 		break;
 	case CDLADM_SAVE:
 		ret = cdladm_save(&dev, page, path);
