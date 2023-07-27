@@ -163,11 +163,6 @@ function devtype()
 	fi
 }
 
-function devname()
-{
-	basename "$(realpath $1)"
-}
-
 function dev_capacity()
 {
 	local dev="$(realpath $1)"
