@@ -179,6 +179,16 @@ function dev_fw()
 	cat /sys/block/${bdev}/device/rev
 }
 
+function dev_adapter_driver()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+
+	host="host$(ls /sys/block/${bdev}/device/scsi_disk | cut -d':' -f1)"
+
+	cat /sys/bus/scsi/devices/${host}/scsi_host/${host}/proc_name
+}
+
 function dev_is_ata()
 {
 	local dev="$(realpath $1)"
