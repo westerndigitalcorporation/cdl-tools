@@ -13,13 +13,17 @@ if [ $# == 0 ]; then
 fi
 
 echo "# cdladm list $1"
-cdladm list $1 | tee /tmp/cdl-list || \
-	exit_failed
+cdladm list $1 | \
+	grep -v "High priority enhancement" | \
+	tee /tmp/cdl-list || \
+		exit_failed
 
 if dev_is_ata "$1"; then
 	echo "# cdladm list --force-ata $1"
-	cdladm list --force-ata $1 | tee /tmp/cdl-list-ata || \
-		exit_failed
+	cdladm list --force-ata $1 | \
+		grep -v "High priority enhancement" | \
+		tee /tmp/cdl-list-ata || \
+			exit_failed
 
 	diff -q /tmp/cdl-list /tmp/cdl-list-ata || \
 		exit_failed "ata list differs from SAT list"
