@@ -80,9 +80,10 @@ $ ./configure
 $ make rpm
 ```
 
-Four RPM packages are built: a binary package providing *cdladm* executable
-and its documentation and license files, a source RPM package, a *debuginfo*
-RPM package and a *debugsource* RPM package.
+Five RPM packages are built: a binary package providing *cdladm* executable
+and its documentation, a source RPM package, a *debuginfo*
+RPM package and a *debugsource* RPM package, and an RPM package containing the
+test suite.
 
 The source RPM package can be used to build the binary and debug RPM packages
 outside of *cdl-tools* source tree using the following command.
@@ -153,8 +154,7 @@ See "man cdladm" for more information
 
 ### Checking for command duration limits support
 
-To check if a disk supports command duration limits, the "info" command can be
-used:
+To check if a device supports command duration limits, use the "info" command.
 
 ```
 $ cdladm info /dev/sda
@@ -173,19 +173,16 @@ Device: /dev/sdg
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
-    Node name: washi1.fujisawa.hgst.com
-    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
+    Node name: xxx
+    Kernel: Linux 6.5.0-rc3+ #130 SMP PREEMPT_DYNAMIC Wed Jul 26 09:38:47 JST 2023
     Architecture: x86_64
     Command duration limits: supported, disabled
     Device sdg command timeout: 30 s
 ```
 
-In the above example, the SATA drive tested supports command duration limits.
-The warning displayed indicates that a feature-incomplete firmware is being used
-(namely in this case, a firmware that does not yet support the set features
-command to enable/disable command duration limits).
+In the above example, the SATA device used supports command duration limits.
 
-When applied to a disk that does not support command duration limits, *cdladm*
+When applied to a device that does not support command duration limits, *cdladm*
 displays the following output.
 
 ```
@@ -202,9 +199,9 @@ Device: /dev/sdh
     Command duration limits: not supported, disabled
 ```
 
-When using a kernel patched to add support for command duration limits, the
-sysfs attribute files cdl_supported and cdl_enable will be present for any
- scsi device.
+When using a kernel including support for command duration limits (kernel versio
+6.5 and above), the sysfs attribute files cdl_supported and cdl_enable will be
+present for any scsi device.
 
 ```
 $ tree -L 1 /sys/block/sda/device/
@@ -232,10 +229,8 @@ for a device supporting it.
 
 ### Checking Duration Limits Descriptors
 
-As explained above, the device sysfs duration limits attribute files expose all
-read and write limit descriptors values.
-
-Using the *cdladm* show command, the drive can also be checked directly.
+The *cdladm* show command retreives from the device and displays in human
+readable form the command limit descriptors configured on the target device.
 
 ```
 $ cdladm show /dev/sdg
@@ -254,8 +249,8 @@ Device: /dev/sdg
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
-    Node name: washi1.fujisawa.hgst.com
-    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
+    Node name: xxx
+    Kernel: Linux 6.5.0-rc3+ #130 SMP PREEMPT_DYNAMIC Wed Jul 26 09:38:47 JST 2023
     Architecture: x86_64
     Command duration limits: supported, disabled
     Device sdg command timeout: 30 s
@@ -354,8 +349,8 @@ Device: /dev/sdg
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
-    Node name: washi1.fujisawa.hgst.com
-    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
+    Node name: xxx
+    Kernel: Linux 6.5.0-rc3+ #130 SMP PREEMPT_DYNAMIC Wed Jul 26 09:38:47 JST 2023
     Architecture: x86_64
     Command duration limits: supported, disabled
     Device sdg command timeout: 30 s
@@ -492,8 +487,8 @@ Device: /dev/sdg
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
-    Node name: washi1.fujisawa.hgst.com
-    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
+    Node name: xxx
+    Kernel: Linux 6.5.0-rc3+ #130 SMP PREEMPT_DYNAMIC Wed Jul 26 09:38:47 JST 2023
     Architecture: x86_64
     Command duration limits: supported, disabled
     Device sdg command timeout: 30 s
@@ -568,8 +563,8 @@ Device: /dev/sdg
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
-    Node name: washi1.fujisawa.hgst.com
-    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
+    Node name: xxx
+    Kernel: Linux 6.5.0-rc3+ #130 SMP PREEMPT_DYNAMIC Wed Jul 26 09:38:47 JST 2023
     Architecture: x86_64
     Command duration limits: supported, enabled
     Device sdg command timeout: 30 s
@@ -604,8 +599,8 @@ Device: /dev/sdg
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
-    Node name: washi1.fujisawa.hgst.com
-    Kernel: Linux 6.4.0-rc5+ #99 SMP PREEMPT_DYNAMIC Tue Jun  6 09:40:12 JST 2023
+    Node name: xxx
+    Kernel: Linux 6.5.0-rc3+ #130 SMP PREEMPT_DYNAMIC Wed Jul 26 09:38:47 JST 2023
     Architecture: x86_64
     Command duration limits: supported, disabled
     Device sdg command timeout: 30 s
@@ -729,38 +724,50 @@ The test cases can be listed using the option "--list".
 ```
 $ cd /usr/local/cdl-tests
 $ ./cdl-tests.sh --list
+Group 00: cdladm and sysfs tests
   Test 0001: cdladm (get device information)
   Test 0002: cdladm (unsupported devices)
-  Test 0100: cdladm (list CDL descriptors)
-  Test 0101: cdladm (show CDL descriptors)
-  Test 0102: cdladm (save CDL descriptors)
-  Test 0103: cdladm (upload CDL descriptors)
-  Test 0200: CDL sysfs (all attributes present)
-  Test 0201: CDL (enable/disable)
-  Test 0300: CDL dur. guideline (0x0 complete-earliest policy) reads
-  Test 0301: CDL dur. guideline (0x1 continue-next-limit policy) reads
-  Test 0302: CDL dur. guideline (0x2 continue-no-limit policy) reads
-  Test 0303: CDL dur. guideline (0xd complete-unavailable policy) reads
-  Test 0304: CDL dur. guideline (0xf abort policy) reads
-  Test 0310: CDL active time (0x0 complete-earliest policy) reads
-  Test 0311: CDL active time (0xd complete-unavailable policy) reads
-  Test 0312: CDL active time (0xe abort-recovery policy) reads
-  Test 0313: CDL active time (0xf abort policy) reads
-  Test 0320: CDL inactive time (0x0 complete-earliest policy) reads
-  Test 0321: CDL inactive time (0xd complete-unavailable policy) reads
-  Test 0322: CDL inactive time (0xf abort policy) reads
-  Test 0330: CDL active (0x0 policy) + inactive (0x0 policy) reads
-  Test 0331: CDL active (0xd policy) + inactive (0xd policy) reads
-  Test 0332: CDL active (0xd policy) + inactive (0xf policy) reads
-  Test 0333: CDL active (0xf policy) + inactive (0xd policy) reads
-  Test 0334: CDL active (0xf policy) + inactive (0xf policy) reads
-  Test 0340: CDL active (0x0 policy) + CDL inactive (0x0 policy) reads
-  Test 0341: CDL active (0xd policy) + CDL active (0xf policy) reads
-  Test 0342: CDL active (0xd policy) + CDL inactive (0xd policy) reads
-  Test 0343: CDL active (0xd policy) + CDL inactive (0xf policy) reads
-  Test 0344: CDL active (0xf policy) + CDL inactive (0xd policy) reads
-  Test 0345: CDL active (0xf policy) + CDL inactive (0xf policy) reads
-  Test 0346: CDL inactive (0xd policy) + CDL inactive (0xf policy) reads
+  Test 0010: cdladm (list CDL descriptors)
+  Test 0011: cdladm (show CDL descriptors)
+  Test 0012: cdladm (save CDL descriptors)
+  Test 0013: cdladm (upload CDL descriptors)
+  Test 0020: CDL sysfs (all attributes present)
+  Test 0021: CDL (enable/disable)
+Group 01: NCQ CDL reads single limit tests
+  Test 0100: CDL dur. guideline (0x0 complete-earliest policy) reads
+  Test 0101: CDL dur. guideline (0x1 continue-next-limit policy) reads
+  Test 0102: CDL dur. guideline (0x2 continue-no-limit policy) reads
+  Test 0103: CDL dur. guideline (0xd complete-unavailable policy) reads
+  Test 0104: CDL dur. guideline (0xf abort policy) reads
+  Test 0110: CDL active time (0x0 complete-earliest policy) reads
+  Test 0111: CDL active time (0xd complete-unavailable policy) reads
+  Test 0112: CDL active time (0xe abort-recovery policy) reads
+  Test 0113: CDL active time (0xf abort policy) reads
+  Test 0120: CDL inactive time (0x0 complete-earliest policy) reads
+  Test 0121: CDL inactive time (0xd complete-unavailable policy) reads
+  Test 0122: CDL inactive time (0xf abort policy) reads
+Group 02: NCQ CDL reads multiple limits tests
+  Test 0200: CDL active (0x0 policy) + inactive (0x0 policy) reads
+  Test 0201: CDL active (0xd policy) + inactive (0xd policy) reads
+  Test 0202: CDL active (0xd policy) + inactive (0xf policy) reads
+  Test 0203: CDL active (0xf policy) + inactive (0xd policy) reads
+  Test 0204: CDL active (0xf policy) + inactive (0xf policy) reads
+  Test 0210: CDL active (0x0 policy) + CDL inactive (0x0 policy) reads
+  Test 0211: CDL active (0xd policy) + CDL active (0xf policy) reads
+  Test 0212: CDL active (0xd policy) + CDL inactive (0xd policy) reads
+  Test 0213: CDL active (0xd policy) + CDL inactive (0xf policy) reads
+  Test 0214: CDL active (0xf policy) + CDL inactive (0xd policy) reads
+  Test 0215: CDL active (0xf policy) + CDL inactive (0xf policy) reads
+  Test 0216: CDL inactive (0xd policy) + CDL inactive (0xf policy) reads
+Group 03: NCQ CDL reads + no CDL writes tests
+  Test 0300: CDL active (0x0 policy) reads + no CDL writes
+  Test 0301: CDL active (0xd policy) reads + no CDL writes
+  Test 0302: CDL active (0xe policy) reads + no CDL writes
+  Test 0303: CDL active (0xf policy) reads + no CDL writes
+  Test 0310: CDL inactive (0x0 policy) reads + no CDL writes
+  Test 0311: CDL inactive (0xd policy) reads + no CDL writes
+  Test 0312: CDL inactive (0xf abort policy) reads + no CDL writes
+Group 04: NCQ CDL writes single limit tests
   Test 0400: CDL dur. guideline (0x0 complete-earliest policy) writes
   Test 0401: CDL dur. guideline (0x1 continue-next-limit policy) writes
   Test 0402: CDL dur. guideline (0x2 continue-no-limit policy) writes
@@ -773,6 +780,7 @@ $ ./cdl-tests.sh --list
   Test 0420: CDL inactive time (0x0 complete-earliest policy) writes
   Test 0421: CDL inactive time (0xd complete-unavailable policy) writes
   Test 0422: CDL inactive time (0xf abort policy) writes
+Group 05: Non-NCQ CDL reads tests
   Test 0500: CDL dur. guideline (0x0 complete-earliest policy) reads ncq=off
   Test 0501: CDL dur. guideline (0x1 continue-next-limit policy) reads ncq=off
   Test 0502: CDL dur. guideline (0x2 continue-no-limit policy) reads ncq=off
@@ -785,6 +793,7 @@ $ ./cdl-tests.sh --list
   Test 0520: CDL inactive time (0x0 complete-earliest policy) reads ncq=off
   Test 0521: CDL inactive time (0xd complete-unavailable policy) reads ncq=off
   Test 0522: CDL inactive time (0xf abort policy) reads ncq=off
+Group 06: Non-NCQ CDL writes tests
   Test 0600: CDL dur. guideline (0x0 complete-earliest policy) writes ncq=off
   Test 0601: CDL dur. guideline (0x1 continue-next-limit policy) writes ncq=off
   Test 0602: CDL dur. guideline (0x2 continue-no-limit policy) writes ncq=off
@@ -807,17 +816,21 @@ $ sudo ./cdl-tests.sh /dev/sdg
 Running CDL tests on cmr /dev/sdg:
     Product: xxx  xxxxxxxxxxx
     Revision: WXYZ
-    Using cdl-tools version 0.4.0
-    Force all tests: disabled, quick tests: disabled
+    Device adapter driver: ahci
+    Using cdl-tools version 0.5.0
+fio: 60s run time, stop on error disabled
+
+Group 00: cdladm and sysfs
   Test 0001:  cdladm (get device information)                                      ... PASS
   Test 0002:  cdladm (unsupported devices)                                         ... PASS
-  Test 0100:  cdladm (list CDL descriptors)                                        ... PASS
-  Test 0101:  cdladm (show CDL descriptors)                                        ... PASS
-  Test 0102:  cdladm (save CDL descriptors)                                        ... PASS
-  Test 0103:  cdladm (upload CDL descriptors)                                      ... PASS
-  Test 0200:  CDL sysfs (all attributes present)                                   ... PASS
-  Test 0201:  CDL (enable/disable)                                                 ... PASS
-  Test 0300:  CDL dur. guideline (0x0 complete-earliest policy) reads              ...
+  Test 0010:  cdladm (list CDL descriptors)                                        ... PASS
+  Test 0011:  cdladm (show CDL descriptors)                                        ... PASS
+  Test 0012:  cdladm (save CDL descriptors)                                        ... PASS
+  Test 0013:  cdladm (upload CDL descriptors)                                      ... PASS
+  Test 0020:  CDL sysfs (all attributes present)                                   ... PASS
+  Test 0021:  CDL (enable/disable)                                                 ... PASS
+Group 01: NCQ CDL reads single limit
+  Test 0100:  CDL dur. guideline (0x0 complete-earliest policy) reads              ... PASS
   ...
 ```
 
