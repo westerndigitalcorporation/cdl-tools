@@ -100,6 +100,7 @@ struct cdl_page {
 #define CDL_SHOW_COUNT			(1 << 11)
 #define CDL_USE_ATA			(1 << 12)
 #define CDL_FORCE_DEV			(1 << 13)
+#define CDL_STATISTICS_SUPPORTED	(1 << 14)
 
 #define CDL_VENDOR_LEN	9
 #define CDL_ID_LEN	17

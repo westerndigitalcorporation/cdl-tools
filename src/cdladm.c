@@ -704,6 +704,9 @@ err_cmd_line:
 	printf("    High priority enhancement: %ssupported, %s\n",
 	       dev.flags & CDL_HIGHPRI_DEV_SUPPORTED ? "" : "not ",
 	       dev.flags & CDL_HIGHPRI_DEV_ENABLED ? "enabled" : "disabled");
+	printf("    Statistics: %ssupported\n",
+	       dev.flags & CDL_STATISTICS_SUPPORTED ? "" : "not ");
+
 
 	printf("    Duration minimum limit: %llu ns\n", dev.min_limit);
 	if (!dev.max_limit)

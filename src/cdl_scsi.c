@@ -17,6 +17,10 @@
 
 #define CDL_SCSI_VPD_PAGE_00_LEN	32
 #define CDL_SCSI_VPD_PAGE_89_LEN	0x238
+#define CDL_SCSI_STATISTICS_LOG_LEN	2048
+
+#define CDL_SCSI_ILLEGAL_REQUEST	0x05
+#define CDL_SCSI_INVALID_FIELD_IN_CDB	0x2400
 
 /*
  * Fill the buffer with the result of a VPD page INQUIRY command.
@@ -75,6 +79,60 @@ static bool cdl_scsi_vpd_page_supported(struct cdl_dev *dev, uint8_t page)
 	}
 
 	return false;
+}
+
+/*
+ * Fill the buffer with the specified log page. Return 0 if the log page
+ * is not supported.
+ */
+static int cdl_scsi_log_sense(struct cdl_dev *dev, uint8_t page,
+			      uint8_t sub_page, void *buf, uint16_t buf_len)
+{
+	struct cdl_sg_cmd cmd;
+	int ret;
+
+	/* Get the requested log page*/
+	cdl_init_cmd(&cmd, 10, SG_DXFER_FROM_DEV, buf_len);
+	cmd.cdb[0] = 0x4D;
+	cmd.cdb[2] = page & 0x1F;
+	cmd.cdb[3] = sub_page;
+	cdl_sg_set_be16(&cmd.cdb[7], buf_len);
+
+	/* Execute the SG_IO command */
+	ret = cdl_exec_cmd(dev, &cmd);
+	if (ret) {
+		if (cmd.sense_key == CDL_SCSI_ILLEGAL_REQUEST &&
+		    cmd.asc_ascq == CDL_SCSI_INVALID_FIELD_IN_CDB) {
+			/* Not supported */
+			return 0;
+		}
+		cdl_dev_err(dev, "Log sense page 0x%02x/0x%02x failed\n",
+			    page, sub_page);
+		return -EIO;
+	}
+
+	memcpy(buf, cmd.buf, buf_len);
+
+	return buf_len;
+}
+
+/*
+ * Test if a device supports CDL statistics.
+ */
+static int cdl_scsi_get_statistics_supported(struct cdl_dev *dev)
+{
+	uint8_t buf[CDL_SCSI_STATISTICS_LOG_LEN];
+	int ret;
+
+	ret = cdl_scsi_log_sense(dev, 0x19, 0x21,
+				 buf, CDL_SCSI_STATISTICS_LOG_LEN);
+	if (ret < 0)
+		return ret;
+
+	if (ret > 0)
+		dev->flags |= CDL_STATISTICS_SUPPORTED;
+
+	return 0;
 }
 
 /*
@@ -224,6 +282,11 @@ int cdl_scsi_init(struct cdl_dev *dev)
 		dev->min_limit = 500;
 		dev->max_limit = 65535ULL * 500000000ULL;
 	}
+
+	/* Check if CDL statistics is supported */
+	ret = cdl_scsi_get_statistics_supported(dev);
+	if (ret)
+		return ret;
 
 	/*
 	 * There is no device level CDL feature enable/disable control.

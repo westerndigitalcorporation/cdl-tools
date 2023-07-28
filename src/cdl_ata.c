@@ -142,7 +142,27 @@ static int cdl_ata_write_log(struct cdl_dev *dev, uint8_t log,
 }
 
 /*
- * Write a log page.
+ * Return the number of pages for @log, if it is supported, 0, if @log
+ * is not supported, and a negative error code in case of error.
+ */
+int cdl_ata_log_nr_pages(struct cdl_dev *dev, uint8_t log)
+{
+	struct cdl_sg_cmd cmd;
+	int ret;
+
+	/* Read general purpose log directory */
+	ret = cdl_ata_read_log(dev, 0x00, 0x00, &cmd, 512);
+	if (ret) {
+		cdl_dev_err(dev,
+			    "Read general purpose log directory failed\n");
+		return ret;
+	}
+
+	return cdl_sg_get_le16(&cmd.buf[log * 2]);
+}
+
+/*
+ * Issue a SET FEATURES comamnd.
  */
 static int cdl_ata_set_features(struct cdl_dev *dev, uint8_t feature,
 				uint16_t val)
@@ -235,6 +255,39 @@ int cdl_ata_get_limits(struct cdl_dev *dev, struct cdl_sg_cmd *cmd)
 	return 0;
 }
 
+int cdl_ata_get_statistics_supported(struct cdl_dev *dev)
+{
+	struct cdl_sg_cmd cmd;
+	int i, ret;
+
+	/* Check if device statistics log is supported */
+	ret = cdl_ata_log_nr_pages(dev, 0x04);
+	if (ret < 0) {
+		cdl_dev_err(dev,
+			    "Check for device statistics log page failed\n");
+		return ret;
+	}
+	if (!ret)
+		return 0;
+
+	/* Get list of supported statistics */
+	ret = cdl_ata_read_log(dev, 0x04, 0x00, &cmd, 512);
+	if (ret) {
+		cdl_dev_err(dev,
+			    "Read supported statistics log page failed\n");
+		return ret;
+	}
+
+	for (i = 0; i < cmd.buf[8]; i++) {
+		if (cmd.buf[i + 9] == 0x09) {
+			dev->flags |= CDL_STATISTICS_SUPPORTED;
+			return 0;
+		}
+	}
+
+	return 0;
+}
+
 /*
  * Initialize handling of ATA device.
  */
@@ -273,6 +326,11 @@ int cdl_ata_init(struct cdl_dev *dev)
 
 	/* Get the minimum and maximum limits */
 	ret = cdl_ata_get_limits(dev, &cmd);
+	if (ret)
+		return ret;
+
+	/* Check if CDL statistics is supported */
+	ret = cdl_ata_get_statistics_supported(dev);
 	if (ret)
 		return ret;
 
