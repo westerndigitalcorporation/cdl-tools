@@ -35,7 +35,8 @@ static void cdladm_usage(void)
 	       "  enable          : Enable command duration limits\n"
 	       "  disable         : Disable command duration limits\n"
 	       "  enable-highpri  : Enable high priority enhancement\n"
-	       "  disable-highpri : Disable high priority enhancement\n");
+	       "  disable-highpri : Disable high priority enhancement\n"
+	       "  stats-show      : Display CDL statistics configuration and values\n");
 	printf("Command options:\n");
 	printf("  --count\n"
 	       "\tApply to the show command.\n"
@@ -282,6 +283,31 @@ static int cdladm_upload(struct cdl_dev *dev, char *path)
 	return 0;
 }
 
+static int cdladm_stats_show(struct cdl_dev *dev)
+{
+	int i, ret;
+
+	if (!(dev->flags & CDL_STATISTICS_SUPPORTED)) {
+		fprintf(stderr, "CDL statistics is not supported\n");
+		return 1;
+	}
+
+	for (i = 0; i < CDL_MAX_PAGES; i++) {
+		if (!cdl_page_supported(dev, i))
+			continue;
+
+		printf("Page %s: %s descriptors\n",
+		       cdl_page_name(i),
+		       dev->cdl_pages[i].rw == CDL_READ ? "read" : "write");
+
+		ret = cdl_statistics_show(dev, i);
+		if (ret)
+			return 1;
+	}
+
+	return 0;
+}
+
 static void cdladm_get_kernel_support(struct cdl_dev *dev)
 {
 	bool supported, enabled = false;
@@ -475,6 +501,7 @@ enum cdladm_cmd_code {
 	CDLADM_DISABLE,
 	CDLADM_ENABLE_HIGHPRI,
 	CDLADM_DISABLE_HIGHPRI,
+	CDLADM_STATS_SHOW,
 
 	CDLADM_CMD_MAX,
 };
@@ -499,6 +526,7 @@ static struct {
 	{ "disable",		CDLADM_DISABLE,		O_RDWR   },
 	{ "enable-highpri",	CDLADM_ENABLE_HIGHPRI,	O_RDWR   },
 	{ "disable-highpri",	CDLADM_DISABLE_HIGHPRI,	O_RDWR   },
+	{ "stats-show",		CDLADM_STATS_SHOW,	O_RDWR   },
 	{ NULL,			CDLADM_CMD_MAX,		0        }
 };
 
@@ -769,6 +797,9 @@ err_cmd_line:
 		break;
 	case CDLADM_DISABLE_HIGHPRI:
 		ret = cdladm_disable_highpri(&dev);
+		break;
+	case CDLADM_STATS_SHOW:
+		ret = cdladm_stats_show(&dev);
 		break;
 	case CDLADM_NONE:
 	default:

@@ -491,3 +491,12 @@ void cdl_scsi_revalidate(struct cdl_dev *dev)
 	if (ret)
 		cdl_dev_err(dev, "Revalidate device failed\n");
 }
+
+int cdl_scsi_statistics_show(struct cdl_dev *dev, int cdlp)
+{
+	cdl_dev_err(dev,
+		    "CDL statistics for SCSI devices is not yet supported\n");
+
+	return -ENOTSUP;
+}
+

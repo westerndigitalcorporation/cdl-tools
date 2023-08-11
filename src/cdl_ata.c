@@ -427,6 +427,15 @@ int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		 * descriptor, so do the same here.
 		 */
 		desc->cdltunit = 0x0a; /* 10ms */
+
+		/* Save the satistics configuration (selectors) */
+		if (cdlp == CDLP_T2A) {
+			dev->cdl_stats.ata.reads_a[i].selector = buf[12];
+			dev->cdl_stats.ata.reads_b[i].selector = buf[13];
+		} else {
+			dev->cdl_stats.ata.writes_a[i].selector = buf[12];
+			dev->cdl_stats.ata.writes_b[i].selector = buf[13];
+		}
 	}
 
 	return 0;
@@ -615,6 +624,162 @@ int cdl_ata_enable(struct cdl_dev *dev, bool enable, bool highpri)
 	} else {
 		dev->flags &= ~CDL_DEV_ENABLED;
 		dev->flags &= ~CDL_HIGHPRI_DEV_ENABLED;
+	}
+
+	return 0;
+}
+
+static void cdl_ata_get_stats_desc_vals(struct cdl_ata_stats_desc *desc,
+					uint8_t *buf)
+{
+	uint64_t qword = cdl_sg_get_le64(buf);
+
+	/* Flags may not be valid */
+	if (qword & (1ULL << 63))
+		desc->flags = qword >> 56;
+	else
+		desc->flags = 0;
+	desc->val = qword & 0xFFFFFFFF;
+}
+
+/*
+ * Get a device CDL statistics.
+ */
+static int cdl_ata_get_stats(struct cdl_dev *dev)
+{
+	struct cdl_sg_cmd cmd;
+	int i, ofst, ret;
+	uint64_t qword;
+
+	/* Check CDL current settings */
+	ret = cdl_ata_read_log(dev, 0x04, 0x09, &cmd, 512);
+	if (ret) {
+		cdl_dev_err(dev,
+			    "Read CDL statistics log page failed\n");
+		return ret;
+	}
+
+	/* Check the page */
+	qword = cdl_sg_get_le64(&cmd.buf[0]);
+	if (((qword >> 16) & 0xFF) != 0x09) {
+		cdl_dev_err(dev,
+			    "Invlaid CDL statistics log page number\n");
+		return ret;
+	}
+	if ((qword & 0xFFFF) != 0x01) {
+		cdl_dev_err(dev,
+			    "Invlaid CDL statistics log page revision\n");
+		return ret;
+	}
+
+	/* Stats A for reads */
+	ofst = 16;
+	for (i = 0; i < CDL_MAX_DESC; i++, ofst += 8)
+		cdl_ata_get_stats_desc_vals(&dev->cdl_stats.ata.reads_a[i],
+					    &cmd.buf[ofst]);
+
+	/* Stats A for writes */
+	for (i = 0; i < CDL_MAX_DESC; i++, ofst += 8)
+		cdl_ata_get_stats_desc_vals(&dev->cdl_stats.ata.writes_a[i],
+					    &cmd.buf[ofst]);
+
+	/* Stats B for reads */
+	for (i = 0; i < CDL_MAX_DESC; i++, ofst += 8)
+		cdl_ata_get_stats_desc_vals(&dev->cdl_stats.ata.reads_b[i],
+					    &cmd.buf[ofst]);
+
+	/* Stats B for writes */
+	for (i = 0; i < CDL_MAX_DESC; i++, ofst += 8)
+		cdl_ata_get_stats_desc_vals(&dev->cdl_stats.ata.writes_b[i],
+					    &cmd.buf[ofst]);
+
+	return 0;
+}
+
+/*
+ * Accessors for statistics flags. Note that the flags are shifted by
+ * 56 bits from the original qword of the log page.
+ */
+#define cdl_ata_stat_supported(sdesc)	((sdesc)->flags & 0x7)
+#define cdl_ata_stat_valid(sdesc)	((sdesc)->flags & 0x6)
+#define cdl_ata_stat_normalized(sdesc)	((sdesc)->flags & 0x5)
+#define cdl_ata_stat_dsn(sdesc)		((sdesc)->flags & 0x4)
+#define cdl_ata_stat_cond_met(sdesc)	((sdesc)->flags & 0x3)
+#define cdl_ata_stat_init_sup(sdesc)	((sdesc)->flags & 0x2)
+
+static const char *stat_val_type[] =
+{
+	/* 0h */ "Disabled",
+	/* 1h */ "Inactive time limit met",
+	/* 2h */ "Active time limit met",
+	/* 3h */ "Inactive and active time limit met",
+	/* 4h */ "Number of commands"
+		 "Unknown statistic type"
+};
+
+static const char *cdl_ata_stat_val_type(struct cdl_ata_stats_desc *sdesc)
+{
+	if (sdesc->selector >= 0x1 && sdesc->selector <= 0x4)
+		return stat_val_type[sdesc->selector];
+	return stat_val_type[5];
+}
+
+static void cdl_ata_stat_desc_show(struct cdl_ata_stats_desc *sdesc,
+				   const char *ab)
+{
+	printf("    Statistic %s: ", ab);
+	fflush(stdout);
+
+	if (!sdesc->selector) {
+		printf("Disabled\n");
+		return;
+	}
+
+	if (!cdl_ata_stat_supported(sdesc)) {
+		printf("Not supported\n");
+		return;
+	}
+
+	if (!cdl_ata_stat_valid(sdesc)) {
+		printf("Not valid\n");
+		return;
+	}
+
+	printf("      Value type: %s\n",
+	       cdl_ata_stat_val_type(sdesc));
+	printf("      Value: %u\n",
+	       sdesc->val);
+}
+
+int cdl_ata_statistics_show(struct cdl_dev *dev, int cdlp)
+{
+	struct cdl_page page = {};
+	struct cdl_ata_stats_desc *sdesc_a, *sdesc_b;
+	int ret, i;
+
+	/* Get the statistics configuration */
+	ret = cdl_ata_read_page(dev, cdlp, &page);
+	if (ret)
+		return ret;
+
+	/* Get the statistics values */
+	ret = cdl_ata_get_stats(dev);
+	if (ret)
+		return ret;
+
+	for (i = 0; i < CDL_MAX_DESC; i++) {
+		printf("  Descriptor %d:\n", i + 1);
+
+		if (cdlp == CDLP_T2A) {
+			sdesc_a = &dev->cdl_stats.ata.reads_a[i];
+			sdesc_b = &dev->cdl_stats.ata.reads_b[i];
+		} else {
+			sdesc_a = &dev->cdl_stats.ata.writes_a[i];
+			sdesc_b = &dev->cdl_stats.ata.writes_b[i];
+		}
+
+		cdl_ata_stat_desc_show(sdesc_a, "A");
+		cdl_ata_stat_desc_show(sdesc_b, "B");
 	}
 
 	return 0;

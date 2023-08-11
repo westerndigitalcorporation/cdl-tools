@@ -926,6 +926,18 @@ int cdl_check_enabled(struct cdl_dev *dev, bool enabled)
 }
 
 /*
+ * Display the current CDL statistics, if supported.
+ */
+int cdl_statistics_show(struct cdl_dev *dev, int cdlp)
+{
+	/* For ATA devices, always use ATA */
+	if (cdl_dev_is_ata(dev))
+		return cdl_ata_statistics_show(dev, cdlp);
+
+	return cdl_scsi_statistics_show(dev, cdlp);
+}
+
+/*
  * Test if a sysfs attribute file exists.
  */
 bool cdl_sysfs_exists(struct cdl_dev *dev, const char *format, ...)
