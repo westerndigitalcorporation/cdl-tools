@@ -7,11 +7,12 @@ set key on left
 set border 3
 set grid
 
-set title "Baseline I/O Latency Average"
+set title "Baseline I/O Latency 99th Percentile"
 
 set xlabel "I/O Queue Depth"
 set xtics 8
 set ylabel "Latency (ms)"
 set yrange [0:]
+set ytics 50
 
-plot filename using 1:8 with lp title "Average latency" lc rgb"blue"
+plot filename using 1:22 with lp title "Latency 99th percentile" lc rgb"blue"

@@ -1,0 +1,104 @@
+# T2A page format:
+# perf-vs-duration-guideline can be one of:
+#   - 0%    : 0x0
+#   - 0.5%  : 0x1
+#   - 1.0%  : 0x2
+#   - 1.5%  : 0x3
+#   - 2.0%  : 0x4
+#   - 2.5%  : 0x5
+#   - 3%    : 0x6
+#   - 4%    : 0x7
+#   - 5%    : 0x8
+#   - 8%    : 0x9
+#   - 10%   : 0xa
+#   - 15%   : 0xb
+#   - 20%   : 0xc
+# t2cdlunits can be one of:
+#   - none   : 0x0
+#   - 500ns  : 0x6
+#   - 1us    : 0x8
+#   - 10ms   : 0xa
+#   - 500ms  : 0xe
+# max-inactive-time-policy can be one of:
+#   - complete-earliest    : 0x0
+#   - complete-unavailable : 0xd
+#   - abort                : 0xf
+# max-active-time-policy can be one of:
+#   - complete-earliest    : 0x0
+#   - complete-unavailable : 0xd
+#   - abort-recovery       : 0xe
+#   - abort                : 0xf
+# duration-guideline-policy can be one of:
+#   - complete-earliest    : 0x0
+#   - continue-next-limit  : 0x1
+#   - continue-no-limit    : 0x2
+#   - complete-unavailable : 0xd
+#   - abort                : 0xf
+
+cdlp: T2A
+
+perf-vs-duration-guideline: 0xc
+
+== descriptor: 1
+t2cdlunits: 0xa
+max-inactive-time: 0
+max-inactive-time-policy: 0x0
+max-active-time: 0
+max-active-time-policy: 0x0
+duration-guideline: 5
+duration-guideline-policy: 0x0
+
+== descriptor: 2
+t2cdlunits: 0xa
+max-inactive-time: 0
+max-inactive-time-policy: 0x0
+max-active-time: 0
+max-active-time-policy: 0x0
+duration-guideline: 10
+duration-guideline-policy: 0x0
+
+== descriptor: 3
+t2cdlunits: 0xa
+max-inactive-time: 0
+max-inactive-time-policy: 0x0
+max-active-time: 0
+max-active-time-policy: 0x0
+duration-guideline: 20
+duration-guideline-policy: 0x0
+
+== descriptor: 4
+t2cdlunits: 0xa
+max-inactive-time: 0
+max-inactive-time-policy: 0x0
+max-active-time: 0
+max-active-time-policy: 0x0
+duration-guideline: 30
+duration-guideline-policy: 0x0
+
+== descriptor: 5
+t2cdlunits: 0xa
+max-inactive-time: 0
+max-inactive-time-policy: 0x0
+max-active-time: 0
+max-active-time-policy: 0x0
+duration-guideline: 40
+duration-guideline-policy: 0x0
+
+== descriptor: 6
+t2cdlunits: 0xa
+max-inactive-time: 0
+max-inactive-time-policy: 0x0
+max-active-time: 0
+max-active-time-policy: 0x0
+duration-guideline: 50
+duration-guideline-policy: 0x0
+
+== descriptor: 7
+t2cdlunits: 0xa
+max-inactive-time: 0
+max-inactive-time-policy: 0x0
+max-active-time: 0
+max-active-time-policy: 0x0
+duration-guideline: 0
+duration-guideline-policy: 0x0
+

@@ -3,7 +3,7 @@
 basedir="$(cd "$(dirname "$0")" && pwd)"
 scriptdir="${basedir}/scripts"
 
-. "${scriptdir}/cdl_lib.sh"
+. "${scriptdir}/bench_lib.sh"
 
 cmd="$(basename $0)"
 
@@ -26,8 +26,8 @@ function usage()
 	echo "  --head <str>   : Add <str> as the first field of the terse output"
 	echo "  --save-priolat : Save to different files the sorted latencies of I/Os"
 	echo "                   with the same priority. The files are name"
-	echo "                   priolat.<class name>.<level>.log, with class name"
-	echo "                   being NONE, RT, BE, IDLE or CDL"
+	echo "                   priolat.<class name>.<level>.<hint>.log, with class name"
+	echo "                   being NONE, RT, BE or IDLE"
 }
 
 # Pares the command line
@@ -79,7 +79,8 @@ function get_prio_stats()
 
 	class=$(get_prio_class_name ${prio})
 	level=$(get_prio_level ${prio})
-	echo "Priority ${prio}, class ${class}, level ${level} (${perc} %):"
+	hint=$(get_prio_hint ${prio})
+	echo "Priority ${prio}, class ${class}, level ${level}, hint ${hint} (${perc} %):"
 
 	runtime=$(get_runtime "${fiolatlog}")
 	iops=$(get_prio_iops "${priolat}" "${runtime}")
@@ -116,6 +117,7 @@ function get_prio_stats_terse()
 
 	class=$(get_prio_class_name ${prio})
 	level=$(get_prio_level ${prio})
+	hint=$(get_prio_hint ${prio})
 
 	runtime=$(get_runtime "${fiolatlog}")
 	iops=$(get_prio_iops "${priolat}" "${runtime}")
@@ -129,7 +131,7 @@ function get_prio_stats_terse()
 	if [ "${tersehead}" != "" ]; then
 		echo -n "${tersehead},"
 	fi
-	echo -n "${class},${level},${iops},${bw},${lat_min},${lat_max},${lat_avg}"
+	echo -n "${class},${level},${hint},${iops},${bw},${lat_min},${lat_max},${lat_avg}"
 
 	for i in "${!percentiles[@]}"; do
 		p[$i]=$(get_lat_percentile "${priolat}" "${percentiles[$i]}")
@@ -157,12 +159,13 @@ for prio in ${prios[*]}; do
 	else
 		get_prio_stats "${priolat}" "${prio}"
 	fi
-	
+
 	if [ ${savepriolat} -eq 1 ]; then
 		class=$(get_prio_class_name ${prio})
 		level=$(get_prio_level ${prio})
+		hint=$(get_prio_hint ${prio})
 		dir="$(cd "$(dirname "${fiolatlog}")" && pwd)"
-		mv "${priolat}" "${dir}/priolat.${class}.${level}.log"
+		mv "${priolat}" "${dir}/priolat.${class}.${level}.${hint}.log"
 	else
 		rm -f "${priolat}"
 	fi

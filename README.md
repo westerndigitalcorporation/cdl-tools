@@ -797,6 +797,13 @@ priority, we can see that I/Os using descriptor 2 all complete within 109ms, I/O
 using descriptor 3 all complete within 300ms, while the remaining 70% of I/Os
 with no limit may see completion times up to 363ms.
 
+### CDL Benchmark Scripts
+
+The *benchmark* directory contains a set of shell scripts allowing to easily run
+various CDL workloads to evaluate a device. See the [README
+file](benchmark/README.md) in the *benchmark* directory for more information on
+how to use the scripts.
+
 ## Testing a system Command Duration Limits Support
 
 The *cdl-tools* project includes a test suite to exercise a device supporting

@@ -15,4 +15,4 @@ set ylabel "IOPS"
 set yrange [0:]
 set ytics 10
 
-plot filename using 1:4 with lp title "IOPS" lc rgb"blue"
+plot filename using 1:5 with lp title "IOPS" lc rgb"blue"

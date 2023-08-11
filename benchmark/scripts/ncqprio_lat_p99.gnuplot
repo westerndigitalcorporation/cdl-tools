@@ -13,6 +13,8 @@ set xlabel "I/O Queue Depth"
 set xtics 8
 set ylabel "Latency (ms)"
 set yrange [0:]
+set ytics 50
 
-plot filename index 1 using 1:21 with lp title columnheader(1) lc rgb"red" dt "_.", \
-     filename index 2 using 1:21 with lp title columnheader(1) lc rgb"red"
+plot baseline using 1:22 with lp title "Baseline" lc rgb"blue", \
+     filename index 1 using 1:22 with lp title columnheader(1) lc rgb"red" dt "_.", \
+     filename index 2 using 1:22 with lp title columnheader(1) lc rgb"red"
