@@ -83,6 +83,18 @@ Enable command duration limits.
 \fBdisable\fR
 Disable command duration limits.
 
+.TP
+\fBenable-highpri\fR
+Enable the high priority enhancement feature. This applies only to ATA devices
+supporting this feature, as reported using the \fBinfo\fR command. CDL must be
+disabled before executing this command. Enabling CDL with the \fBenable\fR
+command will disable the high priority enhancement feature.
+
+.TP
+\fBdisable-highpri\fR
+Disable the high priority enhancement feature. This applies only to ATA devices 
+supporting this feature, as reported using the \fBinfo\fR command.
+
 .SH OPTIONS
 
 .TP

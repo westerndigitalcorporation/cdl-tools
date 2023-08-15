@@ -26,14 +26,16 @@ static void cdladm_usage(void)
 	       "  --verbose | -v       : Verbose output\n"
 	       "  --force-ata | -a     : Force the use of ATA passthrough commands\n");
 	printf("Commands:\n"
-	       "  info    : Show device and system support information\n"
-	       "  list    : List supported pages\n"
-	       "  show    : Display one or all supported pages\n"
-	       "  clear   : Clear one or all supported pages\n"
-	       "  save    : Save one or all pages to a file\n"
-	       "  upload  : Upload a page to the device\n"
-	       "  enable  : Enable command duration limits\n"
-	       "  disable : Disable command duration limits\n");
+	       "  info            : Show device and system support information\n"
+	       "  list            : List supported pages\n"
+	       "  show            : Display one or all supported pages\n"
+	       "  clear           : Clear one or all supported pages\n"
+	       "  save            : Save one or all pages to a file\n"
+	       "  upload          : Upload a page to the device\n"
+	       "  enable          : Enable command duration limits\n"
+	       "  disable         : Disable command duration limits\n"
+	       "  enable-highpri  : Enable high priority enhancement\n"
+	       "  disable-highpri : Disable high priority enhancement\n");
 	printf("Command options:\n");
 	printf("  --count\n"
 	       "\tApply to the show command.\n"
@@ -403,6 +405,61 @@ static int cdladm_disable(struct cdl_dev *dev)
 	return 0;
 }
 
+static int cdladm_enable_highpri(struct cdl_dev *dev)
+{
+	int ret;
+
+	if (!(dev->flags & CDL_HIGHPRI_DEV_SUPPORTED)) {
+		fprintf(stderr,
+			"Device does not support high priority enhancement\n");
+		return 1;
+	}
+
+	ret = cdl_ata_enable(dev, true, true);
+	if (ret)
+		return 1;
+
+	cdl_check_enabled(dev, true);
+
+	if (dev->flags & CDL_HIGHPRI_DEV_ENABLED) {
+		printf("High priority enhancement is enabled\n");
+		if (dev->flags & CDL_DEV_ENABLED)
+			printf("WARNING: Command duration limits and high "
+			       "priority enhancement are both enabled on "
+			       " the device\n");
+	} else {
+		printf("WARNING: high priority enhancement is disabled "
+		       "on the device\n");
+	}
+
+	return 0;
+}
+
+static int cdladm_disable_highpri(struct cdl_dev *dev)
+{
+	int ret;
+
+	if (!(dev->flags & CDL_HIGHPRI_DEV_SUPPORTED)) {
+		fprintf(stderr,
+			"Device does not support high priority enhancement\n");
+		return 1;
+	}
+
+	ret = cdl_ata_enable(dev, false, true);
+	if (ret)
+		return 1;
+
+	cdl_check_enabled(dev, false);
+
+	if (dev->flags & CDL_HIGHPRI_DEV_ENABLED)
+		printf("WARNING: Command duration limits is still enabled "
+		       "on the device\n");
+	else
+		printf("High priority enhancement is disabled\n");
+
+	return 0;
+}
+
 /*
  * Possible command codes.
  */
@@ -416,6 +473,8 @@ enum cdladm_cmd_code {
 	CDLADM_UPLOAD,
 	CDLADM_ENABLE,
 	CDLADM_DISABLE,
+	CDLADM_ENABLE_HIGHPRI,
+	CDLADM_DISABLE_HIGHPRI,
 
 	CDLADM_CMD_MAX,
 };
@@ -429,16 +488,18 @@ static struct {
 	mode_t mode;
 } cdladm_cmd[CDLADM_CMD_MAX + 1] =
 {
-	{ "",		CDLADM_NONE,	0 },
-	{ "info",	CDLADM_INFO,	O_RDONLY },
-	{ "list",	CDLADM_LIST,	O_RDONLY },
-	{ "show",	CDLADM_SHOW,	O_RDONLY },
-	{ "clear",	CDLADM_CLEAR,	O_RDWR	 },
-	{ "save",	CDLADM_SAVE,	O_RDONLY },
-	{ "upload",	CDLADM_UPLOAD,	O_RDWR	 },
-	{ "enable",	CDLADM_ENABLE,	O_RDWR   },
-	{ "disable",	CDLADM_DISABLE,	O_RDWR   },
-	{ NULL, 	CDLADM_CMD_MAX,	0        }
+	{ "",			CDLADM_NONE,		0	 },
+	{ "info",		CDLADM_INFO,		O_RDONLY },
+	{ "list",		CDLADM_LIST,		O_RDONLY },
+	{ "show",		CDLADM_SHOW,		O_RDONLY },
+	{ "clear",		CDLADM_CLEAR,		O_RDWR	 },
+	{ "save",		CDLADM_SAVE,		O_RDONLY },
+	{ "upload",		CDLADM_UPLOAD,		O_RDWR	 },
+	{ "enable",		CDLADM_ENABLE,		O_RDWR   },
+	{ "disable",		CDLADM_DISABLE,		O_RDWR   },
+	{ "enable-highpri",	CDLADM_ENABLE_HIGHPRI,	O_RDWR   },
+	{ "disable-highpri",	CDLADM_DISABLE_HIGHPRI,	O_RDWR   },
+	{ NULL,			CDLADM_CMD_MAX,		0        }
 };
 
 static int cdladm_get_command(char *opt)
@@ -699,6 +760,12 @@ err_cmd_line:
 		break;
 	case CDLADM_ENABLE:
 	case CDLADM_DISABLE:
+		break;
+	case CDLADM_ENABLE_HIGHPRI:
+		ret = cdladm_enable_highpri(&dev);
+		break;
+	case CDLADM_DISABLE_HIGHPRI:
+		ret = cdladm_disable_highpri(&dev);
 		break;
 	case CDLADM_NONE:
 	default:
