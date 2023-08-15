@@ -19,9 +19,9 @@
 /*
  * Read a log page.
  */
-int cdl_ata_read_log(struct cdl_dev *dev, uint8_t log,
-		     uint16_t page, struct cdl_sg_cmd *cmd,
-		     size_t bufsz)
+static int cdl_ata_read_log(struct cdl_dev *dev, uint8_t log,
+			    uint16_t page, struct cdl_sg_cmd *cmd,
+			    size_t bufsz)
 {
 	/*
 	 * READ LOG DMA EXT in ATA 16 passthrough command.
@@ -80,8 +80,8 @@ int cdl_ata_read_log(struct cdl_dev *dev, uint8_t log,
 /*
  * Write a log page.
  */
-int cdl_ata_write_log(struct cdl_dev *dev, uint8_t log,
-		      uint16_t page, uint8_t *buf, size_t bufsz)
+static int cdl_ata_write_log(struct cdl_dev *dev, uint8_t log,
+			     uint16_t page, uint8_t *buf, size_t bufsz)
 {
 	struct cdl_sg_cmd cmd;
 

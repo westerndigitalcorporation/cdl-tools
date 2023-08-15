@@ -209,8 +209,6 @@ int cdl_sysfs_set_attr(struct cdl_dev *dev, const char *val,
 
 /* In cdl_ata.c */
 int cdl_ata_init(struct cdl_dev *dev);
-int cdl_ata_read_log(struct cdl_dev *dev, uint8_t log,
-		     uint16_t page, struct cdl_sg_cmd *cmd, size_t bufsz);
 int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		      struct cdl_page *page);
 int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page);
