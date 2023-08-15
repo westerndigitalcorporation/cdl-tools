@@ -64,7 +64,8 @@ static int cdladm_list(struct cdl_dev *dev)
 {
 	int i, j, n;
 
-	cdl_dev_info(dev, "Supported pages:\n");
+	printf("Supported pages:\n");
+
 	for (i = 0; i < CDL_MAX_PAGES; i++) {
 		if (!cdl_page_supported(dev, i))
 			continue;
