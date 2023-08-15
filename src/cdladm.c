@@ -334,6 +334,12 @@ static int cdladm_enable(struct cdl_dev *dev)
 		printf("WARNING: Command duration limits is disabled "
 		       "on the device\n");
 
+	if ((dev->flags & CDL_DEV_ENABLED) &&
+	    (dev->flags & CDL_HIGHPRI_DEV_ENABLED))
+		printf("WARNING: Command duration limits and high "
+		       "priority enhancement are both enabled on "
+		       " the device\n");
+
 	return 0;
 }
 
@@ -650,6 +656,11 @@ int main(int argc, char **argv)
 		    !(dev.flags & CDL_SYS_ENABLED))
 			printf("WARNING: Command duration limits is disabled "
 			       "on the system but enabled on the device\n");
+		if ((dev.flags & CDL_DEV_ENABLED) &&
+		    (dev.flags & CDL_HIGHPRI_DEV_ENABLED))
+			printf("WARNING: Command duration limits and high "
+			       "priority enhancement are both enabled on "
+			       " the device\n");
 	}
 
 	if (command == CDLADM_INFO) {

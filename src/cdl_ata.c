@@ -451,6 +451,10 @@ int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled)
 		dev->flags |= CDL_DEV_ENABLED;
 	else
 		dev->flags &= ~CDL_DEV_ENABLED;
+	if (qword & (1ULL << 22))
+		dev->flags |= CDL_HIGHPRI_DEV_ENABLED;
+	else
+		dev->flags &= ~CDL_HIGHPRI_DEV_ENABLED;
 
 	return 0;
 }

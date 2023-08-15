@@ -408,6 +408,7 @@ int cdl_scsi_check_enabled(struct cdl_dev *dev, bool enabled)
 		dev->flags |= CDL_DEV_ENABLED;
 	else
 		dev->flags &= ~CDL_DEV_ENABLED;
+	dev->flags &= ~CDL_HIGHPRI_DEV_ENABLED;
 
 	return 0;
 }
