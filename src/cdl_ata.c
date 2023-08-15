@@ -141,6 +141,66 @@ static int cdl_ata_write_log(struct cdl_dev *dev, uint8_t log,
 	return cdl_exec_cmd(dev, &cmd);
 }
 
+/*
+ * Write a log page.
+ */
+static int cdl_ata_set_features(struct cdl_dev *dev, uint8_t feature,
+				uint16_t val)
+{
+	struct cdl_sg_cmd cmd;
+
+	/*
+	 * SET FEATURES in ATA 16 passthrough command.
+	 * +=============================================================+
+	 * |  Bit|  7  |  6  |   5   |   4   |   3   |   2   |  1  |  0  |
+	 * |Byte |     |     |       |       |       |       |     |     |
+	 * |=====+===================+===================================|
+	 * | 0   |              Operation Code (85h)                     |
+	 * |-----+-------------------------------------------------------|
+	 * | 1   |  Multiple count   |            Protocol         | ext |
+	 * |-----+-------------------------------------------------------|
+	 * | 2   |  off_line |ck_cond| t_type| t_dir |byt_blk| t_length  |
+	 * |-----+-------------------------------------------------------|
+	 * | 3   |                 features (15:8)                       |
+	 * |-----+-------------------------------------------------------|
+	 * | 4   |                 features (7:0)                        |
+	 * |-----+-------------------------------------------------------|
+	 * | 5   |                 count (15:8)                          |
+	 * |-----+-------------------------------------------------------|
+	 * | 6   |                 count (7:0)                           |
+	 * |-----+-------------------------------------------------------|
+	 * | 7   |                 LBA (31:24 (15:8 if ext == 0)         |
+	 * |-----+-------------------------------------------------------|
+	 * | 8   |                 LBA (7:0)                             |
+	 * |-----+-------------------------------------------------------|
+	 * | 9   |                 LBA (39:32)                           |
+	 * |-----+-------------------------------------------------------|
+	 * | 10  |                 LBA (15:8)                            |
+	 * |-----+-------------------------------------------------------|
+	 * | 11  |                 LBA (47:40)                           |
+	 * |-----+-------------------------------------------------------|
+	 * | 12  |                 LBA (23:16)                           |
+	 * |-----+-------------------------------------------------------|
+	 * | 13  |                 Device                                |
+	 * |-----+-------------------------------------------------------|
+	 * | 14  |                 Command (0xef)                        |
+	 * |-----+-------------------------------------------------------|
+	 * | 15  |                 Control                               |
+	 * +=============================================================+
+	 */
+	cdl_init_cmd(&cmd, 16, SG_DXFER_NONE, 0);
+
+	cmd.cdb[0] = 0x85; /* ATA 16 */
+	/* Non-data protocol, ext=0 */
+	cmd.cdb[1] = (0x3 << 1);
+	cmd.cdb[4] = feature;
+	cdl_sg_set_be16(&cmd.cdb[5], val);
+	cmd.cdb[14] = 0xef; /* SET FEATURES */
+
+	/* Execute the command */
+	return cdl_exec_cmd(dev, &cmd);
+}
+
 int cdl_ata_get_limits(struct cdl_dev *dev, struct cdl_sg_cmd *cmd)
 {
 	struct cdl_sg_cmd _cmd;
@@ -455,6 +515,37 @@ int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled)
 		dev->flags |= CDL_HIGHPRI_DEV_ENABLED;
 	else
 		dev->flags &= ~CDL_HIGHPRI_DEV_ENABLED;
+
+	return 0;
+}
+
+/*
+ * Enable or disable CDL on the device.
+ */
+int cdl_ata_enable(struct cdl_dev *dev, bool enable)
+{
+	uint16_t val = 0;
+	int ret;
+
+	if (enable)
+		val = 0x01;
+
+	/*
+	 * Enabling CDL always disables the high priority
+	 * enhancement feature.
+	 */
+	ret = cdl_ata_set_features(dev, 0xD, val);
+	if (ret) {
+		cdl_dev_err(dev, "Set features (%sable CDL) failed\n",
+			    enable ? "en" : "dis");
+		return ret;
+	}
+
+	if (enable)
+		dev->flags |= CDL_DEV_ENABLED;
+	else
+		dev->flags &= ~CDL_DEV_ENABLED;
+	dev->flags &= ~CDL_HIGHPRI_DEV_ENABLED;
 
 	return 0;
 }

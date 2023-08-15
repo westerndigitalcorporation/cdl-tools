@@ -111,9 +111,16 @@ command \fBsave\fR and is mandatory with the command \fBupload\fR.
 
 .TP
 .BI \-\-permanent
-This option can only be used in combination with the \fB\-\-upload\fR command
+This option can only be used in combination with the \fBupload\fR command
 to specify that the descriptor page must be permently saved on the device, as
 opposed to temporarily stored in volatile memory.
+
+.TP
+.BI \-\-force\-dev
+Force enabling and disabling the CDL feature directly on the device without
+enabling/disabling the system support. This option can only be used in
+combination with the \fBenable\fR and \fBdisable\fR commands and is reserved
+for testing. It should not be specified under normal use of \fBcdladm\fR.
 
 .SH AUTHOR
 This version of \fBcdladm\fR was written by Damien Le Moal.

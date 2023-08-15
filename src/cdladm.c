@@ -58,6 +58,12 @@ static void cdladm_usage(void)
 	printf("  --raw\n"
 	       "\tApply to the show command.\n"
 	       "\tShow the raw values of the CDL pages fields\n");
+	printf("  --force-dev\n"
+	       "\tApply to the enable and disable commands for ATA devices.\n"
+	       "\tForce enabling and disabling the CDL feature directly on\n"
+	       "\tthe device without enabling/disabling the system.\n"
+	       "\tThe use of this option is not recommended under normal\n"
+	       "\tuse and is reserved for testing only\n");
 }
 
 static int cdladm_list(struct cdl_dev *dev)
@@ -316,8 +322,21 @@ static int cdladm_enable(struct cdl_dev *dev)
 	int ret;
 
 	if (!(dev->flags & CDL_SYS_SUPPORTED)) {
-		fprintf(stderr, "System lacks support\n");
+		fprintf(stderr, "System lacks CDL support\n");
 		return 1;
+	}
+
+	/* Special case (for tests only !): enable CDL on the device only */
+	if (dev->flags & CDL_FORCE_DEV) {
+		if (!cdl_dev_is_ata(dev)) {
+			fprintf(stderr,
+				"--force-dev applies to ATA devices only\n");
+			return 1;
+		}
+		ret = cdl_ata_enable(dev, true);
+		if (ret)
+			return 1;
+		return 0;
 	}
 
 	/* Enable system: this should enable the device too */
@@ -348,8 +367,21 @@ static int cdladm_disable(struct cdl_dev *dev)
 	int ret;
 
 	if (!(dev->flags & CDL_SYS_SUPPORTED)) {
-		fprintf(stderr, "System lacks support\n");
+		fprintf(stderr, "System lacks CDL support\n");
 		return 1;
+	}
+
+	/* Special case (for tests only !): disable CDL on the device only */
+	if (dev->flags & CDL_FORCE_DEV) {
+		if (!cdl_dev_is_ata(dev)) {
+			fprintf(stderr,
+				"--force-dev applies to ATA devices only\n");
+			return 1;
+		}
+		ret = cdl_ata_enable(dev, false);
+		if (ret)
+			return 1;
+		return 0;
 	}
 
 	/* Enable system: this should enable the device too */
@@ -402,8 +434,8 @@ static struct {
 	{ CDLADM_CLEAR,		O_RDWR	 },
 	{ CDLADM_SAVE,		O_RDONLY },
 	{ CDLADM_UPLOAD,	O_RDWR	 },
-	{ CDLADM_ENABLE,	O_RDONLY },
-	{ CDLADM_DISABLE,	O_RDONLY },
+	{ CDLADM_ENABLE,	O_RDWR   },
+	{ CDLADM_DISABLE,	O_RDWR   },
 };
 
 /*
@@ -553,6 +585,14 @@ int main(int argc, char **argv)
 			if (command != CDLADM_SHOW)
 				goto err_cmd_line;
 			dev.flags |= CDL_SHOW_RAW_VAL;
+			continue;
+		}
+
+		if (strcmp(argv[i], "--force-dev") == 0) {
+			if (command != CDLADM_ENABLE &&
+			    command != CDLADM_DISABLE)
+				goto err_cmd_line;
+			dev.flags |= CDL_FORCE_DEV;
 			continue;
 		}
 

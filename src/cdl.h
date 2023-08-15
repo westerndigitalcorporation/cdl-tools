@@ -99,6 +99,7 @@ struct cdl_page {
 #define CDL_SHOW_RAW_VAL		(1 << 10)
 #define CDL_SHOW_COUNT			(1 << 11)
 #define CDL_USE_ATA			(1 << 12)
+#define CDL_FORCE_DEV			(1 << 13)
 
 #define CDL_VENDOR_LEN	9
 #define CDL_ID_LEN	17
@@ -213,6 +214,7 @@ int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		      struct cdl_page *page);
 int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page);
 int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled);
+int cdl_ata_enable(struct cdl_dev *dev, bool enable);
 void cdl_ata_revalidate(struct cdl_dev *dev);
 int cdl_ata_get_limits(struct cdl_dev *dev, struct cdl_sg_cmd *cmd);
 
