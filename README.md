@@ -118,14 +118,16 @@ Options common to all commands:
   --verbose | -v       : Verbose output
   --force-ata | -a     : Force the use of ATA passthrough commands
 Commands:
-  info    : Show device and system support information
-  list    : List supported pages
-  show    : Display one or all supported pages
-  clear   : Clear one or all supported pages
-  save    : Save one or all pages to a file
-  upload  : Upload a page to the device
-  enable  : Enable command duration limits
-  disable : Disable command duration limits
+  info            : Show device and system support information
+  list            : List supported pages
+  show            : Display one or all supported pages
+  clear           : Clear one or all supported pages
+  save            : Save one or all pages to a file
+  upload          : Upload a page to the device
+  enable          : Enable command duration limits
+  disable         : Disable command duration limits
+  enable-highpri  : Enable high priority enhancement
+  disable-highpri : Disable high priority enhancement
 Command options:
   --count
 	Apply to the show command.
@@ -149,8 +151,14 @@ Command options:
 	page value.
   --raw
 	Apply to the show command.
-	Show the raw values of the CDL pages fields
-See "man cdladm" for more information
+	Show the raw values of the CDL pages fields.
+  --force-dev
+	Apply to the enable and disable commands for ATA devices.
+	Force enabling and disabling the CDL feature directly on
+	the device without enabling/disabling the system.
+	The use of this option is not recommended under normal
+	use and is reserved for testing only.
+See "man cdladm" for more information.
 ```
 
 ### Checking for command duration limits support
@@ -200,9 +208,9 @@ Device: /dev/sdh
     Command duration limits: not supported, disabled
 ```
 
-When using a kernel including support for command duration limits (kernel versio
-6.5 and above), the sysfs attribute files cdl_supported and cdl_enable will be
-present for any scsi device.
+When using a kernel including support for command duration limits (kernel
+version 6.5 and above), the sysfs attribute files *cdl_supported* and
+*cdl_enable* will be present for any scsi device.
 
 ```
 $ tree -L 1 /sys/block/sda/device/
@@ -221,16 +229,16 @@ $ tree -L 1 /sys/block/sda/device/
 ...
 ```
 
-The cdl_supported attribute file indicates with a value of "1" if a device
+The *cdl_supported* attribute file indicates with a value of "1" if a device
 supports cdl. A value of "0" indicates that the device does not implement the
 CDL feature.
 
-The cdl_enable attribute files allows enabling and disabling the CDL feature set
-for a device supporting it.
+The *cdl_enable* attribute files allows enabling and disabling the CDL feature
+set for a device supporting it.
 
 ### Checking Duration Limits Descriptors
 
-The *cdladm* show command retreives from the device and displays in human
+The *cdladm show* command retreives from the device and displays in human
 readable form the command limit descriptors configured on the target device.
 
 ```
@@ -534,17 +542,20 @@ Uploading page T2A:
 
 ## Using Command Duration Limits
 
-The Linux kernel support for command duration limits disable the feature by
+The Linux kernel support for command duration limits disables the CDL feature by
 default. For command duration limits to be effective, CDL support must first be
-enabled.
+enabled. Once enabled, fio can be use to exercise a device with read and write
+commands with command duration limits.
 
-This can be done using the "enable" sysfs attribute file:
+### Enabling and Disabling CDL support
+
+This can be done using the *cdl_enable* sysfs attribute file:
 
 ```
 $ echo 1 > /sys/block/sdg/device/cdl_enable
 ```
 
-For convenience, *cdladm* can also be used:
+For convenience, the enable command of *cdladm* can also be used:
 
 ```
 $ cdladm enable /dev/sdg
@@ -580,7 +591,7 @@ Conversely, CDL can be disabled either using sysfs:
 $ echo 0 > /sys/block/sdg/device/cdl_enable
 ```
 
-Or using *cdladm*:
+Or using *cdladm* disable command:
 
 ```
 $ cdladm disable /dev/sdg
@@ -607,10 +618,12 @@ System:
     Device sdg command timeout: 30 s
 ```
 
-*fio* can be used to exercise a drive with a command duration limits enabled
-workload. The standard fio options *cmdprio_class*, *cmdprio_percentage* and
-*cmdprio_hint* allow a job using the *libaio* IO engine to specify a command
-duration limit enabled workload.
+### Using *fio*
+
+*fio* can be used to exercise a drive with workload using command duration
+limits. The standard *fio* options *cmdprio_class*, *cmdprio_percentage* and
+*cmdprio_hint* allow a job using the *libaio* or *io_uring* I/O engines to
+specify the use of command duration limits.
 
 For instance, the following fio script:
 
@@ -631,15 +644,69 @@ bs=128k
 ioengine=libaio
 iodepth=32
 cmdprio_class=2
-cmdprio_hint=2
+cmdprio_hint=1
 cmdprio_percentage=20
 ```
 
 Will issue random 128KB read commands at a queue depth of 32 with 20% of the
-commands using the best effort priority class with duration limits descriptor 2.
+commands using the best effort priority class and the duration limit descriptor
+1. Assuming that this descriptor defines a duration guideline limit of 50ms,
+fio run statistics will show the impact of the duration limits feature.
+
+```
+rndrd_qd32: (g=0): rw=randread, bs=(R) 128KiB-128KiB, (W) 128KiB-128KiB, (T) 128KiB-128KiB, ioengine=libaio, iodepth=32
+fio-3.35-83-g0b47
+Starting 1 process
+
+rndrd_qd32: (groupid=0, jobs=1): err= 0: pid=3091: Tue Aug 15 15:11:00 2023
+  read: IOPS=154, BW=19.3MiB/s (20.2MB/s)(5794MiB/300246msec)
+    slat (usec): min=97, max=1882, avg=148.04, stdev=45.90
+    clat (msec): min=6, max=544, avg=206.77, stdev=125.79
+     lat (msec): min=6, max=544, avg=206.92, stdev=125.79
+    clat prio 0/0/0 (msec): min=8, max=544, avg=250.42, stdev=101.62
+    clat prio 2/0/1 (usec): min=6805, max=88200, avg=34077.20, stdev=14640.35
+    clat percentiles (msec):
+     |  1.00th=[   16],  5.00th=[   21], 10.00th=[   28], 20.00th=[   52],
+     | 30.00th=[  115], 40.00th=[  182], 50.00th=[  228], 60.00th=[  266],
+     | 70.00th=[  296], 80.00th=[  330], 90.00th=[  363], 95.00th=[  393],
+     | 99.00th=[  430], 99.50th=[  439], 99.90th=[  460], 99.95th=[  464],
+     | 99.99th=[  514]
+    clat prio 0/0/0 (79.83% of IOs) percentiles (msec):
+     |  1.00th=[   22],  5.00th=[   59], 10.00th=[   99], 20.00th=[  159],
+     | 30.00th=[  201], 40.00th=[  236], 50.00th=[  266], 60.00th=[  292],
+     | 70.00th=[  317], 80.00th=[  342], 90.00th=[  376], 95.00th=[  397],
+     | 99.00th=[  435], 99.50th=[  443], 99.90th=[  460], 99.95th=[  464],
+     | 99.99th=[  523]
+    clat prio 2/0/1 (20.17% of IOs) percentiles (usec):
+     |  1.00th=[13304],  5.00th=[15926], 10.00th=[17695], 20.00th=[20579],
+     | 30.00th=[23200], 40.00th=[26346], 50.00th=[30016], 60.00th=[35390],
+     | 70.00th=[41681], 80.00th=[49546], 90.00th=[55837], 95.00th=[60556],
+     | 99.00th=[68682], 99.50th=[71828], 99.90th=[78119], 99.95th=[81265],
+     | 99.99th=[88605]
+   bw (  KiB/s): min=15872, max=23040, per=100.00%, avg=19774.78, stdev=1227.50, samples=600
+   iops        : min=  124, max=  180, avg=154.39, stdev= 9.59, samples=600
+  lat (msec)   : 10=0.02%, 20=4.21%, 50=15.23%, 100=8.89%, 250=27.77%
+  lat (msec)   : 500=43.94%, 750=0.01%
+  cpu          : usr=0.32%, sys=2.64%, ctx=46569, majf=0, minf=1555
+  IO depths    : 1=0.1%, 2=0.1%, 4=0.1%, 8=0.1%, 16=0.2%, 32=99.7%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.1%, 64=0.0%, >=64=0.0%
+     issued rwts: total=46320,0,0,0 short=0,0,0,0 dropped=0,0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=19.3MiB/s (20.2MB/s), 19.3MiB/s-19.3MiB/s (20.2MB/s-20.2MB/s), io=5794MiB (6075MB), run=300246-300246msec
+
+Disk stats (read/write):
+  sdg: ios=55498/0, sectors=14207488/0, merge=0/0, ticks=11493246/0, in_queue=11493246, util=100.00%
+```
+
+Looking at the 99th percentile of the completion latecies, we can see that the
+20% of I/Os that were executed using the 50ms limit all complete under 68ms,
+while I/Os that are not assigned a limit can take up to 435ms to complete.
 
 Using the *cmdprio_bssplit* option, different duration limits can be combined
-in the same workload for different percentage of commands. For instance, the
+to create more complex workloads using multiple limits. For instance, the
 following fio job definition:
 
 ```
@@ -658,12 +725,77 @@ rw=randread
 bs=128k
 ioengine=libaio
 iodepth=32
-cmdprio_bssplit=128k/10/2/0/1:128k/20/2/0/2
+cmdprio_bssplit=128k/10/2/0/2:128k/20/2/0/3
 ```
 
-will result in the IO job executing 10% of all IOs using the best effor priority
-class with CDL descriptor 1 and 20% of all IOs using again the best effort
-priority class but with CDL descriptor 2.
+will result in fio executing 10% of all I/Os using the best effor priority
+class with the CDL descriptor 2 and 20% of all I/Os using again the best effort
+priority class but with CDL descriptor 3. The remaining 70% of I/Os will not be
+assigned any limit.
+
+Assuming that descriptor 2 defines a duration guideline limit of 100ms and
+descriptor 3 defines a duration guideline limit of 3, fio will produce
+statistics similar to the following.
+
+```
+rndrd_qd32: (g=0): rw=randread, bs=(R) 128KiB-128KiB, (W) 128KiB-128KiB, (T) 128KiB-128KiB, ioengine=libaio, iodepth=32
+fio-3.35-83-g0b47
+Starting 1 process
+
+rndrd_qd32: (groupid=0, jobs=1): err= 0: pid=3427: Tue Aug 15 15:53:06 2023
+  read: IOPS=155, BW=19.5MiB/s (20.4MB/s)(5841MiB/300204msec)
+    slat (usec): min=120, max=2029, avg=180.03, stdev=50.81
+    clat (msec): min=8, max=504, avg=205.05, stdev=87.40
+     lat (msec): min=8, max=504, avg=205.23, stdev=87.40
+    clat prio 0/0/0 (msec): min=10, max=504, avg=235.55, stdev=70.42
+    clat prio 2/0/2 (msec): min=9, max=219, avg=47.12, stdev=25.02
+    clat prio 2/0/4 (msec): min=8, max=339, avg=179.51, stdev=63.85
+    clat percentiles (msec):
+     |  1.00th=[   18],  5.00th=[   35], 10.00th=[   62], 20.00th=[  127],
+     | 30.00th=[  169], 40.00th=[  199], 50.00th=[  222], 60.00th=[  243],
+     | 70.00th=[  262], 80.00th=[  284], 90.00th=[  309], 95.00th=[  326],
+     | 99.00th=[  359], 99.50th=[  368], 99.90th=[  380], 99.95th=[  388],
+     | 99.99th=[  418]
+    clat prio 0/0/0 (69.42% of IOs) percentiles (msec):
+     |  1.00th=[   37],  5.00th=[  100], 10.00th=[  138], 20.00th=[  182],
+     | 30.00th=[  209], 40.00th=[  228], 50.00th=[  247], 60.00th=[  262],
+     | 70.00th=[  279], 80.00th=[  296], 90.00th=[  317], 95.00th=[  334],
+     | 99.00th=[  363], 99.50th=[  372], 99.90th=[  384], 99.95th=[  393],
+     | 99.99th=[  422]
+    clat prio 2/0/2 (10.10% of IOs) percentiles (msec):
+     |  1.00th=[   14],  5.00th=[   17], 10.00th=[   20], 20.00th=[   24],
+     | 30.00th=[   29], 40.00th=[   35], 50.00th=[   43], 60.00th=[   51],
+     | 70.00th=[   59], 80.00th=[   70], 90.00th=[   84], 95.00th=[   96],
+     | 99.00th=[  109], 99.50th=[  111], 99.90th=[  116], 99.95th=[  120],
+     | 99.99th=[  220]
+    clat prio 2/0/3 (20.48% of IOs) percentiles (msec):
+     |  1.00th=[   24],  5.00th=[   58], 10.00th=[   87], 20.00th=[  126],
+     | 30.00th=[  150], 40.00th=[  171], 50.00th=[  188], 60.00th=[  203],
+     | 70.00th=[  220], 80.00th=[  236], 90.00th=[  257], 95.00th=[  275],
+     | 99.00th=[  300], 99.50th=[  305], 99.90th=[  313], 99.95th=[  317],
+     | 99.99th=[  338]
+   bw (  KiB/s): min=14336, max=22784, per=100.00%, avg=19935.45, stdev=1124.89, samples=600
+   iops        : min=  112, max=  178, avg=155.65, stdev= 8.78, samples=600
+  lat (msec)   : 10=0.01%, 20=1.59%, 50=6.36%, 100=7.96%, 250=48.57%
+  lat (msec)   : 500=35.57%, 750=0.01%
+  cpu          : usr=0.34%, sys=3.16%, ctx=46932, majf=0, minf=1555
+  IO depths    : 1=0.1%, 2=0.1%, 4=0.1%, 8=0.1%, 16=0.2%, 32=99.7%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.1%, 64=0.0%, >=64=0.0%
+     issued rwts: total=46694,0,0,0 short=0,0,0,0 dropped=0,0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=19.5MiB/s (20.4MB/s), 19.5MiB/s-19.5MiB/s (20.4MB/s-20.4MB/s), io=5841MiB (6124MB), run=300204-300204msec
+
+Disk stats (read/write):
+  sdg: ios=55999/0, sectors=14335744/0, merge=0/0, ticks=11494014/0, in_queue=11494014, util=100.00%
+```
+
+Again observing the 99th percentile completion latency for each group of I/O
+priority, we can see that I/Os using descriptor 2 all complete within 109ms, I/O
+using descriptor 3 all complete within 300ms, while the remaining 70% of I/Os
+with no limit may see completion times up to 363ms.
 
 ## Testing a system Command Duration Limits Support
 
@@ -687,7 +819,7 @@ host-bus-adapter and kernel being used on the test system.
 installed as follows as root.
 
 ```
-$ make install-tests
+$ sudo make install-tests
 ```
 
 The default installation path is ```/usr/local/cdl-tests```. This installation
