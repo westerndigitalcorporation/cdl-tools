@@ -520,32 +520,44 @@ int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled)
 }
 
 /*
- * Enable or disable CDL on the device.
+ * Enable or disable CDL or the high priority enhancement feature on the device.
  */
-int cdl_ata_enable(struct cdl_dev *dev, bool enable)
+int cdl_ata_enable(struct cdl_dev *dev, bool enable, bool highpri)
 {
 	uint16_t val = 0;
 	int ret;
 
-	if (enable)
-		val = 0x01;
+	if (enable) {
+		if (highpri)
+			val = 0x10;
+		else
+			val = 0x01;
+	}
 
 	/*
 	 * Enabling CDL always disables the high priority
-	 * enhancement feature.
+	 * enhancement feature. Enabling the high priority enhancement
+	 * feature will fail if the CDL feature is enabled.
 	 */
 	ret = cdl_ata_set_features(dev, 0xD, val);
 	if (ret) {
-		cdl_dev_err(dev, "Set features (%sable CDL) failed\n",
-			    enable ? "en" : "dis");
+		cdl_dev_err(dev, "Set features (%sable %s) failed\n",
+			    enable ? "en" : "dis",
+			    highpri ? "highpri" : "CDL");
 		return ret;
 	}
 
-	if (enable)
-		dev->flags |= CDL_DEV_ENABLED;
-	else
+	if (enable) {
+		if (highpri) {
+			dev->flags |= CDL_HIGHPRI_DEV_ENABLED;
+		} else {
+			dev->flags |= CDL_DEV_ENABLED;
+			dev->flags &= ~CDL_HIGHPRI_DEV_ENABLED;
+		}
+	} else {
 		dev->flags &= ~CDL_DEV_ENABLED;
-	dev->flags &= ~CDL_HIGHPRI_DEV_ENABLED;
+		dev->flags &= ~CDL_HIGHPRI_DEV_ENABLED;
+	}
 
 	return 0;
 }

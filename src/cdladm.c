@@ -334,7 +334,7 @@ static int cdladm_enable(struct cdl_dev *dev)
 				"--force-dev applies to ATA devices only\n");
 			return 1;
 		}
-		ret = cdl_ata_enable(dev, true);
+		ret = cdl_ata_enable(dev, true, false);
 		if (ret)
 			return 1;
 		return 0;
@@ -379,7 +379,7 @@ static int cdladm_disable(struct cdl_dev *dev)
 				"--force-dev applies to ATA devices only\n");
 			return 1;
 		}
-		ret = cdl_ata_enable(dev, false);
+		ret = cdl_ata_enable(dev, false, false);
 		if (ret)
 			return 1;
 		return 0;
