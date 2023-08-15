@@ -55,7 +55,6 @@ Clear (reset) the command duration limits descriptors of one or all supported
 pages of the target device. The option \fB\-\-page\fR can be used to specify a
 single page to clear.
 
-
 .TP
 \fBsave\fR
 Save to a file one or all command duration limits page of the target device.
@@ -99,6 +98,12 @@ Display a short usage message and exit.
 Verbose output (for debugging).
 
 .TP
+\fB\-a\fR, \fB\-\-force-ata\fR
+Force the use of ATA passthrough commands for ATA devices connected to SAS host
+adapters. This allows bypassing the adapter SCSI-to-ATA translation layer when
+CDL is not supported by the adapter firmware.
+
+.TP
 .BI \-\-page " page_name"
 Specify the name of a page to operate on. \fIpage_name\fR can be "A", "B", "T2A"
 or "T2B". This option can be used with the commands \fBshow\fR, \fBclear\fR and
@@ -114,6 +119,11 @@ command \fBsave\fR and is mandatory with the command \fBupload\fR.
 This option can only be used in combination with the \fBupload\fR command
 to specify that the descriptor page must be permently saved on the device, as
 opposed to temporarily stored in volatile memory.
+
+.TP
+.BI \-\-raw
+Show the raw values of the CDL pages fields. This option applies only to the
+\fBshow\fR command.\n"
 
 .TP
 .BI \-\-force\-dev
