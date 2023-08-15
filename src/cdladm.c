@@ -57,13 +57,14 @@ static void cdladm_usage(void)
 	       "\tpage value.\n");
 	printf("  --raw\n"
 	       "\tApply to the show command.\n"
-	       "\tShow the raw values of the CDL pages fields\n");
+	       "\tShow the raw values of the CDL pages fields.\n");
 	printf("  --force-dev\n"
 	       "\tApply to the enable and disable commands for ATA devices.\n"
 	       "\tForce enabling and disabling the CDL feature directly on\n"
 	       "\tthe device without enabling/disabling the system.\n"
 	       "\tThe use of this option is not recommended under normal\n"
-	       "\tuse and is reserved for testing only\n");
+	       "\tuse and is reserved for testing only.\n");
+	printf("See \"man cdladm\" for more information.\n");
 }
 
 static int cdladm_list(struct cdl_dev *dev)
@@ -423,20 +424,34 @@ enum cdladm_cmd_code {
  * Command codes and the device open mode needed.
  */
 static struct {
+	const char *opt;
 	enum cdladm_cmd_code code;
 	mode_t mode;
-} cdladm_cmd[CDLADM_CMD_MAX] =
+} cdladm_cmd[CDLADM_CMD_MAX + 1] =
 {
-	{ CDLADM_NONE,		0 },
-	{ CDLADM_INFO,		O_RDONLY },
-	{ CDLADM_LIST,		O_RDONLY },
-	{ CDLADM_SHOW,		O_RDONLY },
-	{ CDLADM_CLEAR,		O_RDWR	 },
-	{ CDLADM_SAVE,		O_RDONLY },
-	{ CDLADM_UPLOAD,	O_RDWR	 },
-	{ CDLADM_ENABLE,	O_RDWR   },
-	{ CDLADM_DISABLE,	O_RDWR   },
+	{ "",		CDLADM_NONE,	0 },
+	{ "info",	CDLADM_INFO,	O_RDONLY },
+	{ "list",	CDLADM_LIST,	O_RDONLY },
+	{ "show",	CDLADM_SHOW,	O_RDONLY },
+	{ "clear",	CDLADM_CLEAR,	O_RDWR	 },
+	{ "save",	CDLADM_SAVE,	O_RDONLY },
+	{ "upload",	CDLADM_UPLOAD,	O_RDWR	 },
+	{ "enable",	CDLADM_ENABLE,	O_RDWR   },
+	{ "disable",	CDLADM_DISABLE,	O_RDWR   },
+	{ NULL, 	CDLADM_CMD_MAX,	0        }
 };
+
+static int cdladm_get_command(char *opt)
+{
+	int i;
+
+	for (i = 1; i < CDLADM_CMD_MAX; i++) {
+		if (strcmp(opt, cdladm_cmd[i].opt) == 0)
+			return cdladm_cmd[i].code;
+	}
+
+	return CDLADM_CMD_MAX;
+}
 
 /*
  * Main function.
@@ -457,81 +472,34 @@ int main(int argc, char **argv)
 	for (i = 0; i < CDL_MAX_PAGES; i++)
 		dev.cdl_pages[i].cdlp = CDLP_NONE;
 
+	if (argc == 1) {
+		cdladm_usage();
+		return 0;
+	}
+
+	/* Generic options */
+	if (strcmp(argv[1], "--version") == 0) {
+		printf("cdladm, version %s\n", PACKAGE_VERSION);
+		printf("Copyright (C) 2021, Western Digital Corporation"
+		       " or its affiliates.\n");
+		return 0;
+	}
+
+	if (strcmp(argv[1], "--help") == 0 ||
+	    strcmp(argv[1], "-h") == 0) {
+		cdladm_usage();
+		return 0;
+	}
+
+	/* Get the command */
+	command = cdladm_get_command(argv[1]);
+	if (command >= CDLADM_CMD_MAX) {
+		fprintf(stderr, "Invalid command %s\n", argv[1]);
+		return 1;
+	}
+
 	/* Parse options */
-	for (i = 1; i < argc; i++) {
-		/* Generic options */
-		if (strcmp(argv[i], "--version") == 0) {
-			printf("cdladm, version %s\n", PACKAGE_VERSION);
-			printf("Copyright (C) 2021, Western Digital Corporation"
-			       " or its affiliates.\n");
-			return 0;
-		}
-
-		if (strcmp(argv[i], "--help") == 0 ||
-		    strcmp(argv[i], "-h") == 0) {
-			cdladm_usage();
-			printf("See \"man cdladm\" for more information\n");
-			return 0;
-		}
-
-		/* Commands */
-		if (strcmp(argv[i], "info") == 0) {
-			if (command != CDLADM_NONE)
-				goto err_cmd_line;
-			command = CDLADM_INFO;
-			continue;
-		}
-
-		if (strcmp(argv[i], "list") == 0) {
-			if (command != CDLADM_NONE)
-				goto err_cmd_line;
-			command = CDLADM_LIST;
-			continue;
-		}
-
-		if (strcmp(argv[i], "show") == 0) {
-			if (command != CDLADM_NONE)
-				goto err_cmd_line;
-			command = CDLADM_SHOW;
-			continue;
-		}
-
-		if (strcmp(argv[i], "clear") == 0) {
-			if (command != CDLADM_NONE)
-				goto err_cmd_line;
-			command = CDLADM_CLEAR;
-			continue;
-		}
-
-		if (strcmp(argv[i], "save") == 0) {
-			if (command != CDLADM_NONE)
-				goto err_cmd_line;
-			command = CDLADM_SAVE;
-			continue;
-		}
-
-		if (strcmp(argv[i], "upload") == 0) {
-			if (command != CDLADM_NONE)
-				goto err_cmd_line;
-			command = CDLADM_UPLOAD;
-			continue;
-		}
-
-		if (strcmp(argv[i], "enable") == 0) {
-			if (command != CDLADM_NONE)
-				goto err_cmd_line;
-			command = CDLADM_ENABLE;
-			continue;
-		}
-
-		if (strcmp(argv[i], "disable") == 0) {
-			if (command != CDLADM_NONE)
-				goto err_cmd_line;
-			command = CDLADM_DISABLE;
-			continue;
-		}
-
-		/* Options */
+	for (i = 2; i < argc; i++) {
 		if (strcmp(argv[i], "--verbose") == 0 ||
 		    strcmp(argv[i], "-v") == 0) {
 			dev.flags |= CDL_VERBOSE;
@@ -596,15 +564,15 @@ int main(int argc, char **argv)
 			continue;
 		}
 
-		if (argv[i][0] == '-') {
-			fprintf(stderr, "Invalid option '%s'\n", argv[i]);
-			return 1;
-		} else {
+		if (argv[i][0] != '-')
 			break;
-		}
+
+		fprintf(stderr, "Invalid option '%s'\n", argv[i]);
+		return 1;
 	}
 
 	if (i != argc - 1) {
+err_cmd_line:
 		fprintf(stderr, "Invalid command line\n");
 		return 1;
 	}
@@ -741,11 +709,9 @@ int main(int argc, char **argv)
 out:
 	cdl_close_dev(&dev);
 
-	return ret;
+	if (ret)
+		return 1;
 
-err_cmd_line:
-	fprintf(stderr, "Invalid command line\n");
-
-	return 1;
+	return 0;
 }
 
