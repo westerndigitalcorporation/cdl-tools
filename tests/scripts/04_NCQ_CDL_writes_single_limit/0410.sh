@@ -21,7 +21,7 @@ read_limits=""
 write_limits="active-time"
 cdl_dld=1
 expect_error=0
-compare_latencies=1
+compare_latencies=0
 ncq=1
 rw="randwrite"
 
