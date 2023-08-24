@@ -22,7 +22,7 @@ require_duration_guideline "${dev}"
 read_limits=""
 read_limits="duration-guideline"
 cdl_dld=5
-expect_error=1
+expect_error=0
 compare_latencies=0
 ncq=0
 rw="randwrite"
