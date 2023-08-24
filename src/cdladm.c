@@ -38,7 +38,9 @@ static void cdladm_usage(void)
 	       "  disable-highpri : Disable high priority enhancement\n"
 	       "  stats-show      : Display CDL statistics configuration and values\n"
 	       "  stats-reset     : Reset to 0 all CDL statistics values\n"
-	       "  stats-save      : Save CDL statistics configuration to a file\n");
+	       "  stats-save      : Save CDL statistics configuration to a file\n"
+	       "  stats-upload    : Upload CDL statistics configuration\n"
+	       "                    to the device\n");
 	printf("Command options:\n");
 	printf("  --count\n"
 	       "\tApply to the show command.\n"
@@ -49,16 +51,15 @@ static void cdladm_usage(void)
 	       "\tSpecify the name of the page to show,clear or save. The\n"
 	       "\tpage name tcan be: \"A\", \"B\", \"T2A\" or \"T2B\".\n");
 	printf("  --file <path>\n"
-	       "\tApply to the save, upload and stats-save commands.\n"
-	       "\tSpecify the path of the page or statistics configuration\n"
-	       "file to use.\n"
-	       "\tUsing this option is mandatory with the upload command.\n"
+	       "\tApplies to the save, upload, stats-save and stats-upload\n"
+	       "\tcommands to specify the path of the page file or statistics\n"
+	       "\tconfiguration file to use.\n"
+	       "\tUsing this option is mandatory with the upload and\n"
+	       "\tstats-upload commands.\n"
 	       "\tIf this option is not specified with the save command,\n"
-	       "\tthe default file name <dev name>-<page name>.cdl is\n"
-	       "\tused.\n"
+	       "\tthe default file name <dev name>-<page name>.cdl is used.\n"
 	       "\tIf this option is not specified with the stats-save command,\n"
-	       "\tthe default file name <dev name>-cdl-stats.cfg is\n"
-	       "\tused.\n");
+	       "\tthe default file name <dev name>-cdl-stats.cfg is used.\n");
 	printf("  --permanent\n"
 	       "\tApply to the upload command.\n"
 	       "\tSpecify that the device should save the page in\n"
@@ -375,6 +376,35 @@ out:
 	return ret;
 }
 
+static int cdladm_stats_upload(struct cdl_dev *dev, char *path)
+{
+	FILE *f;
+	int ret;
+
+	if (!path) {
+		fprintf(stderr, "No file specified\n");
+		return 1;
+	}
+
+	printf("Uploading CDL statitics configuration from file %s\n",
+	       path);
+
+	f = fopen(path, "r");
+	if (!f) {
+		fprintf(stderr, "Open file %s failed (%s)\n",
+			path, strerror(errno));
+		return 1;
+	}
+
+	ret = cdl_statistics_upload(dev, f);
+	fclose(f);
+
+	if (ret)
+		return 1;
+
+	return 0;
+}
+
 static void cdladm_get_kernel_support(struct cdl_dev *dev)
 {
 	bool supported, enabled = false;
@@ -571,6 +601,7 @@ enum cdladm_cmd_code {
 	CDLADM_STATS_SHOW,
 	CDLADM_STATS_RESET,
 	CDLADM_STATS_SAVE,
+	CDLADM_STATS_UPLOAD,
 
 	CDLADM_CMD_MAX,
 };
@@ -598,6 +629,7 @@ static struct {
 	{ "stats-show",		CDLADM_STATS_SHOW,	O_RDWR   },
 	{ "stats-reset",	CDLADM_STATS_RESET,	O_RDWR   },
 	{ "stats-save",		CDLADM_STATS_SAVE,	O_RDWR   },
+	{ "stats-upload",	CDLADM_STATS_UPLOAD,	O_RDWR   },
 	{ NULL,			CDLADM_CMD_MAX,		0        }
 };
 
@@ -693,7 +725,9 @@ int main(int argc, char **argv)
 
 		if (strcmp(argv[i], "--file") == 0) {
 			if (command != CDLADM_SAVE &&
-			    command != CDLADM_UPLOAD)
+			    command != CDLADM_UPLOAD &&
+			    command != CDLADM_STATS_SAVE &&
+			    command != CDLADM_STATS_UPLOAD)
 				goto err_cmd_line;
 			i++;
 			if (i >= argc - 1)
@@ -877,6 +911,9 @@ err_cmd_line:
 		break;
 	case CDLADM_STATS_SAVE:
 		ret = cdladm_stats_save(&dev, path);
+		break;
+	case CDLADM_STATS_UPLOAD:
+		ret = cdladm_stats_upload(&dev, path);
 		break;
 	case CDLADM_NONE:
 	default:

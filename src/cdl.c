@@ -490,9 +490,7 @@ void cdl_page_save(struct cdl_page *page, FILE *f)
 		cdl_page_save_t2(page, f);
 }
 
-#define CDL_LINE_MAX_LEN	512
-
-static char *cdl_get_line(FILE *f, char *line)
+char *cdl_get_line(FILE *f, char *line)
 {
 	char *str, *s;
 	int len;
@@ -532,7 +530,7 @@ static char *cdl_get_line(FILE *f, char *line)
 	return str;
 }
 
-static char *cdl_skip_spaces(char *str, int skip)
+char *cdl_skip_spaces(char *str, int skip)
 {
 	str += skip;
 	while (*str && isblank(*str))
@@ -959,6 +957,18 @@ int cdl_statistics_save(struct cdl_dev *dev, FILE *f)
 		return cdl_ata_statistics_save(dev, f);
 
 	return cdl_scsi_statistics_save(dev, f);
+}
+
+/*
+ * Upload CDL statistics configuration from a file, if supported.
+ */
+int cdl_statistics_upload(struct cdl_dev *dev, FILE *f)
+{
+	/* For ATA devices, always use ATA */
+	if (cdl_dev_is_ata(dev))
+		return cdl_ata_statistics_upload(dev, f);
+
+	return cdl_scsi_statistics_upload(dev, f);
 }
 
 /*

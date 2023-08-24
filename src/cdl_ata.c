@@ -524,6 +524,24 @@ close:
 }
 
 /*
+ * Write the device CDL descriptor log.
+ */
+static int cdl_ata_write_cdl_log(struct cdl_dev *dev)
+{
+	int ret;
+
+	ret = cdl_ata_write_log(dev, 0x18, 0,
+				dev->ata_cdl_log, CDL_ATA_LOG_SIZE);
+	if (ret) {
+		cdl_dev_err(dev,
+			    "Write command duration limits log failed\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+/*
  * Write a CDL page to the device.
  */
 int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page)
@@ -559,13 +577,9 @@ int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page)
 						  desc->cdltunit));
 	}
 
-	ret = cdl_ata_write_log(dev, 0x18, 0,
-				dev->ata_cdl_log, CDL_ATA_LOG_SIZE);
-	if (ret) {
-		cdl_dev_err(dev,
-			    "Write command duration limits log page failed\n");
+	ret = cdl_ata_write_cdl_log(dev);
+	if (ret)
 		return ret;
-	}
 
 	return 0;
 }
@@ -878,6 +892,133 @@ int cdl_ata_statistics_save(struct cdl_dev *dev, FILE *f)
 			dev->cdl_stats.ata.writes_b[i].selector);
 		fprintf(f, "\n");
 	}
+
+	return 0;
+}
+
+static int cdl_ata_statistics_parse_desc(struct cdl_dev *dev, FILE *f,
+					 char *line, bool read, int index)
+{
+	int idx, selector_a, selector_b;
+	char *type, *str;
+
+	/* Parse descriptor header */
+	if (read)
+		type = "read";
+	else
+		type = "write";
+
+	str = cdl_get_line(f, line);
+	if (!str || strncmp(str, "==", 2) != 0)
+		goto err;
+
+	str = cdl_skip_spaces(str, 2);
+	if (!str || strncmp(str, type, strlen(type)) != 0)
+		goto err;
+
+	str = cdl_skip_spaces(str, strlen(type));
+	if (!str || strncmp(str, "descriptor:", 11) != 0)
+		goto err;
+
+	str = cdl_skip_spaces(str, 11);
+	if (!str)
+		goto err;
+
+	idx = atoi(str);
+	if (idx != index)
+		goto err;
+
+	/* Parse selector_a */
+	str = cdl_get_line(f, line);
+	if (!str || strncmp(str, "selector_a:", 11) != 0)
+		goto err;
+	str = cdl_skip_spaces(str, 11);
+	if (!str)
+		goto err;
+
+	selector_a = atoi(str);
+	if (selector_a < 0 || selector_a > 4) {
+		fprintf(stderr, "Invalid %s descriptor %d selector_a value\n",
+			type, index);
+		return 1;
+	}
+
+	if (read)
+		dev->cdl_stats.ata.reads_a[index].selector = selector_a;
+	else
+		dev->cdl_stats.ata.writes_a[index].selector = selector_a;
+
+	/* Parse selector_b */
+	str = cdl_get_line(f, line);
+	if (!str || strncmp(str, "selector_b:", 11) != 0)
+		goto err;
+	str = cdl_skip_spaces(str, 11);
+	if (!str)
+		goto err;
+
+	selector_b = atoi(str);
+	if (selector_b < 0 || selector_b > 4) {
+		fprintf(stderr, "Invalid %s descriptor %d selector_b value\n",
+			type, index);
+		return 1;
+	}
+
+	if (read)
+		dev->cdl_stats.ata.reads_b[index].selector = selector_b;
+	else
+		dev->cdl_stats.ata.writes_b[index].selector = selector_b;
+
+	printf("  %s descriptor %d:\tselector_a = %u,\tselector_b = %u\n",
+	       type, index,
+	       selector_a, selector_b);
+
+	return 0;
+
+err:
+	fprintf(stderr, "Invalid %s descriptor %d\n",
+		type, index);
+
+	return 1;
+}
+
+/*
+ * Parse a CDL statistics configuration file.
+ */
+
+int cdl_ata_statistics_upload(struct cdl_dev *dev, FILE *f)
+{
+	char line[CDL_LINE_MAX_LEN];
+	uint8_t *buf;
+	int i, ret;
+
+	/* Get the command duration limits log */
+	ret = cdl_ata_read_cdl_log(dev);
+	if (ret)
+		return ret;
+
+	/* Parse the file and update the CDL log with the new configuration */
+	buf = dev->ata_cdl_log + 64;
+	for (i = 0; i < CDL_MAX_DESC; i++, buf += 32) {
+		ret = cdl_ata_statistics_parse_desc(dev, f, line, true, i + 1);
+		if (ret)
+			return ret;
+		buf[12] = dev->cdl_stats.ata.reads_a[i].selector;
+		buf[13] = dev->cdl_stats.ata.reads_b[i].selector;
+	}
+
+	buf = dev->ata_cdl_log + 288;
+	for (i = 0; i < CDL_MAX_DESC; i++, buf += 32) {
+		ret = cdl_ata_statistics_parse_desc(dev, f, line, false, i + 1);
+		if (ret)
+			return ret;
+		buf[12] = dev->cdl_stats.ata.writes_a[i].selector;
+		buf[13] = dev->cdl_stats.ata.writes_b[i].selector;
+	}
+
+	/* Update the CDL log on the device */
+	ret = cdl_ata_write_cdl_log(dev);
+	if (ret)
+		return ret;
 
 	return 0;
 }
