@@ -333,7 +333,7 @@ int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 	if (ret) {
 		cdl_dev_err(dev,
 			    "Read command duration limits log page failed\n");
-		return false;
+		return ret;
 	}
 
 	/*
