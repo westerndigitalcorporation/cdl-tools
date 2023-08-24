@@ -500,3 +500,10 @@ int cdl_scsi_statistics_show(struct cdl_dev *dev, int cdlp)
 	return -ENOTSUP;
 }
 
+int cdl_scsi_statistics_reset(struct cdl_dev *dev)
+{
+	cdl_dev_err(dev,
+		    "CDL statistics for SCSI devices is not yet supported\n");
+
+	return -ENOTSUP;
+}

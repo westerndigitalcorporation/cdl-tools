@@ -938,6 +938,18 @@ int cdl_statistics_show(struct cdl_dev *dev, int cdlp)
 }
 
 /*
+ * Reset (clear) the current CDL statistics, if supported.
+ */
+int cdl_statistics_reset(struct cdl_dev *dev)
+{
+	/* For ATA devices, always use ATA */
+	if (cdl_dev_is_ata(dev))
+		return cdl_ata_statistics_reset(dev);
+
+	return cdl_scsi_statistics_reset(dev);
+}
+
+/*
  * Test if a sysfs attribute file exists.
  */
 bool cdl_sysfs_exists(struct cdl_dev *dev, const char *format, ...)

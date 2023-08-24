@@ -242,6 +242,7 @@ bool cdl_page_supported(struct cdl_dev *dev, enum cdl_p cdlp);
 int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page);
 int cdl_check_enabled(struct cdl_dev *dev, bool enabled);
 int cdl_statistics_show(struct cdl_dev *dev, int cdlp);
+int cdl_statistics_reset(struct cdl_dev *dev);
 
 bool cdl_sysfs_exists(struct cdl_dev *dev, const char *format, ...);
 unsigned long cdl_sysfs_get_ulong_attr(struct cdl_dev *dev,
@@ -259,6 +260,7 @@ int cdl_ata_enable(struct cdl_dev *dev, bool enable, bool highpri);
 void cdl_ata_revalidate(struct cdl_dev *dev);
 int cdl_ata_get_limits(struct cdl_dev *dev, struct cdl_sg_cmd *cmd);
 int cdl_ata_statistics_show(struct cdl_dev *dev, int cdlp);
+int cdl_ata_statistics_reset(struct cdl_dev *dev);
 
 /* In cdl_scsi.c */
 void cdl_scsi_get_ata_information(struct cdl_dev *dev);
@@ -269,6 +271,7 @@ int cdl_scsi_write_page(struct cdl_dev *dev, struct cdl_page *page);
 int cdl_scsi_check_enabled(struct cdl_dev *dev, bool enabled);
 void cdl_scsi_revalidate(struct cdl_dev *dev);
 int cdl_scsi_statistics_show(struct cdl_dev *dev, int cdlp);
+int cdl_scsi_statistics_reset(struct cdl_dev *dev);
 
 static inline bool cdl_dev_is_ata(struct cdl_dev *dev)
 {

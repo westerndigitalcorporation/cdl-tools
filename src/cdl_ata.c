@@ -20,8 +20,8 @@
  * Read a log page.
  */
 static int cdl_ata_read_log(struct cdl_dev *dev, uint8_t log,
-			    uint16_t page, struct cdl_sg_cmd *cmd,
-			    size_t bufsz)
+			    uint16_t page, bool initialize,
+			    struct cdl_sg_cmd *cmd, size_t bufsz)
 {
 	/*
 	 * READ LOG DMA EXT in ATA 16 passthrough command.
@@ -68,6 +68,8 @@ static int cdl_ata_read_log(struct cdl_dev *dev, uint8_t log,
 	cmd->cdb[1] = (0x6 << 1) | 0x01;
 	/* off_line=0, ck_cond=0, t_type=0, t_dir=1, byt_blk=1, t_length=10 */
 	cmd->cdb[2] = 0x0e;
+	if (initialize)
+		cmd->cdb[4] |= 0x1;
 	cdl_sg_set_be16(&cmd->cdb[5], bufsz / 512);
 	cmd->cdb[8] = log;
 	cdl_sg_set_be16(&cmd->cdb[9], page);
@@ -151,7 +153,7 @@ int cdl_ata_log_nr_pages(struct cdl_dev *dev, uint8_t log)
 	int ret;
 
 	/* Read general purpose log directory */
-	ret = cdl_ata_read_log(dev, 0x00, 0x00, &cmd, 512);
+	ret = cdl_ata_read_log(dev, 0x00, 0x00, false, &cmd, 512);
 	if (ret) {
 		cdl_dev_err(dev,
 			    "Read general purpose log directory failed\n");
@@ -229,7 +231,7 @@ int cdl_ata_get_limits(struct cdl_dev *dev, struct cdl_sg_cmd *cmd)
 
 	if (!cmd) {
 		cmd = &_cmd;
-		ret = cdl_ata_read_log(dev, 0x30, 0x03, cmd, 512);
+		ret = cdl_ata_read_log(dev, 0x30, 0x03, false, cmd, 512);
 		if (ret) {
 			cdl_dev_err(dev,
 				    "Read supported capabilities log page failed\n");
@@ -271,7 +273,7 @@ int cdl_ata_get_statistics_supported(struct cdl_dev *dev)
 		return 0;
 
 	/* Get list of supported statistics */
-	ret = cdl_ata_read_log(dev, 0x04, 0x00, &cmd, 512);
+	ret = cdl_ata_read_log(dev, 0x04, 0x00, false, &cmd, 512);
 	if (ret) {
 		cdl_dev_err(dev,
 			    "Read supported statistics log page failed\n");
@@ -301,7 +303,7 @@ int cdl_ata_init(struct cdl_dev *dev)
 	dev->flags |= CDL_ATA;
 
 	/* Check CDL features bits using the supported capabilities log page */
-	ret = cdl_ata_read_log(dev, 0x30, 0x03, &cmd, 512);
+	ret = cdl_ata_read_log(dev, 0x30, 0x03, false, &cmd, 512);
 	if (ret) {
 		cdl_dev_err(dev,
 			    "Read supported capabilities log page failed\n");
@@ -348,7 +350,7 @@ int cdl_ata_init(struct cdl_dev *dev)
 	}
 
 	/* Check CDL current settings */
-	ret = cdl_ata_read_log(dev, 0x30, 0x04, &cmd, 512);
+	ret = cdl_ata_read_log(dev, 0x30, 0x04, false, &cmd, 512);
 	if (ret) {
 		cdl_dev_err(dev,
 			    "Read current settings log page failed\n");
@@ -387,7 +389,7 @@ int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 	int i, ret;
 
 	/* Command duration limits log */
-	ret = cdl_ata_read_log(dev, 0x18, 0, &cmd, CDL_ATA_LOG_SIZE);
+	ret = cdl_ata_read_log(dev, 0x18, 0, false, &cmd, CDL_ATA_LOG_SIZE);
 	if (ret) {
 		cdl_dev_err(dev,
 			    "Read command duration limits log page failed\n");
@@ -566,7 +568,7 @@ int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled)
 	int ret;
 
 	/* Check CDL current settings */
-	ret = cdl_ata_read_log(dev, 0x30, 0x04, &cmd, 512);
+	ret = cdl_ata_read_log(dev, 0x30, 0x04, false, &cmd, 512);
 	if (ret) {
 		cdl_dev_err(dev,
 			    "Read current settings log page failed\n");
@@ -652,7 +654,7 @@ static int cdl_ata_get_stats(struct cdl_dev *dev)
 	uint64_t qword;
 
 	/* Check CDL current settings */
-	ret = cdl_ata_read_log(dev, 0x04, 0x09, &cmd, 512);
+	ret = cdl_ata_read_log(dev, 0x04, 0x09, false, &cmd, 512);
 	if (ret) {
 		cdl_dev_err(dev,
 			    "Read CDL statistics log page failed\n");
@@ -780,6 +782,25 @@ int cdl_ata_statistics_show(struct cdl_dev *dev, int cdlp)
 
 		cdl_ata_stat_desc_show(sdesc_a, "A");
 		cdl_ata_stat_desc_show(sdesc_b, "B");
+	}
+
+	return 0;
+}
+
+int cdl_ata_statistics_reset(struct cdl_dev *dev)
+{
+	struct cdl_sg_cmd cmd;
+	int ret;
+
+	/*
+	 * Reset CDL statistics by reading the statistics log page with the
+	 * read then initialize bit set.
+	 */
+	ret = cdl_ata_read_log(dev, 0x04, 0x09, true, &cmd, 512);
+	if (ret) {
+		cdl_dev_err(dev,
+			    "Read then initialize CDL statistics log page failed\n");
+		return ret;
 	}
 
 	return 0;
