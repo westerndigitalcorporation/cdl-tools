@@ -37,7 +37,8 @@ static void cdladm_usage(void)
 	       "  enable-highpri  : Enable high priority enhancement\n"
 	       "  disable-highpri : Disable high priority enhancement\n"
 	       "  stats-show      : Display CDL statistics configuration and values\n"
-	       "  stats-reset     : Reset to 0 all CDL statistics values\n");
+	       "  stats-reset     : Reset to 0 all CDL statistics values\n"
+	       "  stats-save      : Save CDL statistics configuration to a file\n");
 	printf("Command options:\n");
 	printf("  --count\n"
 	       "\tApply to the show command.\n"
@@ -48,11 +49,15 @@ static void cdladm_usage(void)
 	       "\tSpecify the name of the page to show,clear or save. The\n"
 	       "\tpage name tcan be: \"A\", \"B\", \"T2A\" or \"T2B\".\n");
 	printf("  --file <path>\n"
-	       "\tApply to the save and upload commands.\n"
-	       "\tSpecify the path of the page file to use.\n"
+	       "\tApply to the save, upload and stats-save commands.\n"
+	       "\tSpecify the path of the page or statistics configuration\n"
+	       "file to use.\n"
 	       "\tUsing this option is mandatory with the upload command.\n"
 	       "\tIf this option is not specified with the save command,\n"
 	       "\tthe default file name <dev name>-<page name>.cdl is\n"
+	       "\tused.\n"
+	       "\tIf this option is not specified with the stats-save command,\n"
+	       "\tthe default file name <dev name>-cdl-stats.cfg is\n"
 	       "\tused.\n");
 	printf("  --permanent\n"
 	       "\tApply to the upload command.\n"
@@ -329,6 +334,47 @@ static int cdladm_stats_reset(struct cdl_dev *dev)
 	return 0;
 }
 
+static int cdladm_stats_save(struct cdl_dev *dev, char *path)
+{
+	char *fpath;
+	int ret;
+	FILE *f;
+
+	if (!path) {
+		ret = asprintf(&fpath, "%s-cdl-stats.cfg", dev->name);
+		if (ret < 0) {
+			fprintf(stderr, "Failed to allocate file path\n");
+			return 1;
+		}
+	} else {
+		fpath = path;
+	}
+
+	f = fopen(fpath, "w");
+	if (!f) {
+		fprintf(stderr,
+			"Open statistics configuration file file %s failed (%s)\n",
+			fpath, strerror(errno));
+		ret = 1;
+		goto out;
+	}
+
+	printf("Saving CDL statistics configuration to file %s\n",
+	       fpath);
+
+	ret = cdl_statistics_save(dev, f);
+	if (ret)
+		return 1;
+
+	fclose(f);
+
+out:
+	if (!path)
+		free(fpath);
+
+	return ret;
+}
+
 static void cdladm_get_kernel_support(struct cdl_dev *dev)
 {
 	bool supported, enabled = false;
@@ -524,6 +570,7 @@ enum cdladm_cmd_code {
 	CDLADM_DISABLE_HIGHPRI,
 	CDLADM_STATS_SHOW,
 	CDLADM_STATS_RESET,
+	CDLADM_STATS_SAVE,
 
 	CDLADM_CMD_MAX,
 };
@@ -550,6 +597,7 @@ static struct {
 	{ "disable-highpri",	CDLADM_DISABLE_HIGHPRI,	O_RDWR   },
 	{ "stats-show",		CDLADM_STATS_SHOW,	O_RDWR   },
 	{ "stats-reset",	CDLADM_STATS_RESET,	O_RDWR   },
+	{ "stats-save",		CDLADM_STATS_SAVE,	O_RDWR   },
 	{ NULL,			CDLADM_CMD_MAX,		0        }
 };
 
@@ -826,6 +874,9 @@ err_cmd_line:
 		break;
 	case CDLADM_STATS_RESET:
 		ret = cdladm_stats_reset(&dev);
+		break;
+	case CDLADM_STATS_SAVE:
+		ret = cdladm_stats_save(&dev, path);
 		break;
 	case CDLADM_NONE:
 	default:

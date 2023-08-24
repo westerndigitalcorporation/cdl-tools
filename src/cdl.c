@@ -950,6 +950,18 @@ int cdl_statistics_reset(struct cdl_dev *dev)
 }
 
 /*
+ * Save the CDL statistics configuration to a file, if supported.
+ */
+int cdl_statistics_save(struct cdl_dev *dev, FILE *f)
+{
+	/* For ATA devices, always use ATA */
+	if (cdl_dev_is_ata(dev))
+		return cdl_ata_statistics_save(dev, f);
+
+	return cdl_scsi_statistics_save(dev, f);
+}
+
+/*
  * Test if a sysfs attribute file exists.
  */
 bool cdl_sysfs_exists(struct cdl_dev *dev, const char *format, ...)

@@ -377,16 +377,12 @@ static uint16_t cdl_ata_a2s_limit(uint8_t *buf)
 }
 
 /*
- * Read a CDL page from the device.
+ * Read the device CDL descriptor log.
  */
-int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
-		      struct cdl_page *page)
+static int cdl_ata_read_cdl_log(struct cdl_dev *dev)
 {
-	struct cdl_desc *desc = &page->descs[0];
 	struct cdl_sg_cmd cmd;
-	uint8_t *buf = cmd.buf;
-	uint32_t policy;
-	int i, ret;
+	int ret;
 
 	/* Command duration limits log */
 	ret = cdl_ata_read_log(dev, 0x18, 0, false, &cmd, CDL_ATA_LOG_SIZE);
@@ -396,11 +392,27 @@ int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		return ret;
 	}
 
-	/*
-	 * Save the log page as we will need it when changing the log page
-	 * descriptors.
-	 */
+	/* Save the log */
 	memcpy(dev->ata_cdl_log, cmd.buf, CDL_ATA_LOG_SIZE);
+
+	return 0;
+}
+
+/*
+ * Read a CDL page from the device.
+ */
+int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
+		      struct cdl_page *page)
+{
+	struct cdl_desc *desc = &page->descs[0];
+	uint8_t *buf = dev->ata_cdl_log;
+	uint32_t policy;
+	int i, ret;
+
+	/* Command duration limits log */
+	ret = cdl_ata_read_cdl_log(dev);
+	if (ret)
+		return ret;
 
 	/* T2A and T2B limits page */
 	page->cdlp = cdlp;
@@ -801,6 +813,70 @@ int cdl_ata_statistics_reset(struct cdl_dev *dev)
 		cdl_dev_err(dev,
 			    "Read then initialize CDL statistics log page failed\n");
 		return ret;
+	}
+
+	return 0;
+}
+
+int cdl_ata_statistics_save(struct cdl_dev *dev, FILE *f)
+{
+	uint8_t *buf;
+	int i, ret;
+
+	/* Command duration limits log */
+	ret = cdl_ata_read_cdl_log(dev);
+	if (ret)
+		return ret;
+
+	/* Get read descriptors statistics selectors */
+	buf = dev->ata_cdl_log + 64;
+	for (i = 0; i < CDL_MAX_DESC; i++, buf += 32) {
+		dev->cdl_stats.ata.reads_a[i].selector = buf[12];
+		dev->cdl_stats.ata.reads_b[i].selector = buf[13];
+	}
+
+	/* Get write descriptors statistics selectors */
+	buf = dev->ata_cdl_log + 288;
+	for (i = 0; i < CDL_MAX_DESC; i++, buf += 32) {
+		dev->cdl_stats.ata.writes_a[i].selector = buf[12];
+		dev->cdl_stats.ata.writes_b[i].selector = buf[13];
+	}
+
+	/* File legend */
+	fprintf(f, "# CDL statistics configuration format:\n");
+	fprintf(f,
+		"# selector_a and selector_b of a descriptor can be one of:\n"
+		"#   - 0 : Disable statistic\n"
+		"#   - 1 : Increment the statistics value if the device\n"
+		"#         processes the inactive time limit policy\n"
+		"#         requirements set for the descriptor\n"
+		"#   - 2 : Increment the statistics value if the device\n"
+		"#         processes the active time limit policy\n"
+		"#         requirements set for the descriptor\n"
+		"#   - 3 : Increment the statistics value if the device\n"
+		"#         processes the requirements of the inactive time\n"
+		"#         limit policy or of the active time limit policy\n"
+		"#         set for the descriptor\n"
+		"#   - 4 : Increment the statistics value if the device\n"
+		"#         processes a command using this descriptor\n");
+	fprintf(f, "\n");
+
+	for (i = 0; i < CDL_MAX_DESC; i++) {
+		fprintf(f, "== read descriptor: %d\n", i + 1);
+		fprintf(f, "selector_a: %u\n",
+			dev->cdl_stats.ata.reads_a[i].selector);
+		fprintf(f, "selector_b: %u\n",
+			dev->cdl_stats.ata.reads_b[i].selector);
+		fprintf(f, "\n");
+	}
+
+	for (i = 0; i < CDL_MAX_DESC; i++) {
+		fprintf(f, "== write descriptor: %d\n", i + 1);
+		fprintf(f, "selector_a: %u\n",
+			dev->cdl_stats.ata.writes_a[i].selector);
+		fprintf(f, "selector_b: %u\n",
+			dev->cdl_stats.ata.writes_b[i].selector);
+		fprintf(f, "\n");
 	}
 
 	return 0;
