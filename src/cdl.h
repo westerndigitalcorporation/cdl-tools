@@ -110,6 +110,35 @@ struct cdl_page {
 #define CDL_SAT_PRODUCT_LEN	17
 #define CDL_SAT_REV_LEN		5
 
+struct cdl_ata_stats_desc {
+	uint8_t		selector;
+	uint8_t		flags;
+	uint32_t	val;
+};
+
+struct cdl_ata_stats {
+	struct cdl_ata_stats_desc reads_a[CDL_MAX_DESC];
+	struct cdl_ata_stats_desc reads_b[CDL_MAX_DESC];
+	struct cdl_ata_stats_desc writes_a[CDL_MAX_DESC];
+	struct cdl_ata_stats_desc writes_b[CDL_MAX_DESC];
+};
+
+struct cdl_scsi_stats_desc {
+	uint8_t		du : 1;
+	uint8_t		tsd : 1;
+	uint8_t		format_and_linking : 2;
+	uint32_t	nr_inactive_target_miss_cmds;
+	uint32_t	nr_active_target_miss_cmds;
+	uint32_t	nr_target_miss_cmds;
+	uint32_t	nr_cmds;
+};
+
+struct cdl_scsi_stats {
+	struct cdl_scsi_stats_desc achievable_latency_target;
+	struct cdl_scsi_stats_desc t2a[CDL_MAX_DESC];
+	struct cdl_scsi_stats_desc t2b[CDL_MAX_DESC];
+};
+
 struct cdl_dev {
 	/* Device file path and basename */
 	char			*path;
@@ -139,6 +168,16 @@ struct cdl_dev {
 
 	/* For ATA CDL log page caching */
 	uint8_t			*ata_cdl_log;
+
+	/*
+	 * CDL statistics configuration: the format for ATA and SCSI differs
+	 * and is not easily translatable from one to the other.
+	 * So maintain different formats for each.
+	 */
+	union {
+		struct cdl_ata_stats ata;
+		struct cdl_scsi_stats scsi;
+	} cdl_stats;
 };
 
 /*
