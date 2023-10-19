@@ -262,6 +262,7 @@ int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled);
 int cdl_ata_enable(struct cdl_dev *dev, bool enable, bool highpri);
 void cdl_ata_revalidate(struct cdl_dev *dev);
 int cdl_ata_get_limits(struct cdl_dev *dev, struct cdl_sg_cmd *cmd);
+int cdl_ata_get_statistics_supported(struct cdl_dev *dev);
 int cdl_ata_statistics_show(struct cdl_dev *dev, int cdlp);
 int cdl_ata_statistics_reset(struct cdl_dev *dev);
 int cdl_ata_statistics_save(struct cdl_dev *dev, FILE *f);

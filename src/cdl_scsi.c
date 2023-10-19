@@ -284,7 +284,10 @@ int cdl_scsi_init(struct cdl_dev *dev)
 	}
 
 	/* Check if CDL statistics is supported */
-	ret = cdl_scsi_get_statistics_supported(dev);
+	if (cdl_dev_is_ata(dev))
+		ret = cdl_ata_get_statistics_supported(dev);
+	else
+		ret = cdl_scsi_get_statistics_supported(dev);
 	if (ret)
 		return ret;
 
