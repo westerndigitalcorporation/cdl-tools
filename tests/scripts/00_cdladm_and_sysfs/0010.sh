@@ -14,18 +14,20 @@ fi
 
 echo "# cdladm list $1"
 cdladm list $1 | \
-	grep -v "High priority enhancement" | \
+	grep -v "High priority enhancement: " | \
+	grep -v "Statistics: " | \
 	tee /tmp/cdl-list || \
 		exit_failed
 
 if dev_is_ata "$1"; then
 	echo "# cdladm list --force-ata $1"
 	cdladm list --force-ata $1 | \
-		grep -v "High priority enhancement" | \
+		grep -v "High priority enhancement: " | \
+		grep -v "Statistics: " | \
 		tee /tmp/cdl-list-ata || \
 			exit_failed
 
-	diff -q /tmp/cdl-list /tmp/cdl-list-ata || \
+	diff /tmp/cdl-list /tmp/cdl-list-ata || \
 		exit_failed "ata list differs from SAT list"
 fi
 
