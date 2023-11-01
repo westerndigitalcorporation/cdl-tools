@@ -773,9 +773,8 @@ static void cdl_ata_stat_desc_show(struct cdl_ata_stats_desc *sdesc,
 		return;
 	}
 
-	printf("      Value type: %s\n",
-	       cdl_ata_stat_val_type(sdesc));
-	printf("      Value: %u\n",
+	printf("%s, value = %u\n",
+	       cdl_ata_stat_val_type(sdesc),
 	       sdesc->val);
 }
 
