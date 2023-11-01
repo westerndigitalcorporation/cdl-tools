@@ -820,6 +820,7 @@ err_cmd_line:
 	printf("    Device interface: %s\n",
 	       cdl_dev_is_ata(&dev) ? "ATA" : "SAS");
 	if (cdl_dev_is_ata(&dev)) {
+		printf("      ACS version: %s\n", cdl_ata_acs_ver(&dev));
 		printf("      SAT Vendor: %s\n", dev.sat_vendor);
 		printf("      SAT Product: %s\n", dev.sat_product);
 		printf("      SAT revision: %s\n", dev.sat_rev);

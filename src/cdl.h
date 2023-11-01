@@ -149,6 +149,7 @@ struct cdl_dev {
 
 	/* Device info */
 	unsigned int		flags;
+	unsigned int		acs_ver;
 	char			vendor[CDL_VENDOR_LEN];
 	char			id[CDL_ID_LEN];
 	char			rev[CDL_REV_LEN];
@@ -261,6 +262,8 @@ int cdl_ata_write_page(struct cdl_dev *dev, struct cdl_page *page);
 int cdl_ata_check_enabled(struct cdl_dev *dev, bool enabled);
 int cdl_ata_enable(struct cdl_dev *dev, bool enable, bool highpri);
 void cdl_ata_revalidate(struct cdl_dev *dev);
+int cdl_ata_get_acs_ver(struct cdl_dev *dev);
+const char *cdl_ata_acs_ver(struct cdl_dev *dev);
 int cdl_ata_get_limits(struct cdl_dev *dev, struct cdl_sg_cmd *cmd);
 int cdl_ata_get_statistics_supported(struct cdl_dev *dev);
 int cdl_ata_statistics_show(struct cdl_dev *dev, int cdlp);

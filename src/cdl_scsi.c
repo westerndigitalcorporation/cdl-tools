@@ -275,6 +275,10 @@ int cdl_scsi_init(struct cdl_dev *dev)
 
 	/* Set the minimum and maximum limits */
 	if (cdl_dev_is_ata(dev)) {
+		ret = cdl_ata_get_acs_ver(dev);
+		if (ret)
+			return ret;
+
 		ret = cdl_ata_get_limits(dev, NULL);
 		if (ret)
 			return ret;

@@ -223,6 +223,55 @@ static int cdl_ata_set_features(struct cdl_dev *dev, uint8_t feature,
 	return cdl_exec_cmd(dev, &cmd);
 }
 
+int cdl_ata_get_acs_ver(struct cdl_dev *dev)
+{
+	struct cdl_sg_cmd cmd;
+	int major_ver_num, i, ret;
+
+	ret = cdl_ata_read_log(dev, 0x30, 0x01, false, &cmd, 512);
+	if (ret) {
+		cdl_dev_err(dev,
+			    "Read identify device data log page failed\n");
+		return ret;
+	}
+
+	/* Get the ACS version supported */
+	major_ver_num = cdl_sg_get_le16(&cmd.buf[80 * 2]);
+	for (i = 8; i < 14; i++) {
+		if (major_ver_num & (1 << i))
+			dev->acs_ver = i + 1 - 8;
+	}
+
+	if (dev->acs_ver < 1) {
+		cdl_dev_err(dev, "Invalid major version number\n");
+		return -1;
+	}
+
+	if (dev->acs_ver > 6) {
+		cdl_dev_err(dev, "Unknown ACS major version number 0x%02x\n",
+			    major_ver_num);
+		return -1;
+	}
+
+	return 0;
+}
+
+static const char *acs_ver_name[] =
+{
+	NULL,		/* 0 */
+	"ATA8-ACS",	/* 1 */
+	"ACS-2",	/* 2 */
+	"ACS-3",	/* 3 */
+	"ACS-4",	/* 4 */
+	"ACS-5",	/* 5 */
+	"ACS-6",	/* 6 */
+};
+
+const char *cdl_ata_acs_ver(struct cdl_dev *dev)
+{
+	return acs_ver_name[dev->acs_ver];
+}
+
 int cdl_ata_get_limits(struct cdl_dev *dev, struct cdl_sg_cmd *cmd)
 {
 	struct cdl_sg_cmd _cmd;
@@ -301,6 +350,16 @@ int cdl_ata_init(struct cdl_dev *dev)
 
 	/* This is an ATA device */
 	dev->flags |= CDL_ATA;
+
+	/* Get the ACS version supported */
+	ret = cdl_ata_get_acs_ver(dev);
+	if (ret)
+		return ret;
+
+	if (dev->acs_ver < 5) {
+		cdl_dev_info(dev, "ACS version lower than ACS-5\n");
+		return -1;
+	}
 
 	/* Check CDL features bits using the supported capabilities log page */
 	ret = cdl_ata_read_log(dev, 0x30, 0x03, false, &cmd, 512);
