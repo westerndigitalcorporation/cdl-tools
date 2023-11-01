@@ -332,7 +332,7 @@ int cdl_ata_get_statistics_supported(struct cdl_dev *dev)
 	for (i = 0; i < cmd.buf[8]; i++) {
 		if (cmd.buf[i + 9] == 0x09) {
 			dev->flags |= CDL_STATISTICS_SUPPORTED;
-			return 0;
+			break;
 		}
 	}
 
@@ -400,13 +400,6 @@ int cdl_ata_init(struct cdl_dev *dev)
 	dev->cmd_cdlp[CDL_WRITE_16] = CDLP_T2B;
 	dev->cmd_cdlp[CDL_READ_32] = CDLP_NONE;
 	dev->cmd_cdlp[CDL_WRITE_32] = CDLP_NONE;
-
-	/* Allocate a buffer to cache the CDL log page */
-	dev->ata_cdl_log = calloc(1, CDL_ATA_LOG_SIZE);
-	if (!dev->ata_cdl_log) {
-		cdl_dev_err(dev, "No memory for CDL log buffer\n");
-		return -ENOMEM;
-	}
 
 	/* Check CDL current settings */
 	ret = cdl_ata_read_log(dev, 0x30, 0x04, false, &cmd, 512);
@@ -501,13 +494,15 @@ int cdl_ata_read_page(struct cdl_dev *dev, enum cdl_p cdlp,
 		 */
 		desc->cdltunit = 0x0a; /* 10ms */
 
-		/* Save the satistics configuration (selectors) */
-		if (cdlp == CDLP_T2A) {
-			dev->cdl_stats.ata.reads_a[i].selector = buf[12];
-			dev->cdl_stats.ata.reads_b[i].selector = buf[13];
-		} else {
-			dev->cdl_stats.ata.writes_a[i].selector = buf[12];
-			dev->cdl_stats.ata.writes_b[i].selector = buf[13];
+		if (cdl_dev_statistics_supported(dev)) {
+			/* Save the satistics configuration (selectors) */
+			if (cdlp == CDLP_T2A) {
+				dev->cdl_stats.ata.reads_a[i].selector = buf[12];
+				dev->cdl_stats.ata.reads_b[i].selector = buf[13];
+			} else {
+				dev->cdl_stats.ata.writes_a[i].selector = buf[12];
+				dev->cdl_stats.ata.writes_b[i].selector = buf[13];
+			}
 		}
 	}
 

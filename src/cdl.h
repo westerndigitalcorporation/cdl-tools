@@ -168,7 +168,7 @@ struct cdl_dev {
 	unsigned long long	max_limit;
 
 	/* For ATA CDL log page caching */
-	uint8_t			*ata_cdl_log;
+	uint8_t			ata_cdl_log[CDL_ATA_LOG_SIZE];
 
 	/*
 	 * CDL statistics configuration: the format for ATA and SCSI differs
@@ -292,6 +292,11 @@ static inline bool cdl_dev_is_ata(struct cdl_dev *dev)
 static inline bool cdl_dev_use_ata(struct cdl_dev *dev)
 {
 	return dev->flags & CDL_USE_ATA;
+}
+
+static inline bool cdl_dev_statistics_supported(struct cdl_dev *dev)
+{
+	return dev->flags & CDL_STATISTICS_SUPPORTED;
 }
 
 static inline bool cdl_verbose(struct cdl_dev *dev)

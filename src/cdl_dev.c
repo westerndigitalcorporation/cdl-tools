@@ -571,9 +571,6 @@ void cdl_close_dev(struct cdl_dev *dev)
 		dev->cdl_pages[i].msbuf = NULL;
 	}
 
-	free(dev->ata_cdl_log);
-	dev->ata_cdl_log = NULL;
-
 	close(dev->fd);
 	dev->fd = -1;
 }

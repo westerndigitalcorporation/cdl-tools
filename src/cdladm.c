@@ -294,7 +294,7 @@ static int cdladm_stats_show(struct cdl_dev *dev)
 {
 	int i, ret;
 
-	if (!(dev->flags & CDL_STATISTICS_SUPPORTED)) {
+	if (!cdl_dev_statistics_supported(dev)) {
 		fprintf(stderr, "CDL statistics is not supported\n");
 		return 1;
 	}
@@ -319,7 +319,7 @@ static int cdladm_stats_reset(struct cdl_dev *dev)
 {
 	int ret;
 
-	if (!(dev->flags & CDL_STATISTICS_SUPPORTED)) {
+	if (!cdl_dev_statistics_supported(dev)) {
 		fprintf(stderr, "CDL statistics is not supported\n");
 		return 1;
 	}
@@ -340,6 +340,11 @@ static int cdladm_stats_save(struct cdl_dev *dev, char *path)
 	char *fpath;
 	int ret;
 	FILE *f;
+
+	if (!cdl_dev_statistics_supported(dev)) {
+		fprintf(stderr, "CDL statistics is not supported\n");
+		return 1;
+	}
 
 	if (!path) {
 		ret = asprintf(&fpath, "%s-cdl-stats.cfg", dev->name);
@@ -380,6 +385,11 @@ static int cdladm_stats_upload(struct cdl_dev *dev, char *path)
 {
 	FILE *f;
 	int ret;
+
+	if (!cdl_dev_statistics_supported(dev)) {
+		fprintf(stderr, "CDL statistics is not supported\n");
+		return 1;
+	}
 
 	if (!path) {
 		fprintf(stderr, "No file specified\n");
