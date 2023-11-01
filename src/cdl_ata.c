@@ -752,7 +752,8 @@ static const char *cdl_ata_stat_val_type(struct cdl_ata_stats_desc *sdesc)
 	return stat_val_type[5];
 }
 
-static void cdl_ata_stat_desc_show(struct cdl_ata_stats_desc *sdesc,
+static void cdl_ata_stat_desc_show(struct cdl_dev *dev,
+				   struct cdl_ata_stats_desc *sdesc,
 				   const char *ab)
 {
 	printf("    Statistic %s: ", ab);
@@ -773,9 +774,15 @@ static void cdl_ata_stat_desc_show(struct cdl_ata_stats_desc *sdesc,
 		return;
 	}
 
-	printf("%s, value = %u\n",
-	       cdl_ata_stat_val_type(sdesc),
-	       sdesc->val);
+	if (dev->flags & CDL_SHOW_RAW_VAL) {
+		printf("\n");
+		printf("        Selector = 0x%02x\n", sdesc->selector);
+		printf("        Value = 0x%08x\n", sdesc->val);
+	} else {
+		printf("%s, value = %u\n",
+		       cdl_ata_stat_val_type(sdesc),
+		       sdesc->val);
+	}
 }
 
 int cdl_ata_statistics_show(struct cdl_dev *dev, int cdlp)
@@ -805,8 +812,8 @@ int cdl_ata_statistics_show(struct cdl_dev *dev, int cdlp)
 			sdesc_b = &dev->cdl_stats.ata.writes_b[i];
 		}
 
-		cdl_ata_stat_desc_show(sdesc_a, "A");
-		cdl_ata_stat_desc_show(sdesc_b, "B");
+		cdl_ata_stat_desc_show(dev, sdesc_a, "A");
+		cdl_ata_stat_desc_show(dev, sdesc_b, "B");
 	}
 
 	return 0;

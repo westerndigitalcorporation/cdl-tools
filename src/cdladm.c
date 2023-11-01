@@ -66,8 +66,8 @@ static void cdladm_usage(void)
 	       "\tnon-volatile memory in addition to updating the current\n"
 	       "\tpage value.\n");
 	printf("  --raw\n"
-	       "\tApply to the show command.\n"
-	       "\tShow the raw values of the CDL pages fields.\n");
+	       "\tApply to the show and stats-show commands.\n"
+	       "\tShow the raw values of the CDL pages and statistics fields.\n");
 	printf("  --force-dev\n"
 	       "\tApply to the enable and disable commands for ATA devices.\n"
 	       "\tForce enabling and disabling the CDL feature directly on\n"
@@ -744,7 +744,8 @@ int main(int argc, char **argv)
 		}
 
 		if (strcmp(argv[i], "--raw") == 0) {
-			if (command != CDLADM_SHOW)
+			if (command != CDLADM_SHOW &&
+			    command != CDLADM_STATS_SHOW)
 				goto err_cmd_line;
 			dev.flags |= CDL_SHOW_RAW_VAL;
 			continue;
