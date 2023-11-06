@@ -47,7 +47,7 @@ static void cdladm_usage(void)
 	       "\tOmit the descriptor details and only print the number of\n"
 	       "\tvalid descriptors in a page\n");
 	printf("  --page <name>\n"
-	       "\tApply to the show, clear and save commands.\n"
+	       "\tApply to the show, clear, save and stats-show commands.\n"
 	       "\tSpecify the name of the page to show,clear or save. The\n"
 	       "\tpage name tcan be: \"A\", \"B\", \"T2A\" or \"T2B\".\n");
 	printf("  --file <path>\n"
@@ -290,17 +290,32 @@ static int cdladm_upload(struct cdl_dev *dev, char *path)
 	return 0;
 }
 
-static int cdladm_stats_show(struct cdl_dev *dev)
+static int cdladm_stats_show(struct cdl_dev *dev, char *page)
 {
-	int i, ret;
+	int cdlp = -1, i, ret;
 
 	if (!cdl_dev_statistics_supported(dev)) {
 		fprintf(stderr, "CDL statistics is not supported\n");
 		return 1;
 	}
 
+	if (page) {
+		/* Show only statistics for the specified page */
+		cdlp = cdl_page_name2cdlp(page);
+		if (cdlp < 0)
+			return 1;
+	}
+
 	for (i = 0; i < CDL_MAX_PAGES; i++) {
-		if (!cdl_page_supported(dev, i))
+		if (!cdl_page_supported(dev, i)) {
+			if (page && i == cdlp) {
+				printf("Page %s is not supported\n", page);
+				return 1;
+			}
+			continue;
+		}
+
+		if (page && i != cdlp)
 			continue;
 
 		printf("Page %s: %s descriptors\n",
@@ -723,6 +738,7 @@ int main(int argc, char **argv)
 
 		if (strcmp(argv[i], "--page") == 0) {
 			if (command != CDLADM_SHOW &&
+			    command != CDLADM_STATS_SHOW &&
 			    command != CDLADM_CLEAR &&
 			    command != CDLADM_SAVE)
 				goto err_cmd_line;
@@ -916,7 +932,7 @@ err_cmd_line:
 		ret = cdladm_disable_highpri(&dev);
 		break;
 	case CDLADM_STATS_SHOW:
-		ret = cdladm_stats_show(&dev);
+		ret = cdladm_stats_show(&dev, page);
 		break;
 	case CDLADM_STATS_RESET:
 		ret = cdladm_stats_reset(&dev);
