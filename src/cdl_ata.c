@@ -932,7 +932,9 @@ int cdl_ata_statistics_save(struct cdl_dev *dev, FILE *f)
 		"#         limit policy or of the active time limit policy\n"
 		"#         set for the descriptor\n"
 		"#   - 4 : Increment the statistics value if the device\n"
-		"#         processes a command using this descriptor\n");
+		"#         processes a command using this descriptor\n"
+		"#         (Valid only for devices supporting at least\n"
+		"#         the ACS-6 specifications)\n");
 	fprintf(f, "\n");
 
 	for (i = 0; i < CDL_MAX_DESC; i++) {
