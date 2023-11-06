@@ -959,10 +959,11 @@ int cdl_ata_statistics_save(struct cdl_dev *dev, FILE *f)
 }
 
 static int cdl_ata_statistics_parse_desc(struct cdl_dev *dev, FILE *f,
-					 char *line, bool read, int index)
+					 char *line, bool read, int desc_index)
 {
 	int idx, selector_a, selector_b;
 	char *type, *str;
+	int stat_idx = desc_index - 1;
 
 	/* Parse descriptor header */
 	if (read)
@@ -987,7 +988,7 @@ static int cdl_ata_statistics_parse_desc(struct cdl_dev *dev, FILE *f,
 		goto err;
 
 	idx = atoi(str);
-	if (idx != index)
+	if (idx != desc_index)
 		goto err;
 
 	/* Parse selector_a */
@@ -1001,14 +1002,14 @@ static int cdl_ata_statistics_parse_desc(struct cdl_dev *dev, FILE *f,
 	selector_a = atoi(str);
 	if (selector_a < 0 || selector_a > 4) {
 		fprintf(stderr, "Invalid %s descriptor %d selector_a value\n",
-			type, index);
+			type, desc_index);
 		return 1;
 	}
 
 	if (read)
-		dev->cdl_stats.ata.reads_a[index].selector = selector_a;
+		dev->cdl_stats.ata.reads_a[stat_idx].selector = selector_a;
 	else
-		dev->cdl_stats.ata.writes_a[index].selector = selector_a;
+		dev->cdl_stats.ata.writes_a[stat_idx].selector = selector_a;
 
 	/* Parse selector_b */
 	str = cdl_get_line(f, line);
@@ -1021,24 +1022,24 @@ static int cdl_ata_statistics_parse_desc(struct cdl_dev *dev, FILE *f,
 	selector_b = atoi(str);
 	if (selector_b < 0 || selector_b > 4) {
 		fprintf(stderr, "Invalid %s descriptor %d selector_b value\n",
-			type, index);
+			type, desc_index);
 		return 1;
 	}
 
 	if (read)
-		dev->cdl_stats.ata.reads_b[index].selector = selector_b;
+		dev->cdl_stats.ata.reads_b[stat_idx].selector = selector_b;
 	else
-		dev->cdl_stats.ata.writes_b[index].selector = selector_b;
+		dev->cdl_stats.ata.writes_b[stat_idx].selector = selector_b;
 
 	printf("  %s descriptor %d:\tselector_a = %u,\tselector_b = %u\n",
-	       type, index,
+	       type, desc_index,
 	       selector_a, selector_b);
 
 	return 0;
 
 err:
 	fprintf(stderr, "Invalid %s descriptor %d\n",
-		type, index);
+		type, desc_index);
 
 	return 1;
 }
