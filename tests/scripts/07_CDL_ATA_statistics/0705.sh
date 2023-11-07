@@ -55,8 +55,13 @@ function upload_stats_then_cdl()
 		exit_failed "Saved stats configuration differ after T2B page upload"
 }
 
-# Upload empty statistics and CDL pages and check the configuration
-upload_stats_then_cdl
+# When the drive is connected to a SAS HBA with a SAT implementation
+# on the HBA, the limits pages are not translated including the ATA
+# statistics selectors. This causes this test to fail. So run only
+# with --force-ata case for such device.
+if ! dev_uses_hba_sat "${dev}"; then
+	upload_stats_then_cdl
+fi
 
 # Same using --force-ata
 upload_stats_then_cdl "--force-ata"

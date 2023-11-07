@@ -198,6 +198,18 @@ function dev_is_ata()
 	[ "${val}" == "1" ]
 }
 
+function dev_uses_hba_sat()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+	local val
+
+	val=$(cdladm info "${dev}" | grep "SAT Product" | \
+		cut -f2 -d':' | tr -d '[:blank:]')
+
+	[ "${val}" != "libata" ]
+}
+
 function create_nullb()
 {
 	local n=0
