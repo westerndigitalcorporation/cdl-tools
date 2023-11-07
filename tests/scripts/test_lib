@@ -313,7 +313,7 @@ function validate_page()
 	cdladm save --page $page_type --file $saved_page $dev || \
 		return 1
 
-	diff $original_page $saved_page || \
+	diff -q $original_page $saved_page || \
 		return 1
 
 	return 0
@@ -323,6 +323,21 @@ function require_duration_guideline()
 {
 	have_dg="$(cdladm info "$1" | grep -c "Command duration guidelines: supported")"
 	if [ "${have_dg}" == "0" ]; then
+		exit_skip
+	fi
+}
+
+function require_ata_dev()
+{
+	if ! dev_is_ata "$dev"; then
+		exit_skip
+	fi
+}
+
+function require_cdl_statistics()
+{
+	have_stats="$(cdladm info "$1" | grep -c "Statistics: supported")"
+	if [ "${have_stats}" == "0" ]; then
 		exit_skip
 	fi
 }
@@ -377,6 +392,11 @@ function fio_get_io_error()
 
 	# No errors seen
 	echo "0"
+}
+
+function fio_get_io_error_count()
+{
+	grep -c "fio: io_u error on file " "$1"
 }
 
 function dev_qd()
@@ -511,6 +531,25 @@ function test_setup()
 	}
 
 	enable_cdl "${dev}" || exit_failed "failed to enable CDL"
+}
+
+function test_setup_stats()
+{
+	local dev="$1"
+	local stats="$2"
+	local saved_stats="${logdir}/saved_stats.cfg"
+	local statscfg="${scriptdir}/cdl/${stats}"
+
+	cdladm stats-save --file "${saved_stats}" "${dev}" || \
+		exit_failed "Save statistics configuration failed"
+
+	diff -q "${statscfg}" "${saved_stats}" && \
+		return 0
+
+	cdladm stats-upload --file "${statscfg}" "${dev}" || \
+		exit_failed "Upload statistics configuration failed"
+
+	return 0
 }
 
 function time_cmdline()
@@ -708,6 +747,119 @@ function analyze_log()
 	fi
 }
 
+function get_ata_stats_val()
+{
+	local dev="$1"
+	local page_type="$2" # T2A or T2B
+	local dld="$3" # 1 to 7
+	local sel="$4"	# A or B
+
+	statdesc=$(cdladm stats-show --page "${page_type}" "${dev}" | \
+		grep "Statistic ${sel}" | sed -n "${dld}p")
+	if [ "${statdesc}" == "" ]; then
+		exit_failed "Failed to get page ${page_type} desciptor ${dld} statistics ${sel}"
+	fi
+
+	val=$(echo "${statdesc}" | cut -f2 -d ':')
+	if [ "${val}" == " Disabled" ]; then
+		echo "0"
+	else
+		echo "${val}" | cut -f2 -d '=' | tr -d '[:blank:]'
+	fi
+}
+
+function check_ata_non_zero_stats_val()
+{
+	local dev="$1"
+	local p
+	local d
+	local s
+
+	for p in T2A T2B; do
+		for d in 1 2 3 4 5 6 7; do
+			for s in A B; do
+				val=$(get_ata_stats_val "${dev}" "${p}" "${d}" "${s}")
+				if [ "${val}" != "0" ]; then
+					return 0
+				fi
+			done
+		done
+	done
+
+	exit_failed "All statistics are equal to 0, expected values != 0"
+}
+
+function check_ata_zero_stats_val()
+{
+	local dev="$1"
+	local p
+	local d
+	local s
+
+	for p in T2A T2B; do
+		for d in 1 2 3 4 5 6 7; do
+			for s in A B; do
+				val=$(get_ata_stats_val "${dev}" "${p}" "${d}" "${s}")
+				if [ "${val}" != "0" ]; then
+					exit_failed "Page ${p}, descriptor ${d}, selector ${s} value is ${val} (expected 0)"
+				fi
+			done
+		done
+	done
+}
+
+function analyze_log_stats()
+{
+	local dev="$1"
+	local page_type="$2"
+	local dld="$3"
+	local fiolog="$4"
+	local stat_a_count="$5"
+	local stat_b_count="$6"
+	local expect_stat_a_count="$7"
+	local expect_stat_b_count="$8"
+
+	echo ""
+	echo "Statistics:"
+
+	# Note: stats test cases use only read
+	nr_io_errors=$(fio_get_io_error_count "${fiolog}")
+	echo "fio log shows ${nr_io_errors} I/O error"
+
+	msga="Invalid statistics A counter for ${nr_io_errors} I/O errors"
+	msgb="Invalid statistics B counter for ${nr_io_errors} I/O errors"
+	statscount=0
+
+	# Check statistics A
+	statval=$(get_ata_stats_val "${dev}" "${page_type}" "${dld}" "A")
+	echo "Statistic A: ${stat_a_count} -> ${statval}"
+	statval=$(( statval - stat_a_count ))
+	statscount=$(( statscount + statval ))
+
+	if [ "${expect_stat_a_count}" == "0" ] && [ ${statval} -ne 0 ]; then
+		exit_failed "${msga}: did not expect statistics A count, got ${statval}"
+	elif [ "${expect_stat_a_count}" == "1" ] && [ ${statval} -eq 0 ]; then
+		exit_failed "${msga}: expected statistics A count, got ${statval}"
+	fi
+
+	# Check statistics B
+	statval=$(get_ata_stats_val "${dev}" "${page_type}" "${dld}" "B")
+	echo "Statistic B: ${stat_b_count} -> ${statval}"
+	statval=$(( statval - stat_b_count ))
+	statscount=$(( statscount + statval ))
+
+	if [ "${expect_stat_b_count}" == "0" ] && [ ${statval} -ne 0 ]; then
+		exit_failed "${msgb}: did not expect statistics B count, got ${statval}"
+	elif [ "${expect_stat_b_count}" == "1" ] && [ ${statval} -eq 0 ]; then
+		exit_failed "${msgb}: expected statistics B count, got ${statval}"
+	fi
+
+	echo "Total statistics count for descriptor ${dld}: ${statscount}"
+	if [ ${statscount} -ne ${nr_io_errors=$} ]; then
+		exit_failed "Invalid statistics: expected total count of ${nr_io_errors}, got ${statscount}"
+	fi
+}
+
 function execute_test()
 {
 	local testname="$1"
@@ -720,8 +872,14 @@ function execute_test()
 	local dev="$8"
 	local ncq="$9"
 	local rw="${10}"
+	local stats="${11}"
+	local expect_stat_a_count="${12}"
+	local expect_stat_b_count="${13}"
+	local page_type=""
+	local stat_a_count=0
+	local stat_b_count=0
 
-	if [ $# -ne 10 ]; then
+	if [ $# -lt 10 ]; then
 		exit_failed "incorrect number of arguments given"
 	fi
 
@@ -730,6 +888,20 @@ function execute_test()
 		"${expect_error}" "${compare_latencies}" \
 		"${ncq}" "${rw}" || \
 		exit_failed "error during setup"
+
+	# Statistics tests add 3 optional arguments
+	if [ "${stats}" != "" ]; then
+		test_setup_stats "${dev}" "${stats}" || \
+			exit_failed "error during stats setup"
+
+		page_type="$(get_limits_page_type ${dev} read)"
+
+		stat_a_count=$(get_ata_stats_val "${dev}" "${page_type}" "${cdl_dld}" "A")
+		echo "Statistic A start count: ${stat_a_count}"
+
+		stat_b_count=$(get_ata_stats_val "${dev}" "${page_type}" "${cdl_dld}" "B")
+		echo "Statistic B start count: ${stat_b_count}"
+	fi
 
 	# fio command
 	fiocmd=$(fio_common_cmdline "${dev}" "${filename}" \
@@ -744,4 +916,12 @@ function execute_test()
 	analyze_log "${fiolog}" "${expect_error}" \
 		"${compare_latencies}" "${cdl_dld}" "${rw}" || \
 		exit_failed "error while analyzing fio log"
+
+	if [ "${stats}" != "" ]; then
+		analyze_log_stats "${dev}" "${page_type}" "${cdl_dld}" \
+			"${fiolog}" "${stat_a_count}" "${stat_b_count}" \
+			"${expect_stat_a_count}" "${expect_stat_b_count}" || \
+			exit_failed "error while analyzing fio log for stats"
+	fi
 }
+
