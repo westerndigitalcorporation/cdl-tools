@@ -128,30 +128,38 @@ Commands:
   disable         : Disable command duration limits
   enable-highpri  : Enable high priority enhancement
   disable-highpri : Disable high priority enhancement
+  stats-show      : Display CDL statistics configuration and values
+  stats-reset     : Reset to 0 all CDL statistics values
+  stats-save      : Save CDL statistics configuration to a file
+  stats-upload    : Upload CDL statistics configuration
+                    to the device
 Command options:
   --count
 	Apply to the show command.
 	Omit the descriptor details and only print the number of
 	valid descriptors in a page
   --page <name>
-	Apply to the show, clear and save commands.
+	Apply to the show, clear, save and stats-show commands.
 	Specify the name of the page to show,clear or save. The
 	page name tcan be: "A", "B", "T2A" or "T2B".
   --file <path>
-	Apply to the save and upload commands.
-	Specify the path of the page file to use.
-	Using this option is mandatory with the upload command.
+	Applies to the save, upload, stats-save and stats-upload
+	commands to specify the path of the page file or statistics
+	configuration file to use.
+	Using this option is mandatory with the upload and
+	stats-upload commands.
 	If this option is not specified with the save command,
-	the default file name <dev name>-<page name>.cdl is
-	used.
+	the default file name <dev name>-<page name>.cdl is used.
+	If this option is not specified with the stats-save command,
+	the default file name <dev name>-cdl-stats.cfg is used.
   --permanent
 	Apply to the upload command.
 	Specify that the device should save the page in
 	non-volatile memory in addition to updating the current
 	page value.
   --raw
-	Apply to the show command.
-	Show the raw values of the CDL pages fields.
+	Apply to the show and stats-show commands.
+	Show the raw values of the CDL pages and statistics fields.
   --force-dev
 	Apply to the enable and disable commands for ATA devices.
 	Force enabling and disabling the CDL feature directly on
@@ -179,6 +187,7 @@ Device: /dev/sdg
     Command duration limits: supported, disabled
     Command duration guidelines: supported
     High priority enhancement: supported, disabled
+    Statistics: supported
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
@@ -255,6 +264,7 @@ Device: /dev/sdg
     Command duration limits: supported, disabled
     Command duration guidelines: supported
     High priority enhancement: supported, disabled
+    Statistics: supported
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
@@ -355,6 +365,7 @@ Device: /dev/sdg
     Command duration limits: supported, disabled
     Command duration guidelines: supported
     High priority enhancement: supported, disabled
+    Statistics: supported
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
@@ -493,6 +504,7 @@ Device: /dev/sdg
     Command duration limits: supported, disabled
     Command duration guidelines: supported
     High priority enhancement: supported, disabled
+    Statistics: supported
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
@@ -572,6 +584,7 @@ Device: /dev/sdg
     Command duration limits: supported, enabled
     Command duration guidelines: supported
     High priority enhancement: supported, disabled
+    Statistics: supported
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
@@ -608,6 +621,7 @@ Device: /dev/sdg
     Command duration limits: supported, disabled
     Command duration guidelines: supported
     High priority enhancement: supported, disabled
+    Statistics: supported
     Duration minimum limit: 20000000 ns
     Duration maximum limit: 4294967295000 ns
 System:
