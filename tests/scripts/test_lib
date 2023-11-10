@@ -210,6 +210,31 @@ function dev_uses_hba_sat()
 	[ "${val}" != "libata" ]
 }
 
+function dev_revalidate()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+	local hostid
+
+	if dev_uses_hba_sat "${dev}"; then
+		return 0
+	fi
+
+	# Remove and rescan the device
+	devid=$(ls /sys/block/${bdev}/device/scsi_device/)
+	hostid=$(echo "${devid}" | cut -f1 -d':')
+
+	echo 1 > /sys/class/scsi_device/${devid}/device/delete ||
+		exit_failed "Remove device ${dev} for rescan failed"
+
+	echo "- - -" > /sys/class/scsi_host/host${hostid}/scan ||
+		exit_failed "Rescan ${dev} failed"
+
+	# Re-enable NCQ
+	echo 1 > /sys/block/${bdev}/device/queue_depth
+	echo 32 > /sys/block/${bdev}/device/queue_depth
+}
+
 function create_nullb()
 {
 	local n=0

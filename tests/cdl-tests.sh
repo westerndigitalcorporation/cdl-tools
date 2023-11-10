@@ -410,6 +410,7 @@ function run_test()
 		echo "==== Test ${tnum} -> WARNING"
 	else
 		echo "==== Test ${tnum} -> FAILED"
+		dev_revalidate "${dev}"
 	fi
 	echo ""
 
