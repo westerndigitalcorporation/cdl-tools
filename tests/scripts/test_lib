@@ -230,6 +230,11 @@ function dev_revalidate()
 	echo "- - -" > /sys/class/scsi_host/host${hostid}/scan ||
 		exit_failed "Rescan ${dev} failed"
 
+	# Wait for the block device to come back
+        until [ -e /sys/block/${bdev} ]; do
+                sleep .1
+        done
+
 	# Re-enable NCQ
 	echo 1 > /sys/block/${bdev}/device/queue_depth
 	echo 32 > /sys/block/${bdev}/device/queue_depth
