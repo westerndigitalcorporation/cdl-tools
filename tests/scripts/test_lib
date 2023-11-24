@@ -656,6 +656,7 @@ function fio_common_cmdline()
 	fiocmd+=" --ioengine=io_uring --iodepth=32"
 	fiocmd+=" --bs=1280k --direct=1"
 	fiocmd+=" --runtime=${fio_run_time}"
+	fiocmd+=" --offset=0 --size=$(( fio_size * 512 ))"
 
 	fiocmd+=" --rw=${rw}"
 	if [ "$rw" == "randrw" ]; then

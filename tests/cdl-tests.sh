@@ -40,6 +40,8 @@ function usage()
 	echo "  --run-time <seconds>    : Specify fio run time in seconds. Short run"
 	echo "                            times can result in less reliable test results."
 	echo "                            Default: 60 seconds"
+	echo "  --size | -s <sectors>   : Only exercise the first <sectors> 512-B sectors"
+	echo "                            of the device (default: entire device)"
 	echo "  --stop-on-error         : For test cases that expect an error, tell"
 	echo "                            fio to stop immediately when an IO error"
 	echo "                            is detected. Default: continue running"
@@ -67,6 +69,7 @@ logdir=""
 repeat=1
 
 export fio_run_time="60"
+export fio_size="0"
 export fio_stop_on_error="0"
 
 while [ "${1#-}" != "$1" ]; do
@@ -105,6 +108,11 @@ while [ "${1#-}" != "$1" ]; do
 	--run-time)
 		shift
 		fio_run_time="$1"
+		shift
+		;;
+	-s | --size)
+		shift
+		fio_size="$1"
 		shift
 		;;
 	-q | --quick)
@@ -260,6 +268,19 @@ fi
 #
 if dev_is_ata "${targetdev}"; then
 	saved_qd=$(dev_qd "${targetdev}")
+fi
+
+#
+# Check device capacity
+#
+cap=$(dev_capacity ${dev})
+if [ ${cap} -eq 0 ]; then
+	echo "Invalid device ${dev} capacity"
+	exit 1
+fi
+
+if [ "${fio_size}" == "0" ] || [ ${fio_size} -gt ${cap} ]; then
+	fio_size=${cap}
 fi
 
 function kmsg_log()
@@ -433,9 +454,14 @@ echo "    Using cdl-tools version ${ver}"
 
 echo -n "fio: ${fio_run_time}s run time, stop on error "
 if [ "${fio_stop_on_error}" == "1" ]; then
-	echo "enabled"
+	echo -n "enabled"
 else
-	echo "disabled"
+	echo -n "disabled"
+fi
+if [ ${fio_size} == 0 ]; then
+	echo ", all sectors exercised"
+else
+	echo ", first ${fio_size} sectors exercised"
 fi
 echo ""
 
@@ -532,6 +558,7 @@ rm -f local-* >> /dev/null 2>&1
 unset logdir
 unset scriptdir
 unset fio_run_time
+unset fio_size
 unset fio_stop_on_error
 
 if [ "$passed" != "$total" ]; then
