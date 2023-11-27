@@ -410,7 +410,7 @@ function run_test()
 		echo "==== Test ${tnum} -> WARNING"
 	else
 		echo "==== Test ${tnum} -> FAILED"
-		dev_revalidate "${dev}"
+		dev_revalidate "${dev}" || ret=255
 	fi
 	echo ""
 
@@ -492,6 +492,11 @@ for ((iter=1; iter<=repeat; iter++)); do
 		fi
 		((total++))
 		echo -e "$status"
+
+		if [ "$ret" == 255 ]; then
+			echo "Device revalidation failed: giving up"
+			break;
+		fi
 
 		if [ "$aborted" == 1 ]; then
 			break

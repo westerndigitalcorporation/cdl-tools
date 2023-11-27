@@ -167,8 +167,13 @@ function dev_capacity()
 {
 	local dev="$(realpath $1)"
 	local bdev="$(basename ${dev})"
+	local bdev_capacity="/sys/block/${bdev}/size"
 
-	echo "$(cat /sys/block/${bdev}/size)"
+        if [ -f "${bdev_capacity}" ]; then
+		echo "$(cat ${bdev_capacity})"
+	else
+		echo "0"
+	fi
 }
 
 function dev_fw()
@@ -210,6 +215,23 @@ function dev_uses_hba_sat()
 	[ "${val}" != "libata" ]
 }
 
+function dev_wait_for_revalidate()
+{
+	local dev="$(realpath $1)"
+
+	for tt in {0..60}; do
+		cap=$(dev_capacity ${dev})
+		if [ "${cap}" != "0" ]; then
+			return 0
+		fi
+		sleep .5
+	done
+
+	echo "Failed to get capacity"
+
+	return 1
+}
+
 function dev_revalidate()
 {
 	local dev="$(realpath $1)"
@@ -231,13 +253,13 @@ function dev_revalidate()
 		exit_failed "Rescan ${dev} failed"
 
 	# Wait for the block device to come back
-        until [ -e /sys/block/${bdev} ]; do
-                sleep .1
-        done
+	dev_wait_for_revalidate "${dev}" || return 1
 
 	# Re-enable NCQ
 	echo 1 > /sys/block/${bdev}/device/queue_depth
 	echo 32 > /sys/block/${bdev}/device/queue_depth
+
+	return 0
 }
 
 function create_nullb()
