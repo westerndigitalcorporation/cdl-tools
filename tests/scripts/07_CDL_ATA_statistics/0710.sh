@@ -21,6 +21,8 @@ require_ata_dev "${dev}"
 require_cdl_statistics "${dev}"
 require_duration_guideline "${dev}"
 
+disable_merges "${dev}"
+
 # Using duration guideline with policy 0x0, we should
 # not see any change in the statistics counters.
 read_limits="stats"

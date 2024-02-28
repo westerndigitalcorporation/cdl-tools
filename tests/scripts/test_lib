@@ -499,6 +499,25 @@ function disable_ncq()
 	set_qd "$1" 1
 }
 
+function set_nomerges()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+	local val="$2"
+
+	echo "${val}" > /sys/block/${bdev}/queue/nomerges
+}
+
+function disable_merges()
+{
+	set_nomerges "$1" 1
+}
+
+function enable_merges()
+{
+	set_nomerges "$1" 0
+}
+
 function get_limits_page_type()
 {
 	local dev="$1"
@@ -966,6 +985,8 @@ function execute_test()
 
 		stat_b_count=$(get_ata_stats_val "${dev}" "${page_type}" "${cdl_dld}" "B")
 		echo "Statistic B start count: ${stat_b_count}"
+
+		disable_merges "${dev}"
 	fi
 
 	# fio command
@@ -976,7 +997,8 @@ function execute_test()
 	echo "Running fio:"
 	fiolog="${logdir}/$(test_num $filename)_fio.log"
 	echo "${fiocmd}"
-	eval ${fiocmd} | tee "${fiolog}" || exit_failed "running fio failed"
+	eval ${fiocmd} | tee "${fiolog}" || \
+		{ enable_merges "${dev}"; exit_failed "running fio failed"; }
 
 	analyze_log "${fiolog}" "${expect_error}" \
 		"${compare_latencies}" "${cdl_dld}" "${rw}" || \
