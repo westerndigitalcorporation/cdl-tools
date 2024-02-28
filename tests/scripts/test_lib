@@ -917,30 +917,51 @@ function analyze_log_stats()
 	# Check statistics A
 	statval=$(get_ata_stats_val "${dev}" "${page_type}" "${dld}" "A")
 	echo "Statistic A: ${stat_a_count} -> ${statval}"
-	statval=$(( statval - stat_a_count ))
-	statscount=$(( statscount + statval ))
+	stataval=$(( statval - stat_a_count ))
+	statscount=$(( statscount + stataval ))
 
-	if [ "${expect_stat_a_count}" == "0" ] && [ ${statval} -ne 0 ]; then
-		exit_failed "${msga}: did not expect statistics A count, got ${statval}"
-	elif [ "${expect_stat_a_count}" == "1" ] && [ ${statval} -eq 0 ]; then
-		exit_failed "${msga}: expected statistics A count, got ${statval}"
+	if [ "${expect_stat_a_count}" == "0" ] && [ ${stataval} -ne 0 ]; then
+		exit_failed "${msga}: did not expect statistics A count, got ${stataval}"
+	elif [ "${expect_stat_a_count}" == "1" ] && [ ${stataval} -eq 0 ]; then
+		# If we are using 2 different counters, we may not get errors for one type.
+		# Only warn about it instead of reporting an error.
+		if [ "${expect_stat_b_count}" == "1" ]; then
+			exit_warning "${msga}: expected statistics A count, got ${stataval}"
+		else
+			exit_failed "${msga}: expected statistics A count, got ${stataval}"
+		fi
 	fi
 
 	# Check statistics B
 	statval=$(get_ata_stats_val "${dev}" "${page_type}" "${dld}" "B")
 	echo "Statistic B: ${stat_b_count} -> ${statval}"
-	statval=$(( statval - stat_b_count ))
-	statscount=$(( statscount + statval ))
+	statbval=$(( statval - stat_b_count ))
+	statscount=$(( statscount + statbval ))
 
-	if [ "${expect_stat_b_count}" == "0" ] && [ ${statval} -ne 0 ]; then
-		exit_failed "${msgb}: did not expect statistics B count, got ${statval}"
-	elif [ "${expect_stat_b_count}" == "1" ] && [ ${statval} -eq 0 ]; then
-		exit_failed "${msgb}: expected statistics B count, got ${statval}"
+	if [ "${expect_stat_b_count}" == "0" ] && [ ${statbval} -ne 0 ]; then
+		exit_failed "${msgb}: did not expect statistics B count, got ${statbval}"
+	elif [ "${expect_stat_b_count}" == "1" ] && [ ${statbval} -eq 0 ]; then
+		# If we are using 2 different counters, we may not get errors for one type.
+		# Only warn about it instead of reporting an error.
+		if [ "${expect_stat_a_count}" == "1" ]; then
+			exit_warning "${msgb}: expected statistics B count, got ${statbval}"
+		else
+			exit_failed "${msgb}: expected statistics B count, got ${statbval}"
+		fi
 	fi
 
+	# Check both
+	if [ "${expect_stat_a_count}" == "1" ] && [ "${expect_stat_b_count}" == "1" ] && [ ${statscount} -eq 0 ]; then
+		exit_failed "${msgb}: expected statistics A and B count, got ${stataval} and ${statbval}"
+	fi
+
+	# Check total count: it may happen that fio IOs are split, resulting in the statistic counter
+	# being larger than the number of errors reported by fio. Only warn in such case.
 	echo "Total statistics count for descriptor ${dld}: ${statscount}"
-	if [ ${statscount} -ne ${nr_io_errors=$} ]; then
+	if [ ${statscount} -lt ${nr_io_errors} ]; then
 		exit_failed "Invalid statistics: expected total count of ${nr_io_errors}, got ${statscount}"
+	elif [ ${statscount} -ne ${nr_io_errors} ]; then
+		exit_warning "Statistics: expected total count of ${nr_io_errors}, got ${statscount}"
 	fi
 }
 
