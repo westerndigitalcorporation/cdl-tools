@@ -679,6 +679,7 @@ int main(int argc, char **argv)
 	char *page = NULL;
 	char *path = NULL;
 	int command = CDLADM_NONE;
+	bool reopen = false;
 	int i, ret;
 
 	/* Initialize */
@@ -813,21 +814,46 @@ err_cmd_line:
 	cdladm_get_kernel_support(&dev);
 
 	/* Execute enable/disable first to display updated information */
-	if (command == CDLADM_ENABLE || command == CDLADM_DISABLE) {
-		if (command == CDLADM_ENABLE) {
-			ret = cdladm_enable(&dev);
-			if (ret) {
-				fprintf(stderr, "Enabling CDL failed\n");
-				goto out;
-			}
-		} else {
-			ret = cdladm_disable(&dev);
-			if (ret) {
-				fprintf(stderr, "Disabling CDL failed\n");
-				goto out;
-			}
+	switch (command) {
+	case CDLADM_ENABLE:
+		ret = cdladm_enable(&dev);
+		if (ret) {
+			fprintf(stderr, "Enable CDL failed\n");
+			goto out;
 		}
+		reopen = true;
+		break;
+	case CDLADM_DISABLE:
+		ret = cdladm_disable(&dev);
+		if (ret) {
+			fprintf(stderr, "Disable CDL failed\n");
+			goto out;
+		}
+		reopen = true;
+		break;
+	case CDLADM_ENABLE_HIGHPRI:
+		ret = cdladm_enable_highpri(&dev);
+		if (ret) {
+			fprintf(stderr,
+				"Enable high-priority enhancement failed\n");
+			goto out;
+		}
+		reopen = true;
+		break;
+	case CDLADM_DISABLE_HIGHPRI:
+		ret = cdladm_disable_highpri(&dev);
+		if (ret) {
+			fprintf(stderr,
+				"Disable high-priority enhancement failed\n");
+			goto out;
+		}
+		reopen = true;
+		break;
+	default:
+		break;
+	}
 
+	if (reopen) {
 		/* Close and re-open the device to get updated information */
 		cdl_close_dev(&dev);
 		ret = cdl_open_dev(&dev, cdladm_cmd[command].mode);
