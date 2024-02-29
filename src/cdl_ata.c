@@ -678,7 +678,7 @@ int cdl_ata_enable(struct cdl_dev *dev, bool enable, bool highpri)
 
 	if (enable) {
 		if (highpri)
-			val = 0x10;
+			val = 0x02;
 		else
 			val = 0x01;
 	}
