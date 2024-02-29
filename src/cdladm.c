@@ -477,6 +477,11 @@ static int cdladm_enable(struct cdl_dev *dev)
 		return 1;
 	}
 
+	if (dev->flags & CDL_HIGHPRI_DEV_ENABLED) {
+		fprintf(stderr, "High priority enhancement is enabled.\n");
+		return 1;
+	}
+
 	/* Special case (for tests only !): enable CDL on the device only */
 	if (dev->flags & CDL_FORCE_DEV) {
 		if (!cdl_dev_is_ata(dev)) {
@@ -560,6 +565,11 @@ static int cdladm_enable_highpri(struct cdl_dev *dev)
 	if (!(dev->flags & CDL_HIGHPRI_DEV_SUPPORTED)) {
 		fprintf(stderr,
 			"Device does not support high priority enhancement\n");
+		return 1;
+	}
+
+	if (dev->flags & CDL_DEV_ENABLED) {
+		fprintf(stderr, "CDL is enabled.\n");
 		return 1;
 	}
 
