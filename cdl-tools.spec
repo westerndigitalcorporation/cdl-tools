@@ -49,5 +49,5 @@ sh autogen.sh
 %{_prefix}/local/cdl-tests/*
 
 %changelog
-* Tue Nov 7 2023 Damien Le Moal <damien.lemoal@wdc.com> 1.0.0-1
-- Version 1.0.0 package
+* Thu Feb 29 2024 Damien Le Moal <damien.lemoal@wdc.com> 1.1.0-1
+- Version 1.1.0 package
