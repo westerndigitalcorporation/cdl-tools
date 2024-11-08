@@ -105,13 +105,13 @@ struct cdl_page {
 
 #define CDL_VERBOSE			(1 << 31)
 
-#define CDL_VENDOR_LEN	9
-#define CDL_ID_LEN	17
-#define CDL_REV_LEN	5
+#define CDL_VENDOR_LEN			9
+#define CDL_ID_LEN			17
+#define CDL_REV_LEN			5
 
-#define CDL_SAT_VENDOR_LEN	9
-#define CDL_SAT_PRODUCT_LEN	17
-#define CDL_SAT_REV_LEN		5
+#define CDL_SAT_VENDOR_LEN		CDL_VENDOR_LEN
+#define CDL_SAT_PRODUCT_LEN		CDL_ID_LEN
+#define CDL_SAT_REV_LEN			CDL_REV_LEN
 
 struct cdl_ata_stats_desc {
 	uint8_t		selector;
