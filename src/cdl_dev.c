@@ -425,6 +425,47 @@ int cdl_exec_cmd(struct cdl_dev *dev, struct cdl_sg_cmd *cmd)
 }
 
 /*
+ * Use TEST UNIT READY to check a device is ready before using it.
+ */
+static int cdl_dev_check_ready(struct cdl_dev *dev)
+{
+	struct cdl_sg_cmd cmd;
+	int ret = -EAGAIN, retries = 5;
+
+	while (retries && (ret == -EAGAIN)) {
+		retries--;
+
+		cdl_init_cmd(&cmd, 6, SG_DXFER_NONE, 0);
+		cmd.cdb[0] = 0x00; /* TEST UNIT READY */
+
+		ret = cdl_exec_cmd(dev, &cmd);
+		if (ret) {
+			if (cmd.io_hdr.host_status == CDL_SG_DID_SOFT_ERROR ||
+			    (cmd.io_hdr.sb_len_wr &&
+			     (cmd.sense_buf[2] == 0x06))) {
+				cdl_dev_info(dev,
+					"Unit attention required, %d / 5 retries\n",
+					retries);
+				ret = -EAGAIN;
+			}
+		}
+	}
+
+	if (ret) {
+		cdl_dev_err(dev, "TEST UNIT READY failed\n");
+		return -1;
+	}
+
+	/*
+	 * Revalidate the drive to make sure the kernel sees the latest
+	 * information from the drive.
+	 */
+	cdl_revalidate_dev(dev);
+
+	return 0;
+}
+
+/*
  * Get a device information.
  */
 static int cdl_get_dev_info(struct cdl_dev *dev)
@@ -540,6 +581,10 @@ int cdl_open_dev(struct cdl_dev *dev, mode_t mode)
 			errno, strerror(errno));
 		return -1;
 	}
+
+	ret = cdl_dev_check_ready(dev);
+	if (ret)
+		goto err;
 
 	ret = cdl_get_dev_info(dev);
 	if (ret)
