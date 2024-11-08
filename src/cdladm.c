@@ -432,18 +432,25 @@ static int cdladm_stats_upload(struct cdl_dev *dev, char *path)
 
 static void cdladm_get_kernel_support(struct cdl_dev *dev)
 {
-	bool supported, enabled = false;
+	bool supported, enabled;
 
 	supported = cdl_sysfs_exists(dev, "/sys/block/%s/device/cdl_supported",
 				     dev->name);
-	if (supported) {
-		dev->flags |= CDL_SYS_SUPPORTED;
-		enabled = cdl_sysfs_get_ulong_attr(dev,
+	if (!supported)
+		return;
+
+	dev->flags |= CDL_SYS_SUPPORTED;
+	supported = cdl_sysfs_get_ulong_attr(dev,
+					"/sys/block/%s/device/cdl_supported",
+					dev->name);
+	if (supported)
+		dev->flags |= CDL_SYS_DEV_SUPPORTED;
+
+	enabled = cdl_sysfs_get_ulong_attr(dev,
 					"/sys/block/%s/device/cdl_enable",
 					dev->name);
-		if (enabled)
-			dev->flags |= CDL_SYS_ENABLED;
-	}
+	if (enabled)
+		dev->flags |= CDL_SYS_ENABLED;
 }
 
 static void cdladm_show_kernel_support(struct cdl_dev *dev)
@@ -916,6 +923,12 @@ err_cmd_line:
 	/* Some paranoia checks */
 	if (!(dev.flags & CDL_SYS_SUPPORTED))
 		printf("WARNING: System does not support command duration limits\n");
+	if ((dev.flags & CDL_DEV_SUPPORTED) &&
+	    !(dev.flags & CDL_SYS_DEV_SUPPORTED))
+		printf("WARNING: CDL support detected on device but system reports no support\n");
+	if (!(dev.flags & CDL_DEV_SUPPORTED) &&
+	    (dev.flags & CDL_SYS_DEV_SUPPORTED))
+		printf("WARNING: CDL support not detected on device but system reports support\n");
 	if (command != CDLADM_ENABLE && command != CDLADM_DISABLE) {
 		if ((dev.flags & CDL_SYS_ENABLED) &&
 		    !(dev.flags & CDL_DEV_ENABLED))

@@ -86,21 +86,24 @@ struct cdl_page {
 /*
  * Device flags.
  */
-#define CDL_VERBOSE			(1 << 0)
-#define CDL_ATA				(1 << 1)
-#define CDL_DEV_SUPPORTED		(1 << 2)
-#define CDL_DEV_ENABLED			(1 << 3)
-#define CDL_SYS_SUPPORTED		(1 << 4)
-#define CDL_SYS_ENABLED			(1 << 5)
-#define CDL_GUIDELINE_DEV_SUPPORTED	(1 << 6)
-#define CDL_HIGHPRI_DEV_SUPPORTED	(1 << 7)
-#define CDL_HIGHPRI_DEV_ENABLED		(1 << 8)
-#define CDL_USE_MS_SP			(1 << 9)
-#define CDL_SHOW_RAW_VAL		(1 << 10)
-#define CDL_SHOW_COUNT			(1 << 11)
-#define CDL_USE_ATA			(1 << 12)
-#define CDL_FORCE_DEV			(1 << 13)
-#define CDL_STATISTICS_SUPPORTED	(1 << 14)
+#define CDL_ATA				(1 << 0)
+#define CDL_DEV_SUPPORTED		(1 << 1)
+#define CDL_DEV_ENABLED			(1 << 2)
+#define CDL_GUIDELINE_DEV_SUPPORTED	(1 << 3)
+#define CDL_HIGHPRI_DEV_SUPPORTED	(1 << 4)
+#define CDL_HIGHPRI_DEV_ENABLED		(1 << 5)
+#define CDL_USE_MS_SP			(1 << 6)
+#define CDL_SHOW_RAW_VAL		(1 << 7)
+#define CDL_SHOW_COUNT			(1 << 8)
+#define CDL_USE_ATA			(1 << 9)
+#define CDL_FORCE_DEV			(1 << 10)
+#define CDL_STATISTICS_SUPPORTED	(1 << 11)
+
+#define CDL_SYS_SUPPORTED		(1 << 16)
+#define CDL_SYS_DEV_SUPPORTED		(1 << 17)
+#define CDL_SYS_ENABLED			(1 << 18)
+
+#define CDL_VERBOSE			(1 << 31)
 
 #define CDL_VENDOR_LEN	9
 #define CDL_ID_LEN	17
