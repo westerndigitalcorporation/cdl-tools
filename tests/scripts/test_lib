@@ -176,6 +176,19 @@ function dev_capacity()
 	fi
 }
 
+function dev_number_of_zones()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+	local bdev_nr_zones="/sys/block/${bdev}/queue/nr_zones"
+
+	if [ -f "${bdev_nr_zones}" ]; then
+		echo "$(cat ${bdev_nr_zones})"
+	else
+		echo "0"
+	fi
+}
+
 function dev_fw()
 {
 	local dev="$(realpath $1)"
@@ -750,6 +763,10 @@ function fio_common_cmdline()
 
 	fi
 
+	if [ "$(devtype ${dev})" == "smr" ]; then
+		fiocmd+=" --zonemode=zbd"
+	fi
+
 	fiocmd+=" 2>&1"
 
 	echo $fiocmd
@@ -762,6 +779,7 @@ function analyze_log()
 	local compare_latencies="$3"
 	local cdl_dld="$4"
 	local rw="$5"
+	local dev="$6"
 	local real_runtime
 	local max_runtime
 
@@ -782,6 +800,14 @@ function analyze_log()
 	# We need a small buffer so that we do not accidentally fail test cases
 	# that are expected to run the whole run time.
 	max_runtime=$((max_runtime + 2))
+
+	# Add additional buffer time on top of the max time if SMR drives are
+	# used, as fio takes extra time to get zone info on zoned block devices.
+	# Overhead is estimated to be around 1 second per 25000 zones.
+	if [ "$(devtype ${dev})" == "smr" ]; then
+		local zone_overhead=$(( $(dev_number_of_zones ${dev}) / 25000 + 1 ))
+		max_runtime=$((max_runtime + zone_overhead))
+	fi
 
 	# If fio ran longer than max_runtime, then most likely an I/O timed out
 	# and the HBA had to be hard reset. This would suggest a FW issue.
@@ -1022,7 +1048,7 @@ function execute_test()
 		{ enable_merges "${dev}"; exit_failed "running fio failed"; }
 
 	analyze_log "${fiolog}" "${expect_error}" \
-		"${compare_latencies}" "${cdl_dld}" "${rw}" || \
+		"${compare_latencies}" "${cdl_dld}" "${rw}" "${dev}" || \
 		exit_failed "error while analyzing fio log"
 
 	if [ "${stats}" != "" ]; then
