@@ -508,6 +508,12 @@ static int cdladm_enable(struct cdl_dev *dev)
 	if (ret)
 		return 1;
 
+	/* Check that the system succeeded in enabling CDL. */
+	ret = cdl_sysfs_get_ulong_attr(dev, "/sys/block/%s/device/cdl_enable",
+				       dev->name);
+	if (!ret)
+		return 1;
+
 	dev->flags |= CDL_SYS_ENABLED;
 	printf("Command duration limits is enabled\n");
 

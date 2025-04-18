@@ -1027,7 +1027,7 @@ unsigned long cdl_sysfs_get_ulong_attr(struct cdl_dev *dev,
  * Set a sysfs attribute value.
  */
 int cdl_sysfs_set_attr(struct cdl_dev *dev, const char *val,
-			     const char *format, ...)
+		       const char *format, ...)
 {
 	char path[PATH_MAX];
 	va_list argp;
