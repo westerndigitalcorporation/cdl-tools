@@ -368,7 +368,12 @@ function set_scheduler()
 	local bdev="$(basename ${dev})"
 	local sched="$2"
 
-	echo "$sched" > /sys/block/${bdev}/queue/scheduler
+	scheduler="/sys/block/${bdev}/queue/scheduler"
+	if [ ! -e "${scheduler}" ]; then
+		return 0
+	fi
+
+	echo "$sched" > "${scheduler}" > /dev/null 2>&1
 }
 
 function dev_cdl_supported()
@@ -512,7 +517,11 @@ function dev_qd()
 	local rdev="$(realpath $1)"
 	local bdev="$(basename ${rdev})"
 
-	cat /sys/block/${bdev}/device/queue_depth
+	if [ -e "/sys/block/${bdev}/device/queue_depth" ]; then
+		cat /sys/block/${bdev}/device/queue_depth
+	else
+		echo "0"
+	fi
 }
 
 function set_qd()
@@ -526,10 +535,10 @@ function set_qd()
 	fi
 
 	if [ "$qd" != "1" ]; then
-		echo 1 > /sys/block/${bdev}/device/queue_depth
-		echo "${qd}" > /sys/block/${bdev}/device/queue_depth
+		echo 1 > /sys/block/${bdev}/device/queue_depth > /dev/null 2>&1
+		echo "${qd}" > /sys/block/${bdev}/device/queue_depth > /dev/null 2>&1
 	else
-		echo 1 > /sys/block/${bdev}/device/queue_depth
+		echo 1 > /sys/block/${bdev}/device/queue_depth > /dev/null 2>&1
 	fi
 }
 
@@ -549,7 +558,7 @@ function set_nomerges()
 	local bdev="$(basename ${dev})"
 	local val="$2"
 
-	echo "${val}" > /sys/block/${bdev}/queue/nomerges
+	echo "${val}" > /sys/block/${bdev}/queue/nomerges > /dev/null 2>&1
 }
 
 function disable_merges()
