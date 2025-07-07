@@ -907,6 +907,12 @@ int cdl_write_page(struct cdl_dev *dev, struct cdl_page *page)
 	else
 		ret = cdl_scsi_write_page(dev, page);
 
+	/*
+	 * Some drives on some AHCI adapters really do not like quick successive
+	 * page uploads. So slow this to let the drive settle down.
+	 */
+	sleep(2);
+
 	cdl_revalidate_dev(dev);
 
 	return ret;
