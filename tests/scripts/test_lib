@@ -672,6 +672,14 @@ function test_setup()
 		exit_failed "invalid test case configuration"
 	fi
 
+	# Large IO sizes make it difficult to generate clear latency differences
+	# between CDL and non-CDL commands because the commands will all take
+	# a longer time. So if we are going to compare latencies, use a smaller
+	# IO size (128 KiB)
+	if [ "$compare_latencies" == "1" ]; then
+		fio_block_size=131072
+	fi
+
 	# We only support rw=randread and rw=randwrite for now
 	if [ "$rw" != "randread" ] && \
 	   [ "$rw" != "randwrite" ] && \
