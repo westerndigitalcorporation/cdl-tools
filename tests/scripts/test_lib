@@ -282,6 +282,19 @@ function dev_revalidate()
 	return 0
 }
 
+function dev_max_iosize()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+	local maxsegs
+	local pgsize
+
+	maxsegs=$(cat /sys/block/${bdev}/queue/max_segments)
+	pgsize=$(getconf PAGESIZE)
+
+	echo $(( maxsegs * pgsize ))
+}
+
 function create_nullb()
 {
 	local n=0
@@ -766,7 +779,6 @@ function fio_common_cmdline()
 	local fiocmd="$(time_cmdline)"
 	local cdl_perc
 	local ioengine=io_uring
-	local bs=1280k
 
 	fiocmd+="fio --name=\"$testname\""
 	fiocmd+=" --filename=$dev"
@@ -781,14 +793,14 @@ function fio_common_cmdline()
 		# zoned drives.
 		ioengine=libaio
 
-		# Use a bs that will evenly divide the zone size, to avoid
-		# issues like small remainders and poor write performance due to
-		# the need to wait for zone finish operations.
-		bs=1024k
+		# Use a block size that will evenly divide the zone size, to
+		# avoid issues like small remainders and poor write performance
+		# due to the need to wait for zone finish operations.
+		fio_block_size=1024k
 	fi
 
 	fiocmd+=" --ioengine=${ioengine} --iodepth=32"
-	fiocmd+=" --bs=${bs} --direct=1"
+	fiocmd+=" --bs=${fio_block_size} --direct=1"
 	fiocmd+=" --runtime=${fio_run_time}"
 	fiocmd+=" --offset=0 --size=$(( fio_size * 512 ))"
 
@@ -851,12 +863,12 @@ function fio_common_cmdline()
 		dld_perc=$(( cdl_perc / 2 ))
 
 		fiocmd+=" --cmdprio_bssplit="
-		fiocmd+="${bs}/${dld_perc}/2/0/${dld1}:"
-		fiocmd+="${bs}/${dld_perc}/2/0/${dld2}"
+		fiocmd+="${fio_block_size}/${dld_perc}/2/0/${dld1}:"
+		fiocmd+="${fio_block_size}/${dld_perc}/2/0/${dld2}"
 
 		if [ "$rw" == "randrw" ]; then
 			# Use CDL only for reads
-			fiocmd+=",${bs}/100/0/0/0"
+			fiocmd+=",${fio_block_size}/100/0/0/0"
 		fi
 
 	else

@@ -238,6 +238,14 @@ if [ "$(kernel_cdl_supported ${targetdev})" != "1" ]; then
 	exit 1
 fi
 
+maxiosize=$(dev_max_iosize "${realdev}")
+if [ ${maxiosize} -eq 0 ]; then
+	echo "Failed to get maximum guaranteed I/O size for ${realdev}"
+	exit 1
+fi
+export maxiosize
+export fio_block_size=${maxiosize}
+
 #
 # Prepare log file
 #
@@ -413,6 +421,10 @@ function run_test()
 	echo "==== Test ${tnum}: $( $1 )"
 	echo ""
 
+	# By default, use the max IO size as fio block size.
+	# A test case can override this if needed.
+	fio_block_size=${maxiosize}
+
 	# Save current device queue depth, if ATA
 	if dev_is_ata "${dev}"; then
 		test_qd=$(dev_qd "${dev}")
@@ -478,10 +490,11 @@ fi
 
 echo -n "fio: ${fio_run_time}s run time, stop on error "
 if [ "${fio_stop_on_error}" == "1" ]; then
-	echo -n "enabled"
+	echo "enabled"
 else
-	echo -n "disabled"
+	echo "disabled"
 fi
+echo -n "fio: $(( maxiosize / 1024 )) KiB max IO size"
 if [ ${fio_size} == 0 ]; then
 	echo ", all sectors exercised"
 else
@@ -584,6 +597,8 @@ unset scriptdir
 unset fio_run_time
 unset fio_size
 unset fio_stop_on_error
+unset fio_block_size
+unset maxiosize
 
 if [ "$passed" != "$total" ]; then
 	exit 1
