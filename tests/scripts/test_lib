@@ -938,13 +938,12 @@ function analyze_log()
 	if [ "$expect_error" == "1" ]; then
 		# We should have IO errors. However, for write workloads, the
 		# drive internal caching may significantly speed up commands,
-		# leading to no IO errors. For such case, only warn.
+		# leading to no IO errors. And for reads, we sometimes also
+		# get lucky depending on the limit being used, especially with
+		# the active time limit only. For these cases, warn about the
+		# bad result.
 		if ! fio_has_io_error "${fiolog}"; then
-			if [ "$rw" == "randwrite" ]; then
-				exit_warning "fio did not see any IO error"
-			else
-				exit_failed "fio did not see any IO error"
-			fi
+			exit_warning "fio did not see any IO error"
 		fi
 
 		# IO errors should be 62 (ETIME)
