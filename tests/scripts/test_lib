@@ -157,9 +157,9 @@ function devtype()
 
 	zoned="$(cat /sys/block/${bdev}/queue/zoned)"
 	if [ "${zoned}" == "none" ]; then
-		echo "cmr"
+		echo "conventional"
 	else
-		echo "smr"
+		echo "zoned"
 	fi
 }
 
@@ -297,7 +297,7 @@ function get_desired_scheduler()
 	local dev="$(realpath $1)"
 	local bdev="$(basename ${dev})"
 
-	if [ "$(devtype ${dev})" == "cmr" ]; then
+	if [ "$(devtype ${dev})" == "conventional" ]; then
 		echo "none"
 	else
 		echo "mq-deadline"
