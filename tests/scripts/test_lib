@@ -588,6 +588,52 @@ function get_limits_page_file()
 	fi
 }
 
+function all_swr_zones_are_empty()
+{
+	local dev="$1"
+	local num_non_empty_zones
+
+	require_program "blkzone"
+
+	num_non_empty_zones=$(blkzone report "$dev" | \
+		grep SEQ_WRITE_REQUIRED | grep -v "(em)" | wc -l)
+
+	[ ${num_non_empty_zones} -eq 0 ]
+}
+
+function precondition_dev()
+{
+	local dev="$1"
+
+	require_program "blkzone"
+
+	echo "Preconditioning zoned drive: $dev"
+	echo "Please be patient, this can take up to 30 minutes..."
+
+	blkzone reset "$dev"
+
+	nr_zones=$(dev_nr_zones ${dev})
+	# Ceiling round up
+	io_size=$(( ( nr_zones + 100 - 1 ) / 100 ))
+
+	fiocmd="fio --name=precondition"
+	fiocmd+=" --filename=$dev"
+	fiocmd+=" --zonemode=zbd"
+	fiocmd+=" --bs=1024k --direct=1"
+	fiocmd+=" --offset=0 --size=$(( fio_size * 512 ))"
+	fiocmd+=" --zoneskip=99z --io_size=${io_size}z"
+	fiocmd+=" --rw=write"
+	# Add an eta newline to the log every 60 seconds for debug
+	fiocmd+=" --eta=always --eta-interval=60 --eta-newline=60"
+	fiocmd+=" 2>&1"
+
+	fiolog="${logdir}/preconditioning.log"
+	echo "${fiocmd}" > "${fiolog}"
+	eval ${fiocmd} >> "${fiolog}" || exit_failed "preconditioning failed"
+
+	echo "Preconditioning finished!"
+}
+
 function test_setup()
 {
 	local dev="$1"

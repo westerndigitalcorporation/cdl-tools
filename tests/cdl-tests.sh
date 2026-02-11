@@ -42,6 +42,8 @@ function usage()
 	echo "                            Default: 60 seconds"
 	echo "  --size | -s <sectors>   : Only exercise the first <sectors> 512-B sectors"
 	echo "                            of the device (default: entire device)"
+	echo "  --precondition | -p     : For zoned drives, reset all zones and fill one"
+	echo "                            zone for every 100 zones"
 	echo "  --stop-on-error         : For test cases that expect an error, tell"
 	echo "                            fio to stop immediately when an IO error"
 	echo "                            is detected. Default: continue running"
@@ -65,6 +67,7 @@ require_program "sed"
 declare -a groups
 declare -a tests
 declare list=false
+declare precondition=false
 logdir=""
 repeat=1
 
@@ -103,6 +106,10 @@ while [ "${1#-}" != "$1" ]; do
 		;;
 	-l | --list)
 		list=true
+		shift
+		;;
+	-p | --precondition)
+		precondition=true
 		shift
 		;;
 	--run-time)
@@ -452,6 +459,22 @@ echo "    Device adapter driver: ${driver}"
 
 ver="$(cdladm --version | head -1 | cut -f3 -d ' ')"
 echo "    Using cdl-tools version ${ver}"
+
+if dev_is_zoned "$dev"; then
+	if $precondition; then
+		# Precondition zoned drive if requested
+		precondition_dev "${dev}"
+	else
+		# If precondition was not requested, and all SWR zones
+		# are empty, return error
+		if all_swr_zones_are_empty "${dev}"; then
+			echo "All sequential write required zones are empty"
+			echo "Please run: $(basename "$0") --precondition"
+			echo "once, to precondition the zoned drive"
+			exit 1
+		fi
+	fi
+fi
 
 echo -n "fio: ${fio_run_time}s run time, stop on error "
 if [ "${fio_stop_on_error}" == "1" ]; then
