@@ -254,7 +254,8 @@ saved_sched=$(dev_scheduler "${targetdev}")
 
 #
 # Set IO scheduler:
-# none for conventional drives, mq-deadline for zoned drives
+# none for conventional drives or zoned drives with kernel 6.10 or newer
+# mq-deadline for zoned drives with kernel older than 6.10
 #
 desired_sched=$(get_desired_scheduler "${targetdev}")
 set_scheduler "${targetdev}" "${desired_sched}"

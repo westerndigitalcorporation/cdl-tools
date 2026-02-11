@@ -312,15 +312,40 @@ function destroy_nullb()
 	rmmod null_blk >> /dev/null 2>&1
 }
 
+function kernver_is_at_least()
+{
+	local min_major_ver="$1"
+	local min_minor_ver="$2"
+	local curr_major_ver="$(uname -r | cut -d. -f1)"
+	local curr_minor_ver="$(uname -r | cut -d. -f2)"
+
+	if [ ${curr_major_ver} -gt ${min_major_ver} ]; then
+		return 0
+	elif [ ${curr_major_ver} -eq ${min_major_ver} ]; then
+		if [ ${curr_minor_ver} -ge ${min_minor_ver} ]; then
+			return 0
+		else
+			return 1
+		fi
+	else
+		return 1
+	fi
+}
+
 function get_desired_scheduler()
 {
 	local dev="$(realpath $1)"
+	local sched="none"
 
 	if dev_is_zoned "$dev"; then
-		echo "mq-deadline"
-	else
-		echo "none"
+		# Zoned write plugging (ZWP) was introduced in kernel 6.10
+		# If we have ZWP, we do not need mq-deadline
+		if ! kernver_is_at_least 6 10; then
+		    sched="mq-deadline"
+		fi
 	fi
+
+	echo "$sched"
 }
 
 function dev_scheduler()
