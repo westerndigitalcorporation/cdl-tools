@@ -477,7 +477,7 @@ function fio_get_clat_avg()
 
 function fio_has_io_error()
 {
-	[ "$(grep -c "func=io_u error" $1)" != 0 ]
+	[ "$(grep -c "fio: io_u error" $1)" != 0 ]
 }
 
 function fio_get_io_error()
