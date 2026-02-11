@@ -482,20 +482,20 @@ function fio_has_io_error()
 
 function fio_get_io_error()
 {
-	local err="$(grep ", err=" $1)"
+	# First try to get first_error (which is always printed if using
+	# --continue_on_error)
+	local err="$(grep first_error= $1)"
 
 	if [ ! -z "${err}" ]; then
 		echo "${err}" | cut -d'=' -f3 | cut -d'/' -f1
-		exit 0
+		return
 	fi
 
-	# When continuing on error (ignoring ETIME), errors are
-	# still logged but not reported as fatal with "err=".
-	# Check this here.
-	err="$(grep ": Timer expired:" $1)"
+	# If we did not find first_error, look for the fatal error print
+	err="$(grep ", err=" $1)"
 	if [ ! -z "${err}" ]; then
-		echo "62"
-		exit 0
+		echo "${err}" | cut -d'=' -f3 | cut -d'/' -f1
+		return
 	fi
 
 	# No errors seen
