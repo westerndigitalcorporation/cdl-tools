@@ -203,6 +203,26 @@ function dev_is_ata()
 	[ "${val}" == "1" ]
 }
 
+function dev_is_zoned()
+{
+	local dev="$1"
+
+	[ "$(devtype ${dev})" == "zoned" ]
+}
+
+function dev_nr_zones()
+{
+	local dev="$(realpath $1)"
+	local bdev="$(basename ${dev})"
+	local bdev_nr_zones="/sys/block/${bdev}/queue/nr_zones"
+
+        if [ -f "${bdev_nr_zones}" ]; then
+		echo "$(cat ${bdev_nr_zones})"
+	else
+		echo "0"
+	fi
+}
+
 function dev_uses_hba_sat()
 {
 	local dev="$(realpath $1)"
@@ -295,12 +315,11 @@ function destroy_nullb()
 function get_desired_scheduler()
 {
 	local dev="$(realpath $1)"
-	local bdev="$(basename ${dev})"
 
-	if [ "$(devtype ${dev})" == "conventional" ]; then
-		echo "none"
-	else
+	if dev_is_zoned "$dev"; then
 		echo "mq-deadline"
+	else
+		echo "none"
 	fi
 }
 
