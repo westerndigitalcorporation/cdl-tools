@@ -756,14 +756,30 @@ function fio_common_cmdline()
 	local rw="$7"
 	local fiocmd="$(time_cmdline)"
 	local cdl_perc
+	local ioengine=io_uring
+	local bs=1280k
 
 	fiocmd+="fio --name=\"$testname\""
 	fiocmd+=" --filename=$dev"
 	fiocmd+=" --random_generator=tausworthe64"
 	fiocmd+=" --write_lat_log=${logdir}/$(test_num $filename)_lat.log"
 	fiocmd+=" --log_prio=1 --per_job_logs=0"
-	fiocmd+=" --ioengine=io_uring --iodepth=32"
-	fiocmd+=" --bs=1280k --direct=1"
+
+	if dev_is_zoned "$dev"; then
+		fiocmd+=" --zonemode=zbd"
+
+		# io_uring is not safe from reordering, so cannot be used on
+		# zoned drives.
+		ioengine=libaio
+
+		# Use a bs that will evenly divide the zone size, to avoid
+		# issues like small remainders and poor write performance due to
+		# the need to wait for zone finish operations.
+		bs=1024k
+	fi
+
+	fiocmd+=" --ioengine=${ioengine} --iodepth=32"
+	fiocmd+=" --bs=${bs} --direct=1"
 	fiocmd+=" --runtime=${fio_run_time}"
 	fiocmd+=" --offset=0 --size=$(( fio_size * 512 ))"
 
@@ -826,12 +842,12 @@ function fio_common_cmdline()
 		dld_perc=$(( cdl_perc / 2 ))
 
 		fiocmd+=" --cmdprio_bssplit="
-		fiocmd+="1280k/${dld_perc}/2/0/${dld1}:"
-		fiocmd+="1280k/${dld_perc}/2/0/${dld2}"
+		fiocmd+="${bs}/${dld_perc}/2/0/${dld1}:"
+		fiocmd+="${bs}/${dld_perc}/2/0/${dld2}"
 
 		if [ "$rw" == "randrw" ]; then
 			# Use CDL only for reads
-			fiocmd+=",1280k/100/0/0/0"
+			fiocmd+=",${bs}/100/0/0/0"
 		fi
 
 	else
