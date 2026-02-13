@@ -1005,7 +1005,34 @@ bool cdl_sysfs_exists(struct cdl_dev *dev, const char *format, ...)
 }
 
 /*
- * Get a sysfs attribute value.
+ * Get a sysfs string attribute value.
+ */
+int cdl_sysfs_get_str_attr(struct cdl_dev *dev, char *val,
+			   const char *format, ...)
+{
+	char path[PATH_MAX];
+	va_list argp;
+	int ret = -1;
+	FILE *f;
+
+	va_start(argp, format);
+	vsnprintf(path, sizeof(path) - 1, format, argp);
+	va_end(argp);
+
+	f = fopen(path, "r");
+	if (f) {
+		if (fscanf(f, "%s", val) != 1)
+			strcpy(val, "");
+		else
+			ret = 0;
+		fclose(f);
+	}
+
+	return ret;
+}
+
+/*
+ * Get a sysfs integer attribute value.
  */
 unsigned long cdl_sysfs_get_ulong_attr(struct cdl_dev *dev,
 				       const char *format, ...)

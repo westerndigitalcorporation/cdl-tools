@@ -888,10 +888,23 @@ err_cmd_line:
 	printf("    Vendor: %s\n", dev.vendor);
 	printf("    Product: %s\n", dev.id);
 	printf("    Revision: %s\n", dev.rev);
-	printf("    %llu 512-byte sectors (%llu.%03llu TB)\n",
+	printf("    Capacity: %llu 512-byte sectors (%llu.%03llu TB)\n",
 	       dev.capacity,
 	       (dev.capacity << 9) / 1000000000000,
 	       ((dev.capacity << 9) % 1000000000000) / 1000000000);
+	if (cdl_dev_is_zoned(&dev)) {
+		printf("    Host-Managed zoned device: ");
+		fflush(stdout);
+		if (dev.nr_zones * dev.zone_sectors == dev.capacity)
+			printf("%u zones of %llu MiB\n",
+			       dev.nr_zones,
+			       (dev.zone_sectors << 9) >> 20);
+		else
+			printf("%u zones of %llu MiB + 1 runt zone\n",
+			       dev.nr_zones - 1,
+			       (dev.zone_sectors << 9) >> 20);
+	}
+
 	printf("    Device interface: %s\n",
 	       cdl_dev_is_ata(&dev) ? "ATA" : "SAS");
 	if (cdl_dev_is_ata(&dev)) {

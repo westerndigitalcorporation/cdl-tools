@@ -170,6 +170,9 @@ struct cdl_dev {
 	unsigned long long	min_limit;
 	unsigned long long	max_limit;
 
+	unsigned int		nr_zones;
+	unsigned long long	zone_sectors;
+
 	/* For ATA CDL log page caching */
 	uint8_t			ata_cdl_log[CDL_ATA_LOG_SIZE];
 
@@ -251,6 +254,8 @@ int cdl_statistics_upload(struct cdl_dev *dev, FILE *f);
 bool cdl_sysfs_exists(struct cdl_dev *dev, const char *format, ...);
 unsigned long cdl_sysfs_get_ulong_attr(struct cdl_dev *dev,
 				       const char *format, ...);
+int cdl_sysfs_get_str_attr(struct cdl_dev *dev, char *val,
+			   const char *format, ...);
 int cdl_sysfs_set_attr(struct cdl_dev *dev, const char *val,
 		       const char *format, ...);
 
@@ -290,6 +295,11 @@ int cdl_scsi_statistics_upload(struct cdl_dev *dev, FILE *f);
 static inline bool cdl_dev_is_ata(struct cdl_dev *dev)
 {
 	return dev->flags & CDL_ATA;
+}
+
+static inline bool cdl_dev_is_zoned(struct cdl_dev *dev)
+{
+	return dev->nr_zones != 0;
 }
 
 static inline bool cdl_dev_use_ata(struct cdl_dev *dev)

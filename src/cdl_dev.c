@@ -472,6 +472,7 @@ static int cdl_get_dev_info(struct cdl_dev *dev)
 {
 	struct cdl_sg_cmd cmd;
 	uint64_t capacity, timeout;
+	char zone_model[64];
 	uint32_t lba_size;
 	int ret;
 
@@ -510,6 +511,20 @@ static int cdl_get_dev_info(struct cdl_dev *dev)
 	timeout = cdl_sysfs_get_ulong_attr(dev, "/sys/block/%s/device/timeout",
 					   dev->name);
 	dev->cmd_timeout = timeout * 1000000000ULL;
+
+	/* Check if we are dealing with a zoned drive (host-managed ZBC/ZAC). */
+	ret = cdl_sysfs_get_str_attr(dev, zone_model,
+				     "/sys/block/%s/queue/zoned", dev->name);
+	if (!ret && strcmp(zone_model, "host-managed") == 0) {
+		dev->nr_zones =
+			cdl_sysfs_get_ulong_attr(dev,
+					"/sys/block/%s/queue/nr_zones",
+					dev->name);
+		dev->zone_sectors =
+			cdl_sysfs_get_ulong_attr(dev,
+					"/sys/block/%s/queue/chunk_sectors",
+					dev->name);
+	}
 
 	return 0;
 }
