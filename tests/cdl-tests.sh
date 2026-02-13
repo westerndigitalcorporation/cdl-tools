@@ -60,6 +60,7 @@ require_fio_cmdprio_hint
 require_program "bc"
 require_program "time"
 require_program "sed"
+require_program "sg_start"
 
 #
 # Parse command line
@@ -429,6 +430,9 @@ function run_test()
 	if dev_is_ata "${dev}"; then
 		test_qd=$(dev_qd "${dev}")
 	fi
+
+	# Make sure the drive is spun up to avoid fio run time errors
+	sg_start --start "${dev}" > /dev/null 2>&1
 
 	"$1" "${dev}"
 	ret=$?
