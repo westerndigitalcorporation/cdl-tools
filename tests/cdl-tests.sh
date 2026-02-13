@@ -466,7 +466,7 @@ driver="$(dev_adapter_driver ${targetdev})"
 
 echo "Running CDL tests on ${type} ${dev}:"
 
-cdladm info ${dev} | grep -e Product -e Revision | grep -v SAT
+cdladm info ${dev} | grep -e Product -e Revision -e zoned | grep -v SAT
 echo "    Device adapter driver: ${driver}"
 
 ver="$(cdladm --version | head -1 | cut -f3 -d ' ')"
