@@ -49,7 +49,7 @@ static void cdladm_usage(void)
 	printf("  --page <name>\n"
 	       "\tApply to the show, clear, save and stats-show commands.\n"
 	       "\tSpecify the name of the page to show,clear or save. The\n"
-	       "\tpage name tcan be: \"A\", \"B\", \"T2A\" or \"T2B\".\n");
+	       "\tpage name can be: \"A\", \"B\", \"T2A\" or \"T2B\".\n");
 	printf("  --file <path>\n"
 	       "\tApplies to the save, upload, stats-save and stats-upload\n"
 	       "\tcommands to specify the path of the page file or statistics\n"

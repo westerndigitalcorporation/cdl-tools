@@ -95,6 +95,28 @@ command will disable the high priority enhancement feature.
 Disable the high priority enhancement feature. This applies only to ATA devices 
 supporting this feature, as reported using the \fBinfo\fR command.
 
+.TP
+\fBstats-show\fR
+Display CDL statistics configuration and values. The option \fB\-\-page\fR can
+be used to specify a single page to display statistics for.
+
+.TP
+\fBstats-reset\fR
+Reset all CDL statistics values.
+
+.TP
+\fBstats-save\fR
+Save CDL statistics configuration to a file. If \fB\-\-file\fR is used, the
+configuration is saved to the specified file path. Otherwise, the configuration
+is saved to the file named <device name>-cdl-stats.cfg in the current working
+directory.
+
+.TP
+\fBstats-upload\fR
+Upload CDL statistics configuration to the target device. The option
+\fB\-\-file\fR must be used to specify the path of the file containing the
+statistics configuration.
+
 .SH OPTIONS
 
 .TP
@@ -122,14 +144,20 @@ or "T2B". This option can be used with the commands \fBshow\fR, \fBclear\fR,
 \fBsave\fR and \fBstats-show\fR.
 
 .TP
+.BI \-\-count
+This option can only be used with the \fBshow\fR command. It omits the
+descriptor details and only prints the number of valid descriptors in a page.
+
+.TP
 .BI \-\-file " page_file"
 Specify the path of the page file to use. This option can be used with the
-command \fBsave\fR and is mandatory with the command \fBupload\fR.
+commands \fBsave\fR and \fBstats-save\fR, and is mandatory with the commands
+\fBupload\fR and \fBstats-upload\fR.
 
 .TP
 .BI \-\-permanent
 This option can only be used in combination with the \fBupload\fR command
-to specify that the descriptor page must be permently saved on the device, as
+to specify that the descriptor page must be permanently saved on the device, as
 opposed to temporarily stored in volatile memory.
 
 .TP

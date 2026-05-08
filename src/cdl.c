@@ -516,7 +516,7 @@ char *cdl_get_line(FILE *f, char *line)
 		break;
 	}
 
-	/* Remove end of line spaces and cariage returns */
+	/* Remove end of line spaces and carriage returns */
 	len = strlen(str);
 	s = str + len - 1;
 	while (s != str &&
