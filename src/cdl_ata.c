@@ -795,8 +795,8 @@ static const char *stat_val_type[] =
 	/* 1h */ "Inactive time limit met",
 	/* 2h */ "Active time limit met",
 	/* 3h */ "Inactive and active time limit met",
-	/* 4h */ "Number of commands"
-		 "Unknown statistic type"
+	/* 4h */ "Number of commands",
+	"Unknown statistic type"
 };
 
 static const char *cdl_ata_stat_val_type(struct cdl_ata_stats_desc *sdesc)
